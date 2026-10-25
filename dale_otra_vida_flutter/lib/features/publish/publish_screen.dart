@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:ui';
 
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
@@ -98,6 +100,7 @@ class _PublishScreenState extends State<PublishScreen> {
   Future<void> _getLocation() async {
     setState(() => _gettingLocation = true);
     final loc = await currentApproxLocation();
+    if (!mounted) return;
     setState(() {
       _draft = _draft.copyWith(latitude: loc?.lat, longitude: loc?.lng);
       _gettingLocation = false;
@@ -153,11 +156,48 @@ class _PublishScreenState extends State<PublishScreen> {
   Future<void> _pickPhoto(ImageSource source) async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: source);
+    if (!mounted) return;
     if (file == null) return;
 
     final upload = _PhotoUpload(filePath: file.path);
     setState(() => _photos.add(upload));
     await _uploadPhoto(upload);
+    if (!mounted) return;
+  }
+
+  Future<Uint8List?> _compressPhoto(String filePath) async {
+    final file = File(filePath);
+    final bytes = await file.readAsBytes();
+    final codec = await instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final image = frame.image;
+    final width = image.width;
+    final height = image.height;
+    final target = _targetDimensions(width, height, maxSide: 1600);
+    return FlutterImageCompress.compressWithList(
+      bytes,
+      minWidth: target.width,
+      minHeight: target.height,
+      quality: 80,
+      format: CompressFormat.jpeg,
+    );
+  }
+
+  ({int width, int height}) _targetDimensions(
+    int width,
+    int height, {
+    required int maxSide,
+  }) {
+    if (width <= maxSide && height <= maxSide) {
+      return (width: width, height: height);
+    }
+    if (width >= height) {
+      final targetHeight = (maxSide * height / width).round();
+      return (width: maxSide, height: targetHeight);
+    } else {
+      final targetWidth = (maxSide * width / height).round();
+      return (width: targetWidth, height: maxSide);
+    }
   }
 
   Future<void> _uploadPhoto(_PhotoUpload upload) async {
@@ -166,23 +206,21 @@ class _PublishScreenState extends State<PublishScreen> {
       upload.error = false;
     });
     try {
-      final bytes = await FlutterImageCompress.compressWithFile(
-        upload.filePath,
-        minWidth: 1600,
-        minHeight: 1600,
-        quality: 80,
-        format: CompressFormat.jpeg,
-      );
+      final bytes = await _compressPhoto(upload.filePath);
+      if (!mounted) return;
       if (bytes == null) throw Exception('compression failed');
 
       final description = await client.listing.photoUploadDescription('jpg');
+      if (!mounted) return;
       final ok = await FileUploader(description.uploadDescription).upload(
         Stream.fromIterable([bytes]),
         bytes.length,
       );
+      if (!mounted) return;
       if (!ok) throw Exception('upload failed');
 
       final verified = await client.listing.verifyPhotoUpload(description.path);
+      if (!mounted) return;
       if (!verified) throw Exception('verify failed');
 
       setState(() {
@@ -191,6 +229,7 @@ class _PublishScreenState extends State<PublishScreen> {
       });
       _syncPhotos();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         upload.loading = false;
         upload.error = true;
@@ -260,6 +299,7 @@ class _PublishScreenState extends State<PublishScreen> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     final error = validateListingDraft(_draft);
     if (error != null) {
       ScaffoldMessenger.of(
@@ -270,37 +310,17 @@ class _PublishScreenState extends State<PublishScreen> {
 
     setState(() => _submitting = true);
     try {
-      final listing = Listing(
-        ownerId: widget.profile.id!,
-        title: _draft.title.trim(),
-        description: _draft.description.trim(),
-        type: _draft.type!,
-        category: _draft.category!,
-        condition: _draft.condition!,
-        photoUrls: _draft.photos,
-        expiresAt: _draft.expiresAt,
-        price: _draft.price,
-        returnDate: _draft.returnDate,
-        wantedInExchange: _draft.wantedInExchange.trim().isEmpty
-            ? null
-            : _draft.wantedInExchange.trim(),
-        neighborhood: _draft.neighborhood.trim(),
-        latitude: _draft.latitude!,
-        longitude: _draft.longitude!,
-        safeMeetingPoint: _draft.safeMeetingPoint.trim().isEmpty
-            ? null
-            : _draft.safeMeetingPoint.trim(),
-      );
+      final listing = _draft.toListing(ownerId: widget.profile.id!);
       await client.listing.create(listing);
-      if (mounted) Navigator.of(context).pop(true);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Revisa los datos e inténtalo de nuevo.'),
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Revisa los datos e inténtalo de nuevo.'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -309,7 +329,10 @@ class _PublishScreenState extends State<PublishScreen> {
   @override
   Widget build(BuildContext context) {
     final validationError = validateListingDraft(_draft);
-    final canSubmit = validationError == null && !_submitting;
+    final hasUploading = _photos.any((p) => p.loading);
+    final hasError = _photos.any((p) => p.error);
+    final canSubmit =
+        validationError == null && !_submitting && !hasUploading && !hasError;
 
     return PopScope(
       canPop: !_hasUnsavedChanges,
@@ -351,6 +374,7 @@ class _PublishScreenState extends State<PublishScreen> {
                         label: 'Título',
                         hint: 'Ej: Silla de madera usada',
                         controller: _titleController,
+                        maxLength: 80,
                         textCapitalization: TextCapitalization.sentences,
                       ),
                       const SizedBox(height: AppSpacing.l),
@@ -364,6 +388,7 @@ class _PublishScreenState extends State<PublishScreen> {
                         label: 'Barrio',
                         hint: 'Ej: Laureles',
                         controller: _neighborhoodController,
+                        maxLength: 60,
                         textCapitalization: TextCapitalization.sentences,
                       ),
                       const SizedBox(height: AppSpacing.l),
@@ -371,6 +396,7 @@ class _PublishScreenState extends State<PublishScreen> {
                         label: 'Punto de encuentro sugerido',
                         hint: 'Ej: Estación Metro Floresta',
                         controller: _meetingPointController,
+                        maxLength: 120,
                         textCapitalization: TextCapitalization.sentences,
                       ),
                       const SizedBox(height: AppSpacing.l),
@@ -380,7 +406,12 @@ class _PublishScreenState extends State<PublishScreen> {
                   ),
                 ),
               ),
-              _buildBottomBar(canSubmit, validationError),
+              _buildBottomBar(
+                canSubmit,
+                validationError,
+                hasUploading,
+                hasError,
+              ),
             ],
           ),
         ),
@@ -436,9 +467,19 @@ class _PublishScreenState extends State<PublishScreen> {
           children: ListingTypeUi.values.map((type) {
             final selected = _draft.type == type.toServer;
             return InkWell(
-              onTap: () => setState(
-                () => _draft = _draft.copyWith(type: type.toServer),
-              ),
+              onTap: () {
+                if (_draft.type == type.toServer) return;
+                _priceController.text = '';
+                _wantedController.text = '';
+                setState(
+                  () => _draft = _draft.copyWith(
+                    type: type.toServer,
+                    price: null,
+                    returnDate: null,
+                    wantedInExchange: '',
+                  ),
+                );
+              },
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.m),
@@ -497,6 +538,7 @@ class _PublishScreenState extends State<PublishScreen> {
               onSelected: (_) => setState(
                 () => _draft = _draft.copyWith(
                   category: selected ? null : category.toServer,
+                  expiresAt: null,
                 ),
               ),
               selectedColor: AppColors.accentStrong,
@@ -580,7 +622,7 @@ class _PublishScreenState extends State<PublishScreen> {
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              _CopInputFormatter(),
+              CopInputFormatter(),
             ],
           ),
           const SizedBox(height: AppSpacing.l),
@@ -599,6 +641,7 @@ class _PublishScreenState extends State<PublishScreen> {
             label: '¿Qué te gustaría recibir a cambio?',
             hint: 'Ej: Un libro de cocina',
             controller: _wantedController,
+            maxLength: 200,
             textCapitalization: TextCapitalization.sentences,
           ),
           const SizedBox(height: AppSpacing.l),
@@ -622,9 +665,7 @@ class _PublishScreenState extends State<PublishScreen> {
           hintText: hint,
         ),
         child: Text(
-          value != null
-              ? DateFormat('d MMM y', 'es').format(value).toLowerCase()
-              : hint,
+          value != null ? formatDate(value) : hint,
           style: AppTypography.body.copyWith(
             color: value != null ? AppColors.textPrimary : AppColors.textHint,
           ),
@@ -687,7 +728,19 @@ class _PublishScreenState extends State<PublishScreen> {
     );
   }
 
-  Widget _buildBottomBar(bool canSubmit, String? validationError) {
+  Widget _buildBottomBar(
+    bool canSubmit,
+    String? validationError,
+    bool hasUploading,
+    bool hasError,
+  ) {
+    String? uploadHint;
+    if (hasUploading) {
+      uploadHint = 'Esperando que terminen de subir las fotos';
+    } else if (hasError) {
+      uploadHint = 'Quita o reintenta las fotos con error';
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -706,6 +759,13 @@ class _PublishScreenState extends State<PublishScreen> {
           if (validationError != null) ...[
             Text(
               validationError,
+              style: AppTypography.caption.copyWith(color: AppColors.danger),
+            ),
+            const SizedBox(height: AppSpacing.s),
+          ],
+          if (uploadHint != null) ...[
+            Text(
+              uploadHint,
               style: AppTypography.caption.copyWith(color: AppColors.danger),
             ),
             const SizedBox(height: AppSpacing.s),
@@ -751,11 +811,10 @@ class _PhotoThumbnail extends StatelessWidget {
             width: 84,
             height: 84,
             color: AppColors.surfaceMuted,
-            child: upload.path != null
-                ? Image.network(upload.path!, fit: BoxFit.cover)
-                : const Center(
-                    child: Icon(Icons.image, color: AppColors.textHint),
-                  ),
+            child: Image.file(
+              File(upload.filePath),
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         if (upload.loading)
@@ -827,7 +886,7 @@ class _AddPhotoTile extends StatelessWidget {
   }
 }
 
-class _CopInputFormatter extends TextInputFormatter {
+class CopInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -837,7 +896,13 @@ class _CopInputFormatter extends TextInputFormatter {
     if (digits.isEmpty) {
       return newValue.copyWith(text: '');
     }
-    final value = int.parse(digits);
+    if (digits.length > 9) {
+      return oldValue;
+    }
+    final value = int.tryParse(digits);
+    if (value == null) {
+      return oldValue;
+    }
     final formatted = NumberFormat('#,##0', 'es_CO').format(value);
     return TextEditingValue(
       text: formatted,

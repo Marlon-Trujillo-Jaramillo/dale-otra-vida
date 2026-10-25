@@ -62,6 +62,8 @@ serverpod:
       displayName: "Dale otra vida app"
       auto_launch: true
       target: lib/driver.dart
+      # Marlon's phone (motorola edge 60 fusion). Use `flutter devices` to list others.
+      device: ZY22LW2VQ3
       # Mac's LAN IP so a physical phone on the same Wi-Fi can reach the server.
       # Update it if the Wi-Fi network changes (`ipconfig getifaddr en0`).
       dart-define: [SERVER_URL=http://192.168.1.5:8080/]

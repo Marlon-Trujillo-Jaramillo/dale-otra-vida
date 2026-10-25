@@ -78,11 +78,38 @@ class ListingDraft {
       longitude: longitude == _sentinel ? this.longitude : longitude as double?,
     );
   }
+
+  Listing toListing({required int ownerId}) {
+    return Listing(
+      ownerId: ownerId,
+      title: title.trim(),
+      description: description.trim(),
+      type: type!,
+      category: category!,
+      condition: condition!,
+      photoUrls: photos,
+      neighborhood: neighborhood.trim(),
+      latitude: latitude!,
+      longitude: longitude!,
+      safeMeetingPoint: safeMeetingPoint.trim().isEmpty
+          ? null
+          : safeMeetingPoint.trim(),
+      expiresAt: category == Category.food ? expiresAt : null,
+      price: type == ListingType.sell ? price : null,
+      returnDate: type == ListingType.lend ? returnDate : null,
+      wantedInExchange: type == ListingType.exchange
+          ? (wantedInExchange.trim().isEmpty ? null : wantedInExchange.trim())
+          : null,
+    );
+  }
 }
 
 String? validateListingDraft(ListingDraft draft) {
   if (draft.photos.isEmpty) {
     return 'Agrega al menos una foto.';
+  }
+  if (draft.photos.length > 5) {
+    return 'No puedes subir más de 5 fotos.';
   }
   if (draft.type == null) {
     return 'Selecciona qué quieres hacer.';
@@ -90,11 +117,12 @@ String? validateListingDraft(ListingDraft draft) {
   if (draft.category == null) {
     return 'Selecciona una categoría.';
   }
-  if (draft.title.trim().length < 3 || draft.title.trim().length > 80) {
+  final title = draft.title.trim();
+  if (title.length < 3 || title.length > 80) {
     return 'El título debe tener entre 3 y 80 caracteres.';
   }
-  if (draft.description.trim().length < 10 ||
-      draft.description.trim().length > 1000) {
+  final description = draft.description.trim();
+  if (description.length < 10 || description.length > 1000) {
     return 'La descripción debe tener entre 10 y 1000 caracteres.';
   }
   if (draft.condition == null) {
@@ -113,14 +141,14 @@ String? validateListingDraft(ListingDraft draft) {
       draft.expiresAt!.month,
       draft.expiresAt!.day,
     );
-    if (expiry.isBefore(today)) {
+    if (!expiry.isAfter(today)) {
       return 'La fecha de vencimiento debe ser futura.';
     }
   }
 
   if (draft.type == ListingType.sell) {
-    if (draft.price == null || draft.price! <= 0) {
-      return 'Ingresa un precio válido.';
+    if (draft.price == null || draft.price! < 1 || draft.price! > 100000000) {
+      return 'Ingresa un precio entre \$1 y \$100.000.000.';
     }
   }
 
@@ -133,19 +161,26 @@ String? validateListingDraft(ListingDraft draft) {
       draft.returnDate!.month,
       draft.returnDate!.day,
     );
-    if (returnDay.isBefore(today)) {
+    if (!returnDay.isAfter(today)) {
       return 'La fecha de devolución debe ser futura.';
     }
   }
 
   if (draft.type == ListingType.exchange) {
-    if (draft.wantedInExchange.trim().length < 3) {
-      return 'Describe qué te gustaría recibir a cambio.';
+    final wanted = draft.wantedInExchange.trim();
+    if (wanted.length < 3 || wanted.length > 200) {
+      return 'Describe qué te gustaría recibir a cambio (3 a 200 caracteres).';
     }
   }
 
-  if (draft.neighborhood.trim().isEmpty) {
-    return 'Ingresa el barrio.';
+  final neighborhood = draft.neighborhood.trim();
+  if (neighborhood.length < 2 || neighborhood.length > 60) {
+    return 'El barrio debe tener entre 2 y 60 caracteres.';
+  }
+
+  final meetingPoint = draft.safeMeetingPoint.trim();
+  if (meetingPoint.length > 120) {
+    return 'El punto de encuentro no puede superar 120 caracteres.';
   }
 
   if (draft.latitude == null || draft.longitude == null) {

@@ -38,11 +38,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         _view.listing.id!,
         status,
       );
-      setState(() => _view = updated);
+      if (!mounted) return;
+      setState(
+        () => _view = updated.copyWith(distanceKm: _view.distanceKm),
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Estado actualizado')),
-        );
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
@@ -53,7 +54,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         );
       }
     } finally {
-      setState(() => _updating = false);
+      if (mounted) {
+        setState(() => _updating = false);
+      }
     }
   }
 
@@ -260,14 +263,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   Widget _typeSpecificCard(Listing listing) {
-    return switch (listing.type) {
-      ListingType.donate => _InfoCard(
+    if (listing.expiresAt != null) {
+      return _InfoCard(
         label: 'Fecha de vencimiento',
-        value: listing.expiresAt != null
-            ? formatDate(listing.expiresAt!)
-            : 'No aplica',
+        value: formatDate(listing.expiresAt!),
         highlight: true,
-      ),
+      );
+    }
+    return switch (listing.type) {
+      ListingType.donate => const SizedBox.shrink(),
       ListingType.sell => _InfoCard(
         label: 'Precio',
         value: listing.price != null ? formatCop(listing.price!) : 'Gratis',
@@ -349,7 +353,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       ),
       child: Row(
         children: [
-          AppAvatar(initials: _initials(owner.displayName)),
+          AppAvatar(initials: initialsFor(owner.displayName)),
           const SizedBox(width: AppSpacing.m),
           Expanded(
             child: Column(
@@ -400,41 +404,42 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
     Widget content;
     if (_view.isMine) {
-      final canReserve = status == ListingStatus.available;
-      content = Row(
-        children: [
-          Expanded(
-            child: AppSecondaryButton(
-              label: canReserve
-                  ? 'Marcar como reservado'
-                  : 'Marcar como disponible',
-              onPressed: _updating
-                  ? null
-                  : () => _updateStatus(
-                      canReserve
-                          ? ListingStatus.reserved
-                          : ListingStatus.available,
-                    ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s),
-          Expanded(
-            child: AppSecondaryButton(
-              label: 'Marcar como entregado',
-              onPressed: _updating
-                  ? null
-                  : () => _updateStatus(ListingStatus.delivered),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s),
-          Expanded(
-            child: AppPrimaryButton(
-              label: 'Retirar',
-              onPressed: _updating ? null : _withdraw,
-            ),
-          ),
-        ],
-      );
+      final actions = allowedOwnerActions(status);
+      if (actions.isEmpty) {
+        content = const SizedBox.shrink();
+      } else {
+        final mainAction = actions.first;
+        final secondaryActions = actions
+            .where((action) => action != OwnerAction.withdraw)
+            .toList();
+        content = Column(
+          children: [
+            for (final action in secondaryActions) ...[
+              if (action == mainAction)
+                AppPrimaryButton(
+                  label: _actionLabel(action),
+                  onPressed: _updating ? null : () => _executeAction(action),
+                )
+              else
+                AppSecondaryButton(
+                  label: _actionLabel(action),
+                  onPressed: _updating ? null : () => _executeAction(action),
+                ),
+              const SizedBox(height: AppSpacing.s),
+            ],
+            if (actions.contains(OwnerAction.withdraw))
+              TextButton(
+                onPressed: _updating ? null : _withdraw,
+                child: Text(
+                  'Retirar',
+                  style: AppTypography.bodyStrong.copyWith(
+                    color: AppColors.danger,
+                  ),
+                ),
+              ),
+          ],
+        );
+      }
     } else {
       content = Row(
         children: [
@@ -496,13 +501,45 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       ),
     );
   }
+
+  void _executeAction(OwnerAction action) {
+    switch (action) {
+      case OwnerAction.reserve:
+        _updateStatus(ListingStatus.reserved);
+      case OwnerAction.markAvailable:
+        _updateStatus(ListingStatus.available);
+      case OwnerAction.markDelivered:
+        _updateStatus(ListingStatus.delivered);
+      case OwnerAction.withdraw:
+        _withdraw();
+    }
+  }
 }
 
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+'));
-  if (parts.isEmpty) return '?';
-  if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+enum OwnerAction { reserve, markAvailable, markDelivered, withdraw }
+
+List<OwnerAction> allowedOwnerActions(ListingStatus status) {
+  return switch (status) {
+    ListingStatus.available => [
+      OwnerAction.reserve,
+      OwnerAction.withdraw,
+    ],
+    ListingStatus.reserved => [
+      OwnerAction.markAvailable,
+      OwnerAction.markDelivered,
+      OwnerAction.withdraw,
+    ],
+    ListingStatus.delivered || ListingStatus.withdrawn => [],
+  };
+}
+
+String _actionLabel(OwnerAction action) {
+  return switch (action) {
+    OwnerAction.reserve => 'Reservar',
+    OwnerAction.markAvailable => 'Marcar como disponible',
+    OwnerAction.markDelivered => 'Marcar como entregado',
+    OwnerAction.withdraw => 'Retirar',
+  };
 }
 
 String _statusLabel(ListingStatus status) {

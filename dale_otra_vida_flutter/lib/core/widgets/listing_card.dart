@@ -125,11 +125,11 @@ class ListingCard extends StatelessWidget {
 
 String _metaFor(Listing listing) {
   final condition = conditionLabel(listing.condition);
+  if (listing.expiresAt != null) {
+    return 'Vence: ${formatDate(listing.expiresAt!)} · Estado: $condition';
+  }
   return switch (listing.type) {
-    ListingType.donate =>
-      listing.expiresAt != null
-          ? 'Vence: ${formatDate(listing.expiresAt!)} · Estado: $condition'
-          : 'Estado: $condition',
+    ListingType.donate => 'Estado: $condition',
     ListingType.sell =>
       listing.price != null
           ? '${formatCop(listing.price!)} · Estado: $condition'

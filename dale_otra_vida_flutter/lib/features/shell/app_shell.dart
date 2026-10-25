@@ -2,8 +2,10 @@ import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:dale_otra_vida_flutter/client.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_colors.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_spacing.dart';
+import 'package:dale_otra_vida_flutter/core/theme/app_typography.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_secondary_button.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/empty_state.dart';
+import 'package:dale_otra_vida_flutter/features/home/home_controller.dart';
 import 'package:dale_otra_vida_flutter/features/home/home_screen.dart';
 import 'package:dale_otra_vida_flutter/features/publish/publish_screen.dart';
 import 'package:dale_otra_vida_flutter/screens/design_gallery_screen.dart';
@@ -12,7 +14,14 @@ import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({
+    super.key,
+    this.initialProfile,
+    this.fetchFeed,
+  });
+
+  final MemberProfile? initialProfile;
+  final ListingFeedFetch? fetchFeed;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -29,7 +38,13 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    final initial = widget.initialProfile;
+    if (initial != null) {
+      _profile = initial;
+      _loadingProfile = false;
+    } else {
+      _loadProfile();
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -70,6 +85,10 @@ class _AppShellState extends State<AppShell> {
         });
   }
 
+  void _onTabSelected(int index) {
+    setState(() => _currentIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingProfile) {
@@ -94,7 +113,11 @@ class _AppShellState extends State<AppShell> {
     }
 
     final tabs = [
-      HomeScreen(key: _homeKey, profile: _profile!),
+      HomeScreen(
+        key: _homeKey,
+        profile: _profile!,
+        fetchFeed: widget.fetchFeed,
+      ),
       const _PlaceholderTab(
         icon: Icons.chat_bubble_outline,
         title: 'Mensajes',
@@ -117,27 +140,100 @@ class _AppShellState extends State<AppShell> {
         child: const Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Inicio',
+      bottomNavigationBar: BottomAppBar(
+        color: AppColors.primary,
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 6,
+        child: SizedBox(
+          height: 72,
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _BottomTab(
+                        icon: Icons.home_outlined,
+                        activeIcon: Icons.home,
+                        label: 'Inicio',
+                        selected: _currentIndex == 0,
+                        onTap: () => _onTabSelected(0),
+                      ),
+                    ),
+                    Expanded(
+                      child: _BottomTab(
+                        icon: Icons.chat_bubble_outline,
+                        activeIcon: Icons.chat_bubble,
+                        label: 'Mensajes',
+                        selected: _currentIndex == 1,
+                        onTap: () => _onTabSelected(1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 72),
+              Expanded(
+                child: _BottomTab(
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person,
+                  label: 'Perfil',
+                  selected: _currentIndex == 2,
+                  onTap: () => _onTabSelected(2),
+                ),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Mensajes',
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomTab extends StatelessWidget {
+  const _BottomTab({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? AppColors.onPrimary
+        : AppColors.onPrimary.withValues(alpha: 0.6);
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox.expand(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                selected ? activeIcon : icon,
+                color: color,
+                size: 22,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: AppTypography.caption.copyWith(
+                  color: color,
+                  fontSize: 10,
+                ),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Perfil',
-          ),
-        ],
-        selectedItemColor: AppColors.onPrimary,
-        unselectedItemColor: AppColors.onPrimary.withValues(alpha: 0.6),
-        selectedLabelStyle: const TextStyle(fontSize: 11),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
+        ),
       ),
     );
   }

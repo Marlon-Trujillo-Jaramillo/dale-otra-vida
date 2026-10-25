@@ -17,7 +17,7 @@ String formatCop(int value) {
 }
 
 String formatDate(DateTime date) {
-  return DateFormat('d MMM y', 'es').format(date).toLowerCase();
+  return DateFormat('d MMM y', 'es').format(date.toLocal()).toLowerCase();
 }
 
 String conditionLabel(ItemCondition condition) {
@@ -26,4 +26,14 @@ String conditionLabel(ItemCondition condition) {
     ItemCondition.good => 'Bueno',
     ItemCondition.used => 'Usado',
   };
+}
+
+String initialsFor(String? name) {
+  final trimmed = name?.trim() ?? '';
+  if (trimmed.isEmpty) return '?';
+  final parts = trimmed.split(RegExp(r'\s+'));
+  if (parts.length == 1) {
+    return parts.first.substring(0, 1).toUpperCase();
+  }
+  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }

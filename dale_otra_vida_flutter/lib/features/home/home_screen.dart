@@ -17,9 +17,14 @@ import '../listing/listing_detail_screen.dart';
 import 'home_controller.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.profile});
+  const HomeScreen({
+    super.key,
+    required this.profile,
+    this.fetchFeed,
+  });
 
   final MemberProfile profile;
+  final ListingFeedFetch? fetchFeed;
 
   @override
   State<HomeScreen> createState() => HomeScreenState();
@@ -33,7 +38,10 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = HomeController(profile: widget.profile);
+    _controller = HomeController(
+      profile: widget.profile,
+      fetchFeed: widget.fetchFeed,
+    );
     _controller.init();
   }
 
@@ -70,12 +78,15 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openDetail(ListingView view) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+  Future<void> _openDetail(ListingView view) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (context) => ListingDetailScreen(view: view),
       ),
     );
+    if (changed == true) {
+      _controller.refresh();
+    }
   }
 
   @override
@@ -106,9 +117,15 @@ class HomeScreenState extends State<HomeScreen> {
                       SliverToBoxAdapter(child: _buildSkeleton(context))
                     else if (_controller.error != null &&
                         _controller.listings.isEmpty)
-                      SliverFillRemaining(child: _buildError(context))
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _buildError(context),
+                      )
                     else if (_controller.listings.isEmpty)
-                      SliverFillRemaining(child: _buildEmpty(context))
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _buildEmpty(context),
+                      )
                     else
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(
@@ -125,6 +142,9 @@ class HomeScreenState extends State<HomeScreen> {
                                       child: CircularProgressIndicator(),
                                     ),
                                   );
+                                }
+                                if (_controller.loadMoreError != null) {
+                                  return _buildLoadMoreError(context);
                                 }
                                 return const SizedBox.shrink();
                               }
@@ -243,7 +263,8 @@ class HomeScreenState extends State<HomeScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: AppSpacing.m,
-            crossAxisSpacing: AppSpacing.m,
+            crossAxisSpacing: AppSpacing.s,
+            childAspectRatio: 0.85,
             children: categories.map((category) {
               final selected = _controller.selectedCategory == category;
               return InkWell(
@@ -307,6 +328,34 @@ class HomeScreenState extends State<HomeScreen> {
       message: 'Revisa tu conexión e inténtalo de nuevo.',
       actionLabel: 'Reintentar',
       onAction: _controller.refresh,
+    );
+  }
+
+  Widget _buildLoadMoreError(BuildContext context) {
+    return InkWell(
+      onTap: () => _controller.loadMore(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.l),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'No pudimos cargar más',
+              style: AppTypography.caption,
+            ),
+            Text(
+              ' · ',
+              style: AppTypography.caption,
+            ),
+            Text(
+              'Reintentar',
+              style: AppTypography.bodyStrong.copyWith(
+                color: AppColors.link,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
