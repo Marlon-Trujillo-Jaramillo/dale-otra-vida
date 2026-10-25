@@ -27,11 +27,64 @@ void main() {
     return <ListingView>[];
   }
 
+  void setSize(WidgetTester tester, Size size) {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  testWidgets('compact 390x844 shows bottom bar and no rail/top bar', (
+    tester,
+  ) async {
+    setSize(tester, const Size(390, 844));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: AppShell(
+          initialProfile: fakeProfile(),
+          fetchFeed: fakeFetch,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomAppBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.text('Publicar'), findsNothing);
+
+    expect(find.text('Inicio'), findsOneWidget);
+    expect(find.text('Mensajes'), findsOneWidget);
+    expect(find.text('Perfil'), findsOneWidget);
+  });
+
+  testWidgets('expanded 1440x900 shows top bar Publicar and no bottom bar', (
+    tester,
+  ) async {
+    setSize(tester, const Size(1440, 900));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: AppShell(
+          initialProfile: fakeProfile(),
+          fetchFeed: fakeFetch,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomAppBar), findsNothing);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.text('Publicar'), findsOneWidget);
+    expect(find.text('Dale Otra Vida'), findsWidgets);
+  });
+
   testWidgets('bottom bar at 360x640 switches to Mensajes tab', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(360, 640));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    setSize(tester, const Size(360, 640));
 
     await tester.pumpWidget(
       MaterialApp(

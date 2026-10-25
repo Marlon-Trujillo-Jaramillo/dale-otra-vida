@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../client.dart';
 import '../../core/format.dart';
+import '../../core/layout/breakpoints.dart';
 import '../../core/models/category_ui.dart';
 import '../../core/models/listing_type_ui.dart';
 import '../../core/theme/app_colors.dart';
@@ -24,6 +25,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   late ListingView _view;
   int _currentPhoto = 0;
   bool _updating = false;
+  bool _galleryHover = false;
 
   @override
   void initState() {
@@ -102,6 +104,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = ScreenSize.of(context);
+    if (size == ScreenSize.compact) {
+      return _buildCompact(context);
+    }
+    return _buildWide(context);
+  }
+
+  Widget _buildCompact(BuildContext context) {
     final listing = _view.listing;
     final owner = _view.owner;
     final typeUi = ListingTypeUi.fromServer(listing.type);
@@ -144,6 +154,77 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
             _buildBottomBar(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWide(BuildContext context) {
+    final listing = _view.listing;
+    final owner = _view.owner;
+    final typeUi = ListingTypeUi.fromServer(listing.type);
+    final categoryUi = CategoryUi.fromServer(listing.category);
+
+    return Scaffold(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          child: ContentWidth(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.arrow_back, size: 18),
+                  label: const Text('Volver'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    padding: EdgeInsets.zero,
+                    alignment: Alignment.centerLeft,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.m),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 7,
+                      child: _buildWideGallery(context),
+                    ),
+                    const SizedBox(width: 40),
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildBadges(typeUi, categoryUi),
+                          const SizedBox(height: AppSpacing.m),
+                          Text(listing.title, style: AppTypography.headline),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Publicado el ${formatDate(listing.createdAt)}',
+                            style: AppTypography.caption,
+                          ),
+                          const SizedBox(height: AppSpacing.l),
+                          _buildInfoCards(listing),
+                          const SizedBox(height: AppSpacing.l),
+                          _buildDescription(listing),
+                          const SizedBox(height: AppSpacing.l),
+                          _buildMeetingPoint(listing),
+                          const SizedBox(height: AppSpacing.l),
+                          _buildOwnerCard(owner),
+                          const SizedBox(height: AppSpacing.l),
+                          _buildWideActions(),
+                          const SizedBox(height: AppSpacing.xl),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -226,6 +307,137 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  Widget _buildWideGallery(BuildContext context) {
+    final photos = _view.listing.photoUrls;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MouseRegion(
+          onEnter: (_) => setState(() => _galleryHover = true),
+          onExit: (_) => setState(() => _galleryHover = false),
+          child: AspectRatio(
+            aspectRatio: 4 / 3,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                color: AppColors.surfaceMuted,
+                child: photos.isEmpty
+                    ? const Center(
+                        child: Icon(
+                          Icons.image,
+                          size: 64,
+                          color: AppColors.textHint,
+                        ),
+                      )
+                    : Stack(
+                        children: [
+                          Positioned.fill(
+                            child: PageView.builder(
+                              itemCount: photos.length,
+                              onPageChanged: (index) => setState(
+                                () => _currentPhoto = index,
+                              ),
+                              itemBuilder: (context, index) {
+                                return GestureDetector(
+                                  onTap: () =>
+                                      _openPhotoFullscreen(photos[index]),
+                                  child: CachedNetworkImage(
+                                    imageUrl: photos[index],
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        const Center(
+                                          child: Icon(
+                                            Icons.broken_image,
+                                            size: 48,
+                                          ),
+                                        ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          if (photos.length > 1) ...[
+                            AnimatedOpacity(
+                              opacity: _galleryHover ? 1 : 0,
+                              duration: const Duration(milliseconds: 160),
+                              child: _GalleryArrow(
+                                left: true,
+                                onTap: () {
+                                  if (_currentPhoto > 0) {
+                                    setState(() => _currentPhoto--);
+                                  }
+                                },
+                              ),
+                            ),
+                            AnimatedOpacity(
+                              opacity: _galleryHover ? 1 : 0,
+                              duration: const Duration(milliseconds: 160),
+                              child: _GalleryArrow(
+                                left: false,
+                                onTap: () {
+                                  if (_currentPhoto < photos.length - 1) {
+                                    setState(() => _currentPhoto++);
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        ),
+        if (photos.length > 1) ...[
+          const SizedBox(height: AppSpacing.m),
+          SizedBox(
+            height: 56,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: photos.length,
+              separatorBuilder: (context, index) =>
+                  const SizedBox(width: AppSpacing.s),
+              itemBuilder: (context, index) {
+                final selected = index == _currentPhoto;
+                return MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _currentPhoto = index),
+                    child: Container(
+                      width: 72,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: CachedNetworkImage(
+                        imageUrl: photos[index],
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const _PlaceholderIcon(),
+                        errorWidget: (context, url, error) =>
+                            const _PlaceholderIcon(),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildBadges(ListingTypeUi typeUi, CategoryUi categoryUi) {
     return Wrap(
       spacing: AppSpacing.s,
@@ -297,7 +509,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       children: [
         Text('Descripción', style: AppTypography.sectionLabel),
         const SizedBox(height: AppSpacing.s),
-        Text(listing.description, style: AppTypography.body),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Text(listing.description, style: AppTypography.body),
+        ),
       ],
     );
   }
@@ -344,56 +559,59 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   Widget _buildOwnerCard(MemberProfile owner) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          AppAvatar(initials: initialsFor(owner.displayName)),
-          const SizedBox(width: AppSpacing.m),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        owner.displayName,
-                        style: AppTypography.bodyStrong,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.m),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            AppAvatar(initials: initialsFor(owner.displayName)),
+            const SizedBox(width: AppSpacing.m),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          owner.displayName,
+                          style: AppTypography.bodyStrong,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    if (owner.isVerified) ...[
-                      const SizedBox(width: AppSpacing.xs),
-                      const Icon(
-                        Icons.verified,
-                        color: AppColors.verified,
-                        size: 16,
-                      ),
+                      if (owner.isVerified) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        const Icon(
+                          Icons.verified,
+                          color: AppColors.verified,
+                          size: 16,
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  '★ ${owner.ratingAvg.toStringAsFixed(1)} · '
-                  '${owner.reviewCount} reseñas · '
-                  '${owner.deliveryCount} entregas',
-                  style: AppTypography.caption,
-                ),
-              ],
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '★ ${owner.ratingAvg.toStringAsFixed(1)} · '
+                    '${owner.reviewCount} reseñas · '
+                    '${owner.deliveryCount} entregas',
+                    style: AppTypography.caption,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Icon(
-            Icons.chevron_right,
-            color: AppColors.textSecondary,
-          ),
-        ],
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.textSecondary,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -502,6 +720,103 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  Widget _buildWideActions() {
+    final listing = _view.listing;
+    final status = listing.status;
+
+    Widget content;
+    if (_view.isMine) {
+      final actions = allowedOwnerActions(status);
+      if (actions.isEmpty) {
+        content = const SizedBox.shrink();
+      } else {
+        final mainAction = actions.first;
+        final secondaryActions = actions
+            .where((action) => action != OwnerAction.withdraw)
+            .toList();
+        content = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final action in secondaryActions) ...[
+              if (action == mainAction)
+                AppPrimaryButton(
+                  label: _actionLabel(action),
+                  onPressed: _updating ? null : () => _executeAction(action),
+                )
+              else
+                AppSecondaryButton(
+                  label: _actionLabel(action),
+                  onPressed: _updating ? null : () => _executeAction(action),
+                ),
+              const SizedBox(height: AppSpacing.s),
+            ],
+            if (actions.contains(OwnerAction.withdraw))
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: _updating ? null : _withdraw,
+                  child: Text(
+                    'Retirar',
+                    style: AppTypography.bodyStrong.copyWith(
+                      color: AppColors.danger,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      }
+    } else {
+      content = Row(
+        children: [
+          InkWell(
+            onTap: _showSoonSnackBar,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.chat_bubble_outline),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s),
+          Expanded(
+            child: AppPrimaryButton(
+              label: 'Lo quiero',
+              onPressed: _showSoonSnackBar,
+            ),
+          ),
+        ],
+      );
+    }
+
+    final banner = status != ListingStatus.available
+        ? Container(
+            width: double.infinity,
+            color: AppColors.surfaceMuted,
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
+            margin: const EdgeInsets.only(bottom: AppSpacing.m),
+            child: Text(
+              _statusLabel(status),
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyStrong,
+            ),
+          )
+        : const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        banner,
+        content,
+      ],
+    );
+  }
+
   void _executeAction(OwnerAction action) {
     switch (action) {
       case OwnerAction.reserve:
@@ -589,6 +904,54 @@ class _InfoCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GalleryArrow extends StatelessWidget {
+  const _GalleryArrow({required this.left, required this.onTap});
+
+  final bool left;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: left ? AppSpacing.m : null,
+      right: left ? null : AppSpacing.m,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                left ? Icons.arrow_back : Icons.arrow_forward,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaceholderIcon extends StatelessWidget {
+  const _PlaceholderIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Icon(Icons.image, color: AppColors.textHint, size: 32),
     );
   }
 }

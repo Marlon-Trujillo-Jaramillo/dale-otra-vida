@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/layout/breakpoints.dart';
 import '../../core/models/category_ui.dart';
 import '../../core/models/listing_type_ui.dart';
 import '../../core/theme/app_colors.dart';
@@ -12,6 +13,7 @@ import '../../core/widgets/category_tile.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/filter_chip_row.dart';
 import '../../core/widgets/listing_card.dart';
+import '../../core/widgets/listing_grid_card.dart';
 import '../../core/widgets/section_header.dart';
 import '../listing/listing_detail_screen.dart';
 import 'home_controller.dart';
@@ -94,88 +96,505 @@ class HomeScreenState extends State<HomeScreen> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return Scaffold(
-          body: SafeArea(
-            child: RefreshIndicator(
-              onRefresh: _controller.refresh,
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (notification) {
-                  if (notification.metrics.pixels >=
-                      notification.metrics.maxScrollExtent - 200) {
-                    _controller.loadMore();
-                  }
-                  return false;
-                },
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(child: _buildHeader(context)),
-                    SliverToBoxAdapter(child: _buildSearch(context)),
-                    SliverToBoxAdapter(child: _buildFilterChips(context)),
-                    SliverToBoxAdapter(child: _buildCategories(context)),
-                    SliverToBoxAdapter(child: _buildSectionHeader(context)),
-                    if (_controller.loading && _controller.listings.isEmpty)
-                      SliverToBoxAdapter(child: _buildSkeleton(context))
-                    else if (_controller.error != null &&
-                        _controller.listings.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: _buildError(context),
-                      )
-                    else if (_controller.listings.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: _buildEmpty(context),
-                      )
-                    else
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.screenHorizontal,
-                        ),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              if (index == _controller.listings.length) {
-                                if (_controller.loadingMore) {
-                                  return const Padding(
-                                    padding: EdgeInsets.all(AppSpacing.l),
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                }
-                                if (_controller.loadMoreError != null) {
-                                  return _buildLoadMoreError(context);
-                                }
-                                return const SizedBox.shrink();
-                              }
-                              final view = _controller.listings[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppSpacing.m,
-                                ),
-                                child: ListingCard.fromView(
-                                  view,
-                                  onTap: () => _openDetail(view),
-                                ),
-                              );
-                            },
-                            childCount: _controller.listings.length + 1,
-                          ),
-                        ),
-                      ),
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: AppSpacing.xl),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
+        final size = ScreenSize.of(context);
+        if (size == ScreenSize.compact) {
+          return _buildCompact(context);
+        }
+        return _buildWide(context, size);
       },
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Compact layout (kept exactly as before)
+  // ---------------------------------------------------------------------------
+  Widget _buildCompact(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _controller.refresh,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification.metrics.pixels >=
+                  notification.metrics.maxScrollExtent - 200) {
+                _controller.loadMore();
+              }
+              return false;
+            },
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader(context)),
+                SliverToBoxAdapter(child: _buildSearch(context)),
+                SliverToBoxAdapter(child: _buildFilterChips(context)),
+                SliverToBoxAdapter(child: _buildCategories(context)),
+                SliverToBoxAdapter(child: _buildSectionHeader(context)),
+                if (_controller.loading && _controller.listings.isEmpty)
+                  SliverToBoxAdapter(child: _buildSkeleton(context))
+                else if (_controller.error != null &&
+                    _controller.listings.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildError(context),
+                  )
+                else if (_controller.listings.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildEmpty(context),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenHorizontal,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          if (index == _controller.listings.length) {
+                            if (_controller.loadingMore) {
+                              return const Padding(
+                                padding: EdgeInsets.all(AppSpacing.l),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                            if (_controller.loadMoreError != null) {
+                              return _buildLoadMoreError(context);
+                            }
+                            return const SizedBox.shrink();
+                          }
+                          final view = _controller.listings[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.m,
+                            ),
+                            child: ListingCard.fromView(
+                              view,
+                              onTap: () => _openDetail(view),
+                            ),
+                          );
+                        },
+                        childCount: _controller.listings.length + 1,
+                      ),
+                    ),
+                  ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.xl),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Wide layout (medium + expanded)
+  // ---------------------------------------------------------------------------
+  Widget _buildWide(BuildContext context, ScreenSize size) {
+    final isExpanded = size == ScreenSize.expanded;
+
+    return Scaffold(
+      body: SafeArea(
+        top: false,
+        child: ContentWidth(
+          child: Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xl),
+            child: isExpanded
+                ? _buildExpandedBody(context)
+                : _buildMediumBody(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMediumBody(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _controller.refresh,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.pixels >=
+              notification.metrics.maxScrollExtent - 200) {
+            _controller.loadMore();
+          }
+          return false;
+        },
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: _buildWideHeader(
+                context,
+                inlineSearch: false,
+                showBell: true,
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.l,
+                  bottom: AppSpacing.l,
+                ),
+                child: _buildSearchField(maxWidth: 520),
+              ),
+            ),
+            SliverToBoxAdapter(child: _buildFilterChips(context)),
+            SliverToBoxAdapter(child: _buildWideCategories(context)),
+            SliverToBoxAdapter(child: _buildSectionHeader(context)),
+            _buildResults(context),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: AppSpacing.xl),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandedBody(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 260,
+          child: SingleChildScrollView(
+            child: _buildSidebar(context),
+          ),
+        ),
+        const SizedBox(width: 40),
+        Expanded(
+          child: Column(
+            children: [
+              _buildWideHeader(
+                context,
+                inlineSearch: true,
+                showBell: false,
+              ),
+              const SizedBox(height: AppSpacing.l),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _controller.refresh,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      if (notification.metrics.pixels >=
+                          notification.metrics.maxScrollExtent - 200) {
+                        _controller.loadMore();
+                      }
+                      return false;
+                    },
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverToBoxAdapter(child: _buildSectionHeader(context)),
+                        _buildResults(context),
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: AppSpacing.xl),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sidebar (expanded only)
+  // ---------------------------------------------------------------------------
+  Widget _buildSidebar(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Qué buscas', style: AppTypography.sectionLabel),
+        const SizedBox(height: AppSpacing.m),
+        ...ListingTypeUi.values.map((type) {
+          final selected = _controller.selectedType == type;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s),
+            child: _SidebarTypeRow(
+              type: type,
+              selected: selected,
+              onTap: () => _controller.setType(selected ? null : type),
+            ),
+          );
+        }),
+        const SizedBox(height: AppSpacing.xl),
+        Text('Categorías', style: AppTypography.sectionLabel),
+        const SizedBox(height: AppSpacing.m),
+        ...CategoryUi.values.map((category) {
+          final selected = _controller.selectedCategory == category;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+            child: _SidebarCategoryRow(
+              category: category,
+              selected: selected,
+              onTap: () => _controller.setCategory(category),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Header / search
+  // ---------------------------------------------------------------------------
+  Widget _buildWideHeader(
+    BuildContext context, {
+    required bool inlineSearch,
+    required bool showBell,
+  }) {
+    final greeting = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Hola, ${widget.profile.displayName}',
+          style: AppTypography.caption,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text('Dale Otra Vida', style: AppTypography.headline),
+      ],
+    );
+
+    final search = _buildSearchField(maxWidth: 520);
+
+    if (inlineSearch) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(child: greeting),
+          const SizedBox(width: AppSpacing.xl),
+          // The results column can be narrower than greeting + 520px search.
+          Flexible(child: search),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(child: greeting),
+        if (showBell)
+          InkWell(
+            onTap: _openNotifications,
+            borderRadius: BorderRadius.circular(22),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(
+                Icons.notifications_outlined,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSearchField({double? maxWidth}) {
+    final field = TextField(
+      controller: _searchController,
+      onChanged: _onSearchChanged,
+      textCapitalization: TextCapitalization.sentences,
+      decoration: const InputDecoration(
+        prefixIcon: Icon(Icons.search, color: AppColors.textHint),
+        hintText: 'Busca ropa, libros, alimentos…',
+      ),
+    );
+    if (maxWidth != null) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: field,
+      );
+    }
+    return field;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Filters & categories
+  // ---------------------------------------------------------------------------
+  Widget _buildFilterChips(BuildContext context) {
+    const options = ['Todos', 'Donar', 'Intercambiar', 'Vender', 'Prestar'];
+    final selected = _controller.selectedType?.label ?? 'Todos';
+    return FilterChipRow(
+      options: options,
+      selected: selected,
+      onSelected: (label) {
+        _controller.setType(_typeFromLabel(label));
+      },
+    );
+  }
+
+  Widget _buildCategories(BuildContext context) {
+    final categories = CategoryUi.values.take(8).toList();
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenHorizontal,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Categorías', style: AppTypography.sectionLabel),
+          const SizedBox(height: AppSpacing.m),
+          GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: AppSpacing.m,
+            crossAxisSpacing: AppSpacing.s,
+            childAspectRatio: 0.85,
+            children: categories.map((category) {
+              final selected = _controller.selectedCategory == category;
+              return MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: InkWell(
+                  onTap: () => _controller.setCategory(category),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: selected
+                            ? AppColors.primary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: CategoryTile(category: category),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: AppSpacing.l),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWideCategories(BuildContext context) {
+    final categories = CategoryUi.values.take(8).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Categorías', style: AppTypography.sectionLabel),
+        const SizedBox(height: AppSpacing.m),
+        SizedBox(
+          height: 100,
+          child: GridView.count(
+            crossAxisCount: 8,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: AppSpacing.m,
+            crossAxisSpacing: AppSpacing.s,
+            childAspectRatio: 0.8,
+            children: categories.map((category) {
+              final selected = _controller.selectedCategory == category;
+              return MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: InkWell(
+                  onTap: () => _controller.setCategory(category),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: selected
+                            ? AppColors.primary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: CategoryTile(category: category),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.l),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Section header & results
+  // ---------------------------------------------------------------------------
+  Widget _buildSectionHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenHorizontal,
+      ),
+      child: SectionHeader(
+        label: 'Cerca de ti',
+        actionLabel: 'Ver mapa',
+        onAction: _openMap,
+      ),
+    );
+  }
+
+  Widget _buildResults(BuildContext context) {
+    if (_controller.loading && _controller.listings.isEmpty) {
+      return _buildGridSkeleton(context);
+    }
+    if (_controller.error != null && _controller.listings.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: _buildError(context),
+      );
+    }
+    if (_controller.listings.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: _buildEmpty(context),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenHorizontal,
+      ),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 300,
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          childAspectRatio: 0.78,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            if (index == _controller.listings.length) {
+              if (_controller.loadingMore) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (_controller.loadMoreError != null) {
+                return _buildLoadMoreError(context);
+              }
+              return const SizedBox.shrink();
+            }
+            final view = _controller.listings[index];
+            return ListingGridCard.fromView(
+              view,
+              onTap: () => _openDetail(view),
+            );
+          },
+          childCount: _controller.listings.length + 1,
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // States
+  // ---------------------------------------------------------------------------
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -235,73 +654,6 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFilterChips(BuildContext context) {
-    const options = ['Todos', 'Donar', 'Intercambiar', 'Vender', 'Prestar'];
-    final selected = _controller.selectedType?.label ?? 'Todos';
-    return FilterChipRow(
-      options: options,
-      selected: selected,
-      onSelected: (label) {
-        _controller.setType(_typeFromLabel(label));
-      },
-    );
-  }
-
-  Widget _buildCategories(BuildContext context) {
-    final categories = CategoryUi.values.take(8).toList();
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Categorías', style: AppTypography.sectionLabel),
-          const SizedBox(height: AppSpacing.m),
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSpacing.m,
-            crossAxisSpacing: AppSpacing.s,
-            childAspectRatio: 0.85,
-            children: categories.map((category) {
-              final selected = _controller.selectedCategory == category;
-              return InkWell(
-                onTap: () => _controller.setCategory(category),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: selected ? AppColors.primary : Colors.transparent,
-                      width: 2,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: CategoryTile(category: category),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: AppSpacing.l),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-      ),
-      child: SectionHeader(
-        label: 'Cerca de ti',
-        actionLabel: 'Ver mapa',
-        onAction: _openMap,
-      ),
-    );
-  }
-
   Widget _buildSkeleton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -309,6 +661,26 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       child: Column(
         children: List.generate(3, (_) => const _SkeletonCard()),
+      ),
+    );
+  }
+
+  Widget _buildGridSkeleton(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenHorizontal,
+      ),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 300,
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          childAspectRatio: 0.78,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => const _SkeletonGridCard(),
+          childCount: 6,
+        ),
       ),
     );
   }
@@ -430,6 +802,174 @@ class _SkeletonCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonGridCard extends StatelessWidget {
+  const _SkeletonGridCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 70,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s),
+                Container(
+                  width: double.infinity,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s),
+                Container(
+                  width: 120,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SidebarTypeRow extends StatelessWidget {
+  const _SidebarTypeRow({
+    required this.type,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ListingTypeUi type;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.all(AppSpacing.m),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : AppColors.surface,
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                type.label,
+                style: AppTypography.bodyStrong.copyWith(
+                  color: selected ? AppColors.onPrimary : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                type.description,
+                style: AppTypography.caption.copyWith(
+                  color: selected
+                      ? AppColors.onPrimary.withValues(alpha: 0.85)
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarCategoryRow extends StatelessWidget {
+  const _SidebarCategoryRow({
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CategoryUi category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.m,
+            vertical: AppSpacing.s,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.categoryCircle : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                category.icon,
+                size: 18,
+                color: selected ? AppColors.primary : AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.s),
+              Text(
+                category.label,
+                style: AppTypography.bodyStrong.copyWith(
+                  color: selected ? AppColors.primary : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

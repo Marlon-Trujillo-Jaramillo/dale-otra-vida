@@ -1,4 +1,5 @@
 import 'package:dale_otra_vida_flutter/client.dart';
+import 'package:dale_otra_vida_flutter/core/layout/breakpoints.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_colors.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_spacing.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_typography.dart';
@@ -66,60 +67,88 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = ScreenSize.of(context);
+    final isCompact = size.isCompact;
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         body: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.screenHorizontal,
-              vertical: AppSpacing.xxl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Cuéntanos de ti',
-                  style: AppTypography.title,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                AppTextField(
-                  label: '¿Cómo te llamas?',
-                  hint: 'Tu nombre o apodo',
-                  controller: _displayNameController,
-                  textInputAction: TextInputAction.next,
-                  textCapitalization: TextCapitalization.words,
-                  inputFormatters: [LengthLimitingTextInputFormatter(60)],
-                  errorText: _displayNameError,
-                ),
-                const SizedBox(height: AppSpacing.l),
-                AppTextField(
-                  label: 'Barrio',
-                  hint: 'Opcional',
-                  controller: _neighborhoodController,
-                  textInputAction: TextInputAction.done,
-                  textCapitalization: TextCapitalization.sentences,
-                  onSubmitted: (_) => _continue(),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-                AppPrimaryButton(
-                  label: 'Continuar',
-                  isLoading: _isLoading,
-                  onPressed: _continue,
-                ),
-                if (_serverError != null) ...[
-                  const SizedBox(height: AppSpacing.l),
-                  Text(
-                    _serverError!,
-                    style: AppTypography.body.copyWith(color: AppColors.danger),
-                    textAlign: TextAlign.center,
+            padding: isCompact
+                ? const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenHorizontal,
+                    vertical: AppSpacing.xxl,
+                  )
+                : EdgeInsets.zero,
+            child: isCompact
+                ? _buildForm(context)
+                : Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.xxl,
+                          horizontal: AppSpacing.screenHorizontal,
+                        ),
+                        padding: const EdgeInsets.all(AppSpacing.xxxl),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: _buildForm(context),
+                      ),
+                    ),
                   ),
-                ],
-              ],
-            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Cuéntanos de ti',
+          style: AppTypography.title,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        AppTextField(
+          label: '¿Cómo te llamas?',
+          hint: 'Tu nombre o apodo',
+          controller: _displayNameController,
+          textInputAction: TextInputAction.next,
+          textCapitalization: TextCapitalization.words,
+          inputFormatters: [LengthLimitingTextInputFormatter(60)],
+          errorText: _displayNameError,
+        ),
+        const SizedBox(height: AppSpacing.l),
+        AppTextField(
+          label: 'Barrio',
+          hint: 'Opcional',
+          controller: _neighborhoodController,
+          textInputAction: TextInputAction.done,
+          textCapitalization: TextCapitalization.sentences,
+          onSubmitted: (_) => _continue(),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        AppPrimaryButton(
+          label: 'Continuar',
+          isLoading: _isLoading,
+          onPressed: _continue,
+        ),
+        if (_serverError != null) ...[
+          const SizedBox(height: AppSpacing.l),
+          Text(
+            _serverError!,
+            style: AppTypography.body.copyWith(color: AppColors.danger),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
     );
   }
 }

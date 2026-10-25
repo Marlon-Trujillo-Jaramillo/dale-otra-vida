@@ -1,4 +1,5 @@
 import 'package:dale_otra_vida_flutter/client.dart';
+import 'package:dale_otra_vida_flutter/core/layout/breakpoints.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_colors.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_spacing.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_typography.dart';
@@ -8,6 +9,7 @@ import 'package:dale_otra_vida_flutter/core/widgets/app_segmented_control.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_text_field.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import 'auth_errors.dart';
@@ -40,25 +42,58 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = ScreenSize.of(context);
+    final child = size == ScreenSize.compact
+        ? _buildCompact(context)
+        : _buildWide(context);
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        body: Column(
-          children: [
-            const _HeroBlock(),
-            Expanded(
-              child: SafeArea(
-                top: false,
-                child: AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    return _AuthBody(controller: _controller);
-                  },
-                ),
+      child: child,
+    );
+  }
+
+  Widget _buildCompact(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          const _HeroBlock(),
+          Expanded(
+            child: SafeArea(
+              top: false,
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return _AuthBody(controller: _controller);
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWide(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Expanded(
+            flex: 5,
+            child: _AuthHeroWide(),
+          ),
+          Expanded(
+            flex: 4,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return _AuthFormWide(controller: _controller);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -786,6 +821,184 @@ class _ResetPasswordStepState extends State<_ResetPasswordStep> {
           ),
           _ControllerError(controller: widget.controller),
         ],
+      ),
+    );
+  }
+}
+
+class _AuthHeroWide extends StatelessWidget {
+  const _AuthHeroWide();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.primary,
+      padding: const EdgeInsets.all(64),
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.eco_outlined,
+                    color: AppColors.primary,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  'Dale Otra Vida',
+                  style: GoogleFonts.fraunces(
+                    fontSize: 56,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s),
+                Text(
+                  'Lo que ya no usas puede ser justo lo que otra persona necesita.',
+                  style: GoogleFonts.nunitoSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.onPrimary.withValues(alpha: 0.85),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxxl),
+                const _ValuePropRow(
+                  icon: Icons.volunteer_activism_outlined,
+                  title: 'Dona lo que ya no usas',
+                  caption:
+                      'Ayuda a quienes lo necesitan sin esperar nada a cambio.',
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                const _ValuePropRow(
+                  icon: Icons.sync_alt,
+                  title: 'Intercambia o presta en tu barrio',
+                  caption: 'Conecta con vecinos y haz que las cosas circulen.',
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                const _ValuePropRow(
+                  icon: Icons.payments_outlined,
+                  title: 'Vende a precios justos',
+                  caption: 'Ofrécelo a un valor accesible para tu comunidad.',
+                ),
+                const SizedBox(height: AppSpacing.xxxl),
+                Text(
+                  'Proyecto Pensamiento Creativo · Pascual Bravo',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.onPrimary.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ValuePropRow extends StatelessWidget {
+  const _ValuePropRow({
+    required this.icon,
+    required this.title,
+    required this.caption,
+  });
+
+  final IconData icon;
+  final String title;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: AppColors.accent, size: 20),
+        ),
+        const SizedBox(width: AppSpacing.m),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: AppTypography.bodyStrong.copyWith(
+                  color: AppColors.onPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                caption,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.onPrimary.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AuthFormWide extends StatelessWidget {
+  const _AuthFormWide({required this.controller});
+
+  final EmailAuthController controller;
+
+  bool get _isRegistering {
+    return switch (controller.currentScreen) {
+      EmailFlowScreen.startRegistration ||
+      EmailFlowScreen.verifyRegistration ||
+      EmailFlowScreen.completeRegistration => true,
+      _ => false,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenHorizontal,
+                ),
+                child: Text(
+                  _isRegistering ? 'Crea tu cuenta' : 'Bienvenido de nuevo',
+                  style: GoogleFonts.fraunces(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              _AuthBody(controller: controller),
+            ],
+          ),
+        ),
       ),
     );
   }
