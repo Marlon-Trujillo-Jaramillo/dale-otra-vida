@@ -1,0 +1,11 @@
+name: _
+publish_to: none
+
+environment:
+  sdk: '^3.12.2'
+
+workspace:
+  - dale_otra_vida_client
+  - dale_otra_vida_server
+  - dale_otra_vida_flutter
+

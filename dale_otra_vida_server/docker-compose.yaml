@@ -1,0 +1,30 @@
+services:
+  # Development services
+  postgres:
+    image: ghcr.io/serverpod/postgres:16
+    ports:
+      - "8090:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: dale_otra_vida
+      POSTGRES_PASSWORD: "q1CSAqJKAgBZznQm_EUIAipqgvpOgcRN"
+    volumes:
+      - dale_otra_vida_data:/var/lib/postgresql/data
+
+
+  # Test services
+  postgres_test:
+    image: ghcr.io/serverpod/postgres:16
+    ports:
+      - "9090:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: dale_otra_vida_test
+      POSTGRES_PASSWORD: "bQw-1Yiy21hpwGEoZgLerW-ofFmWn7vj"
+    volumes:
+      - dale_otra_vida_test_data:/var/lib/postgresql/data
+
+
+volumes:
+  dale_otra_vida_data:
+  dale_otra_vida_test_data:
