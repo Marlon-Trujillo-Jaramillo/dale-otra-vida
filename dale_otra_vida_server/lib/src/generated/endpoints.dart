@@ -26,7 +26,9 @@ import '../auth/google_idp_endpoint.dart' as _i71axiz0;
 import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
 import '../greetings/greeting_endpoint.dart' as _il624ik7;
 import '../listings/listing_endpoint.dart' as _i9qx1xff;
+import '../notifications/notification_endpoint.dart' as _ibyw8x7k;
 import '../profile/profile_endpoint.dart' as _i6ky944g;
+import '../requests/request_endpoint.dart' as _ibwuu02n;
 
 class Endpoints extends _is.EndpointDispatch {
   @override
@@ -62,10 +64,22 @@ class Endpoints extends _is.EndpointDispatch {
           'listing',
           null,
         ),
+      'notification': _ibyw8x7k.NotificationEndpoint()
+        ..initialize(
+          server,
+          'notification',
+          null,
+        ),
       'profile': _i6ky944g.ProfileEndpoint()
         ..initialize(
           server,
           'profile',
+          null,
+        ),
+      'request': _ibwuu02n.RequestEndpoint()
+        ..initialize(
+          server,
+          'request',
           null,
         ),
     };
@@ -556,6 +570,80 @@ class Endpoints extends _is.EndpointDispatch {
         ),
       },
     );
+    connectors['notification'] = _is.EndpointConnector(
+      name: 'notification',
+      endpoint: endpoints['notification']!,
+      methodConnectors: {
+        'list': _is.MethodConnector(
+          name: 'list',
+          params: {
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['notification'] as _ibyw8x7k.NotificationEndpoint)
+                      .list(
+                        session,
+                        limit: params['limit'],
+                        offset: params['offset'],
+                      ),
+        ),
+        'unreadCount': _is.MethodConnector(
+          name: 'unreadCount',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['notification'] as _ibyw8x7k.NotificationEndpoint)
+                      .unreadCount(session),
+        ),
+        'markRead': _is.MethodConnector(
+          name: 'markRead',
+          params: {
+            'id': _is.ParameterDescription(
+              name: 'id',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['notification'] as _ibyw8x7k.NotificationEndpoint)
+                      .markRead(
+                        session,
+                        params['id'],
+                      ),
+        ),
+        'markAllRead': _is.MethodConnector(
+          name: 'markAllRead',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['notification'] as _ibyw8x7k.NotificationEndpoint)
+                      .markAllRead(session),
+        ),
+      },
+    );
     connectors['profile'] = _is.EndpointConnector(
       name: 'profile',
       endpoint: endpoints['profile']!,
@@ -625,6 +713,123 @@ class Endpoints extends _is.EndpointDispatch {
                   (endpoints['profile'] as _i6ky944g.ProfileEndpoint).byId(
                     session,
                     params['profileId'],
+                  ),
+        ),
+      },
+    );
+    connectors['request'] = _is.EndpointConnector(
+      name: 'request',
+      endpoint: endpoints['request']!,
+      methodConnectors: {
+        'create': _is.MethodConnector(
+          name: 'create',
+          params: {
+            'listingId': _is.ParameterDescription(
+              name: 'listingId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'message': _is.ParameterDescription(
+              name: 'message',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['request'] as _ibwuu02n.RequestEndpoint).create(
+                    session,
+                    params['listingId'],
+                    message: params['message'],
+                  ),
+        ),
+        'forListing': _is.MethodConnector(
+          name: 'forListing',
+          params: {
+            'listingId': _is.ParameterDescription(
+              name: 'listingId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['request'] as _ibwuu02n.RequestEndpoint)
+                  .forListing(
+                    session,
+                    params['listingId'],
+                  ),
+        ),
+        'mine': _is.MethodConnector(
+          name: 'mine',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['request'] as _ibwuu02n.RequestEndpoint)
+                  .mine(session),
+        ),
+        'accept': _is.MethodConnector(
+          name: 'accept',
+          params: {
+            'requestId': _is.ParameterDescription(
+              name: 'requestId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['request'] as _ibwuu02n.RequestEndpoint).accept(
+                    session,
+                    params['requestId'],
+                  ),
+        ),
+        'reject': _is.MethodConnector(
+          name: 'reject',
+          params: {
+            'requestId': _is.ParameterDescription(
+              name: 'requestId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['request'] as _ibwuu02n.RequestEndpoint).reject(
+                    session,
+                    params['requestId'],
+                  ),
+        ),
+        'cancel': _is.MethodConnector(
+          name: 'cancel',
+          params: {
+            'requestId': _is.ParameterDescription(
+              name: 'requestId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['request'] as _ibwuu02n.RequestEndpoint).cancel(
+                    session,
+                    params['requestId'],
                   ),
         ),
       },

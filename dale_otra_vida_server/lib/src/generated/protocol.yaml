@@ -23,7 +23,19 @@ listing:
   - byId:
   - mine:
   - updateStatus:
+notification:
+  - list:
+  - unreadCount:
+  - markRead:
+  - markAllRead:
 profile:
   - me:
   - saveMe:
   - byId:
+request:
+  - create:
+  - forListing:
+  - mine:
+  - accept:
+  - reject:
+  - cancel:

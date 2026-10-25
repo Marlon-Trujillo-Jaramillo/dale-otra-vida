@@ -11,8 +11,14 @@
 // ignore_for_file: dead_code, unnecessary_type_check
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:dale_otra_vida_client/src/protocol/app_notification.dart'
+    as _irhv3nen;
 import 'package:dale_otra_vida_client/src/protocol/listing_view.dart'
     as _ijh8j4ei;
+import 'package:dale_otra_vida_client/src/protocol/my_request_view.dart'
+    as _ikulhwb6;
+import 'package:dale_otra_vida_client/src/protocol/request_view.dart'
+    as _isipxjtl;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
@@ -31,6 +37,7 @@ import 'listing_type.dart' as _i1ntjlwm;
 import 'listing_view.dart' as _ijuym7ok;
 import 'member_profile.dart' as _iuh59zig;
 import 'message_kind.dart' as _ibvtcu73;
+import 'my_request_view.dart' as _ioyw6oo5;
 import 'not_allowed_exception.dart' as _icn336wo;
 import 'notification_kind.dart' as _ipnxo26v;
 import 'photo_upload.dart' as _ihl17tin;
@@ -38,6 +45,7 @@ import 'profile_required_exception.dart' as _iarivcoc;
 import 'report.dart' as _i2t8i3ij;
 import 'report_reason.dart' as _ijgj7dn0;
 import 'request_status.dart' as _iq8zsng0;
+import 'request_view.dart' as _iv1530zw;
 import 'review.dart' as _itqm5y01;
 export 'app_notification.dart';
 export 'category.dart';
@@ -52,6 +60,7 @@ export 'listing_type.dart';
 export 'listing_view.dart';
 export 'member_profile.dart';
 export 'message_kind.dart';
+export 'my_request_view.dart';
 export 'not_allowed_exception.dart';
 export 'notification_kind.dart';
 export 'photo_upload.dart';
@@ -59,6 +68,7 @@ export 'profile_required_exception.dart';
 export 'report.dart';
 export 'report_reason.dart';
 export 'request_status.dart';
+export 'request_view.dart';
 export 'review.dart';
 export 'client.dart';
 
@@ -135,6 +145,9 @@ class Protocol extends _isc.SerializationManager {
     if (t == _ibvtcu73.MessageKind) {
       return _ibvtcu73.MessageKind.fromJson(data) as T;
     }
+    if (t == _ioyw6oo5.MyRequestView) {
+      return _ioyw6oo5.MyRequestView.fromJson(data) as T;
+    }
     if (t == _icn336wo.NotAllowedException) {
       return _icn336wo.NotAllowedException.fromJson(data) as T;
     }
@@ -155,6 +168,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _iq8zsng0.RequestStatus) {
       return _iq8zsng0.RequestStatus.fromJson(data) as T;
+    }
+    if (t == _iv1530zw.RequestView) {
+      return _iv1530zw.RequestView.fromJson(data) as T;
     }
     if (t == _itqm5y01.Review) {
       return _itqm5y01.Review.fromJson(data) as T;
@@ -203,6 +219,10 @@ class Protocol extends _isc.SerializationManager {
     if (t == _isc.getType<_ibvtcu73.MessageKind?>()) {
       return (data != null ? _ibvtcu73.MessageKind.fromJson(data) : null) as T;
     }
+    if (t == _isc.getType<_ioyw6oo5.MyRequestView?>()) {
+      return (data != null ? _ioyw6oo5.MyRequestView.fromJson(data) : null)
+          as T;
+    }
     if (t == _isc.getType<_icn336wo.NotAllowedException?>()) {
       return (data != null
               ? _icn336wo.NotAllowedException.fromJson(data)
@@ -232,6 +252,9 @@ class Protocol extends _isc.SerializationManager {
       return (data != null ? _iq8zsng0.RequestStatus.fromJson(data) : null)
           as T;
     }
+    if (t == _isc.getType<_iv1530zw.RequestView?>()) {
+      return (data != null ? _iv1530zw.RequestView.fromJson(data) : null) as T;
+    }
     if (t == _isc.getType<_itqm5y01.Review?>()) {
       return (data != null ? _itqm5y01.Review.fromJson(data) : null) as T;
     }
@@ -241,6 +264,24 @@ class Protocol extends _isc.SerializationManager {
     if (t == List<_ijh8j4ei.ListingView>) {
       return (data as List)
               .map((e) => deserialize<_ijh8j4ei.ListingView>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_irhv3nen.AppNotification>) {
+      return (data as List)
+              .map((e) => deserialize<_irhv3nen.AppNotification>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_isipxjtl.RequestView>) {
+      return (data as List)
+              .map((e) => deserialize<_isipxjtl.RequestView>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_ikulhwb6.MyRequestView>) {
+      return (data as List)
+              .map((e) => deserialize<_ikulhwb6.MyRequestView>(e))
               .toList()
           as T;
     }
@@ -268,6 +309,7 @@ class Protocol extends _isc.SerializationManager {
       _ijuym7ok.ListingView => 'ListingView',
       _iuh59zig.MemberProfile => 'MemberProfile',
       _ibvtcu73.MessageKind => 'MessageKind',
+      _ioyw6oo5.MyRequestView => 'MyRequestView',
       _icn336wo.NotAllowedException => 'NotAllowedException',
       _ipnxo26v.NotificationKind => 'NotificationKind',
       _ihl17tin.PhotoUpload => 'PhotoUpload',
@@ -275,6 +317,7 @@ class Protocol extends _isc.SerializationManager {
       _i2t8i3ij.Report => 'Report',
       _ijgj7dn0.ReportReason => 'ReportReason',
       _iq8zsng0.RequestStatus => 'RequestStatus',
+      _iv1530zw.RequestView => 'RequestView',
       _itqm5y01.Review => 'Review',
       _ => null,
     };
@@ -319,6 +362,8 @@ class Protocol extends _isc.SerializationManager {
         return 'MemberProfile';
       case _ibvtcu73.MessageKind():
         return 'MessageKind';
+      case _ioyw6oo5.MyRequestView():
+        return 'MyRequestView';
       case _icn336wo.NotAllowedException():
         return 'NotAllowedException';
       case _ipnxo26v.NotificationKind():
@@ -333,6 +378,8 @@ class Protocol extends _isc.SerializationManager {
         return 'ReportReason';
       case _iq8zsng0.RequestStatus():
         return 'RequestStatus';
+      case _iv1530zw.RequestView():
+        return 'RequestView';
       case _itqm5y01.Review():
         return 'Review';
     }
@@ -396,6 +443,9 @@ class Protocol extends _isc.SerializationManager {
     if (dataClassName == 'MessageKind') {
       return deserialize<_ibvtcu73.MessageKind>(data['data']);
     }
+    if (dataClassName == 'MyRequestView') {
+      return deserialize<_ioyw6oo5.MyRequestView>(data['data']);
+    }
     if (dataClassName == 'NotAllowedException') {
       return deserialize<_icn336wo.NotAllowedException>(data['data']);
     }
@@ -416,6 +466,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'RequestStatus') {
       return deserialize<_iq8zsng0.RequestStatus>(data['data']);
+    }
+    if (dataClassName == 'RequestView') {
+      return deserialize<_iv1530zw.RequestView>(data['data']);
     }
     if (dataClassName == 'Review') {
       return deserialize<_itqm5y01.Review>(data['data']);

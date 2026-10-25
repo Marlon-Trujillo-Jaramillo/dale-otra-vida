@@ -18,7 +18,8 @@ enum NotificationKind implements _is.SerializableModel {
   requestRejected,
   newMessage,
   newReview,
-  listingExpiring;
+  listingExpiring,
+  requestCancelled;
 
   static NotificationKind fromJson(String name) {
     switch (name) {
@@ -34,6 +35,8 @@ enum NotificationKind implements _is.SerializableModel {
         return NotificationKind.newReview;
       case 'listingExpiring':
         return NotificationKind.listingExpiring;
+      case 'requestCancelled':
+        return NotificationKind.requestCancelled;
       default:
         throw ArgumentError(
           'Value "$name" cannot be converted to "NotificationKind"',

@@ -1,0 +1,6 @@
+### One of the caller's requests, with the listing view and chat conversation.
+class: MyRequestView
+fields:
+  request: ListingRequest
+  listing: ListingView
+  conversationId: int?

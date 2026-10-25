@@ -1,30 +1,17 @@
 import 'dart:math' as math;
 
 import 'package:serverpod/serverpod.dart';
-import 'package:serverpod_auth_idp_server/core.dart';
 
+import '../common/current_profile.dart';
 import '../common/geo.dart';
 import '../generated/protocol.dart';
+import '../notifications/notify.dart';
+import 'listing_views.dart';
 
 /// Endpoints for creating and browsing listings.
 class ListingEndpoint extends Endpoint {
   @override
   bool get requireLogin => true;
-
-  Future<MemberProfile> _currentProfile(Session session) async {
-    final profile = await MemberProfile.db.findFirstRow(
-      session,
-      where: (t) => t.authUserId.equals(session.authenticated!.authUserId),
-    );
-
-    if (profile == null) {
-      throw ProfileRequiredException(
-        message: 'Debes completar tu perfil para usar esta funcionalidad.',
-      );
-    }
-
-    return profile;
-  }
 
   /// Validates that a photo path belongs to the given profile and has a
   /// server-generated UUID file name with an allowed extension.
@@ -47,7 +34,7 @@ class ListingEndpoint extends Endpoint {
       );
     }
 
-    final profile = await _currentProfile(session);
+    final profile = await currentProfile(session);
     final path = 'listings/${profile.id!}/${_uuidV4()}.$ext';
     final uploadDescription = await session.storage.createUploadDescription(
       storageId: 'public',
@@ -59,7 +46,7 @@ class ListingEndpoint extends Endpoint {
 
   /// Verifies that a photo was successfully uploaded to the caller's folder.
   Future<bool> verifyPhotoUpload(Session session, String path) async {
-    final profile = await _currentProfile(session);
+    final profile = await currentProfile(session);
 
     if (!_isOwnPhotoPath(path, profile.id!)) return false;
 
@@ -68,7 +55,7 @@ class ListingEndpoint extends Endpoint {
 
   /// Creates a new listing after validating and sanitizing the input.
   Future<ListingView> create(Session session, Listing listing) async {
-    final profile = await _currentProfile(session);
+    final profile = await currentProfile(session);
     final callerId = profile.id!;
     final now = DateTime.now().toUtc();
 
@@ -193,7 +180,7 @@ class ListingEndpoint extends Endpoint {
     );
 
     final created = await Listing.db.insertRow(session, toInsert);
-    return _toView(session, created, profile);
+    return toView(session, created, profile);
   }
 
   /// Returns available listings, optionally filtered.
@@ -207,7 +194,7 @@ class ListingEndpoint extends Endpoint {
     int limit = 20,
     int offset = 0,
   }) async {
-    final profile = await _currentProfile(session);
+    final profile = await currentProfile(session);
 
     limit = limit.clamp(1, 50);
     offset = math.max(0, offset);
@@ -249,7 +236,7 @@ class ListingEndpoint extends Endpoint {
       offset: offset,
     );
 
-    return _toViews(
+    return toViews(
       session,
       rows,
       profile,
@@ -265,7 +252,7 @@ class ListingEndpoint extends Endpoint {
     double? latitude,
     double? longitude,
   }) async {
-    final profile = await _currentProfile(session);
+    final profile = await currentProfile(session);
     final listing = await Listing.db.findById(session, id);
     if (listing == null) return null;
 
@@ -274,7 +261,7 @@ class ListingEndpoint extends Endpoint {
         longitude != null &&
         isValidCoordinate(latitude, longitude);
 
-    return _toView(
+    return toView(
       session,
       listing,
       profile,
@@ -285,7 +272,7 @@ class ListingEndpoint extends Endpoint {
 
   /// Returns the caller's listings, newest first.
   Future<List<ListingView>> mine(Session session) async {
-    final profile = await _currentProfile(session);
+    final profile = await currentProfile(session);
 
     final rows = await Listing.db.find(
       session,
@@ -293,7 +280,7 @@ class ListingEndpoint extends Endpoint {
       orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
     );
 
-    return _toViews(session, rows, profile);
+    return toViews(session, rows, profile);
   }
 
   /// Updates the status of a listing owned by the caller.
@@ -302,7 +289,7 @@ class ListingEndpoint extends Endpoint {
     int id,
     ListingStatus status,
   ) async {
-    final profile = await _currentProfile(session);
+    final profile = await currentProfile(session);
 
     return await session.db.transaction((transaction) async {
       final listing = await Listing.db.findById(
@@ -355,7 +342,56 @@ class ListingEndpoint extends Endpoint {
         }
       }
 
-      return _toView(session, saved, profile);
+      // Returning a reserved listing to the feed cancels the accepted
+      // request so the owner is free to pick someone else.
+      if (status == ListingStatus.available &&
+          current == ListingStatus.reserved) {
+        final accepted = await ListingRequest.db.findFirstRow(
+          session,
+          where: (t) =>
+              t.listingId.equals(listing.id!) &
+              t.status.equals(RequestStatus.accepted),
+          transaction: transaction,
+        );
+        if (accepted != null) {
+          await ListingRequest.db.updateRow(
+            session,
+            accepted.copyWith(status: RequestStatus.cancelled),
+            transaction: transaction,
+          );
+
+          await notify(
+            session,
+            userId: accepted.requesterId,
+            kind: NotificationKind.requestCancelled,
+            title: 'Reserva cancelada',
+            body: 'El dueño volvió a publicar «${listing.title}».',
+            refId: listing.id,
+            transaction: transaction,
+          );
+        }
+      }
+
+      // Withdrawing a listing cancels every open request on it.
+      if (status == ListingStatus.withdrawn) {
+        final open = await ListingRequest.db.find(
+          session,
+          where: (t) =>
+              t.listingId.equals(listing.id!) &
+              (t.status.equals(RequestStatus.pending) |
+                  t.status.equals(RequestStatus.accepted)),
+          transaction: transaction,
+        );
+        for (final request in open) {
+          await ListingRequest.db.updateRow(
+            session,
+            request.copyWith(status: RequestStatus.cancelled),
+            transaction: transaction,
+          );
+        }
+      }
+
+      return toView(session, saved, profile);
     });
   }
 
@@ -380,74 +416,6 @@ class ListingEndpoint extends Endpoint {
       .replaceAll('\\', '\\\\')
       .replaceAll('%', '\\%')
       .replaceAll('_', '\\_');
-
-  Future<ListingView> _toView(
-    Session session,
-    Listing listing,
-    MemberProfile caller, {
-    double? latitude,
-    double? longitude,
-  }) async {
-    final views = await _toViews(
-      session,
-      [listing],
-      caller,
-      latitude: latitude,
-      longitude: longitude,
-    );
-    return views.first;
-  }
-
-  Future<List<ListingView>> _toViews(
-    Session session,
-    List<Listing> listings,
-    MemberProfile caller, {
-    double? latitude,
-    double? longitude,
-  }) async {
-    final ownerIds = listings.map((l) => l.ownerId).toSet();
-    final owners = ownerIds.isEmpty
-        ? <MemberProfile>[]
-        : await MemberProfile.db.find(
-            session,
-            where: (t) => t.id.inSet(ownerIds),
-          );
-    final ownerById = {
-      for (final owner in owners)
-        owner.id!: owner.copyWith(latitude: null, longitude: null),
-    };
-
-    return Future.wait(
-      listings.map((listing) async {
-        final photoUrls = await Future.wait(
-          listing.photoUrls.map((path) async {
-            final uri = await session.storage.publicDownloadUrl(
-              storageId: 'public',
-              path: path,
-            );
-            return uri.toString();
-          }),
-        );
-
-        double? distanceKm;
-        if (latitude != null && longitude != null) {
-          distanceKm = haversineKm(
-            latitude,
-            longitude,
-            listing.latitude,
-            listing.longitude,
-          );
-        }
-
-        return ListingView(
-          listing: listing.copyWith(photoUrls: photoUrls),
-          owner: ownerById[listing.ownerId]!,
-          distanceKm: distanceKm,
-          isMine: listing.ownerId == caller.id,
-        );
-      }),
-    );
-  }
 
   String _uuidV4() {
     final random = math.Random.secure();

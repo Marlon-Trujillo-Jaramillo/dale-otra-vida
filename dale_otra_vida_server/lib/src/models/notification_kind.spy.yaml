@@ -6,3 +6,4 @@ values:
   - newMessage
   - newReview
   - listingExpiring
+  - requestCancelled

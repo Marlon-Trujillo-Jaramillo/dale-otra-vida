@@ -11,10 +11,14 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
+import 'package:dale_otra_vida_client/src/protocol/app_notification.dart'
+    as _irhv3nen;
 import 'package:dale_otra_vida_client/src/protocol/category.dart' as _i0m5ztok;
 import 'package:dale_otra_vida_client/src/protocol/greetings/greeting.dart'
     as _iqtlzsy5;
 import 'package:dale_otra_vida_client/src/protocol/listing.dart' as _iz1p8yt7;
+import 'package:dale_otra_vida_client/src/protocol/listing_request.dart'
+    as _iftx1you;
 import 'package:dale_otra_vida_client/src/protocol/listing_status.dart'
     as _i9248wmd;
 import 'package:dale_otra_vida_client/src/protocol/listing_type.dart'
@@ -23,8 +27,12 @@ import 'package:dale_otra_vida_client/src/protocol/listing_view.dart'
     as _ijh8j4ei;
 import 'package:dale_otra_vida_client/src/protocol/member_profile.dart'
     as _ibcyrd05;
+import 'package:dale_otra_vida_client/src/protocol/my_request_view.dart'
+    as _ikulhwb6;
 import 'package:dale_otra_vida_client/src/protocol/photo_upload.dart'
     as _ihcne4ez;
+import 'package:dale_otra_vida_client/src/protocol/request_view.dart'
+    as _isipxjtl;
 import 'package:http/http.dart' as _i85jenna;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
@@ -425,6 +433,51 @@ class EndpointListing extends _isc.EndpointRef {
   );
 }
 
+/// In-app notifications for the signed-in member.
+/// {@category Endpoint}
+class EndpointNotification extends _isc.EndpointRef {
+  EndpointNotification(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'notification';
+
+  /// Returns the notifications of the caller, newest first.
+  _ida.Future<List<_irhv3nen.AppNotification>> list({
+    required int limit,
+    required int offset,
+  }) => caller.callServerEndpoint<List<_irhv3nen.AppNotification>>(
+    'notification',
+    'list',
+    {
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
+  /// Returns how many notifications the caller has not read yet.
+  _ida.Future<int> unreadCount() => caller.callServerEndpoint<int>(
+    'notification',
+    'unreadCount',
+    {},
+  );
+
+  /// Marks one notification of the caller as read.
+  ///
+  /// Notifications owned by other members are silently ignored.
+  _ida.Future<void> markRead(int id) => caller.callServerEndpoint<void>(
+    'notification',
+    'markRead',
+    {'id': id},
+  );
+
+  /// Marks every unread notification of the caller as read.
+  _ida.Future<void> markAllRead() => caller.callServerEndpoint<void>(
+    'notification',
+    'markAllRead',
+    {},
+  );
+}
+
 /// Profile of the signed-in member. Created right after the first sign-in.
 /// {@category Endpoint}
 class EndpointProfile extends _isc.EndpointRef {
@@ -467,6 +520,78 @@ class EndpointProfile extends _isc.EndpointRef {
         'profile',
         'byId',
         {'profileId': profileId},
+      );
+}
+
+/// "Lo quiero" requests on listings.
+/// {@category Endpoint}
+class EndpointRequest extends _isc.EndpointRef {
+  EndpointRequest(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'request';
+
+  /// Creates or reopens a request on an available listing.
+  ///
+  /// Ensures a conversation with the owner exists, stores a system message
+  /// (plus the optional [message]) and notifies the owner. An existing
+  /// pending or accepted request is returned unchanged; a cancelled one is
+  /// reopened with a fresh createdAt.
+  _ida.Future<_iftx1you.ListingRequest> create(
+    int listingId, {
+    String? message,
+  }) => caller.callServerEndpoint<_iftx1you.ListingRequest>(
+    'request',
+    'create',
+    {
+      'listingId': listingId,
+      'message': message,
+    },
+  );
+
+  /// Returns every request on one of the caller's listings, pending first
+  /// and then newest first, with the requester's public profile and the
+  /// chat conversation id.
+  _ida.Future<List<_isipxjtl.RequestView>> forListing(int listingId) =>
+      caller.callServerEndpoint<List<_isipxjtl.RequestView>>(
+        'request',
+        'forListing',
+        {'listingId': listingId},
+      );
+
+  /// Returns the requests of the caller, newest first, with the listing
+  /// view and the chat conversation id.
+  _ida.Future<List<_ikulhwb6.MyRequestView>> mine() =>
+      caller.callServerEndpoint<List<_ikulhwb6.MyRequestView>>(
+        'request',
+        'mine',
+        {},
+      );
+
+  /// Accepts a pending request, reserves the listing and rejects every
+  /// other pending request on it.
+  _ida.Future<_iftx1you.ListingRequest> accept(int requestId) =>
+      caller.callServerEndpoint<_iftx1you.ListingRequest>(
+        'request',
+        'accept',
+        {'requestId': requestId},
+      );
+
+  /// Rejects a pending request on one of the caller's listings.
+  _ida.Future<_iftx1you.ListingRequest> reject(int requestId) =>
+      caller.callServerEndpoint<_iftx1you.ListingRequest>(
+        'request',
+        'reject',
+        {'requestId': requestId},
+      );
+
+  /// Cancels one of the caller's requests. Cancelling an accepted request
+  /// makes the listing available again.
+  _ida.Future<_iftx1you.ListingRequest> cancel(int requestId) =>
+      caller.callServerEndpoint<_iftx1you.ListingRequest>(
+        'request',
+        'cancel',
+        {'requestId': requestId},
       );
 }
 
@@ -513,7 +638,9 @@ class Client extends _isc.ServerpodClientShared {
     jwtRefresh = EndpointJwtRefresh(this);
     greeting = EndpointGreeting(this);
     listing = EndpointListing(this);
+    notification = EndpointNotification(this);
     profile = EndpointProfile(this);
+    request = EndpointRequest(this);
     modules = Modules(this);
   }
 
@@ -527,7 +654,11 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointListing listing;
 
+  late final EndpointNotification notification;
+
   late final EndpointProfile profile;
+
+  late final EndpointRequest request;
 
   late final Modules modules;
 
@@ -538,7 +669,9 @@ class Client extends _isc.ServerpodClientShared {
     'jwtRefresh': jwtRefresh,
     'greeting': greeting,
     'listing': listing,
+    'notification': notification,
     'profile': profile,
+    'request': request,
   };
 
   @override

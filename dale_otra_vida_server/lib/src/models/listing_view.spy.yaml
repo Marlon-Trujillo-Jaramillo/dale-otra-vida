@@ -5,3 +5,7 @@ fields:
   owner: MemberProfile
   distanceKm: double?
   isMine: bool
+  ### The caller's request on this listing, whatever its status.
+  myRequest: ListingRequest?
+  ### Pending requests on the caller's own listing, 0 for everyone else.
+  pendingRequestCount: int, default=0

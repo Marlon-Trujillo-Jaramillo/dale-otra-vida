@@ -1,0 +1,6 @@
+### A request on one of the caller's listings, with the requester's public profile.
+class: RequestView
+fields:
+  request: ListingRequest
+  requester: MemberProfile
+  conversationId: int?
