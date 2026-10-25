@@ -1,3 +1,4 @@
+import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
 enum ListingTypeUi {
@@ -37,4 +38,22 @@ enum ListingTypeUi {
   final String description;
   final Color badgeBackground;
   final Color badgeText;
+
+  ListingType get toServer {
+    return switch (this) {
+      ListingTypeUi.donar => ListingType.donate,
+      ListingTypeUi.intercambiar => ListingType.exchange,
+      ListingTypeUi.vender => ListingType.sell,
+      ListingTypeUi.prestar => ListingType.lend,
+    };
+  }
+
+  static ListingTypeUi fromServer(ListingType type) {
+    return switch (type) {
+      ListingType.donate => ListingTypeUi.donar,
+      ListingType.exchange => ListingTypeUi.intercambiar,
+      ListingType.sell => ListingTypeUi.vender,
+      ListingType.lend => ListingTypeUi.prestar,
+    };
+  }
 }

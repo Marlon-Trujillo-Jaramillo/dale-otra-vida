@@ -66,6 +66,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Usamos tu ubicación aproximada para mostrarte publicaciones cerca de ti.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Para tomar fotos de lo que publicas.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Para elegir fotos de lo que publicas.</string>
 	<key>GIDClientID</key>
 	<string>135415936830-ph8cti0b40fvp45fu4ie0ngpb560qqe0.apps.googleusercontent.com</string>
 	<key>GIDServerClientID</key>

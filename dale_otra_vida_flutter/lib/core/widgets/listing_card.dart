@@ -1,5 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../format.dart';
 import '../models/listing_type_ui.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
@@ -14,20 +17,38 @@ class ListingCard extends StatelessWidget {
     required this.meta,
     required this.location,
     required this.distance,
+    this.imageUrl,
     this.onTap,
   });
+
+  factory ListingCard.fromView(ListingView view, {VoidCallback? onTap}) {
+    final listing = view.listing;
+    final typeUi = ListingTypeUi.fromServer(listing.type);
+
+    return ListingCard(
+      title: listing.title,
+      type: typeUi,
+      meta: _metaFor(listing),
+      location: listing.neighborhood,
+      distance: view.distanceKm != null ? formatDistance(view.distanceKm!) : '',
+      imageUrl: listing.photoUrls.isNotEmpty ? listing.photoUrls.first : null,
+      onTap: onTap,
+    );
+  }
 
   final String title;
   final ListingTypeUi type;
   final String meta;
   final String location;
   final String distance;
+  final String? imageUrl;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.m),
         decoration: BoxDecoration(
@@ -38,19 +59,7 @@ class ListingCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 84,
-              height: 84,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceMuted,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(
-                Icons.image,
-                color: AppColors.textHint,
-                size: 32,
-              ),
-            ),
+            _buildImage(imageUrl),
             const SizedBox(width: AppSpacing.m),
             Expanded(
               child: Column(
@@ -77,7 +86,7 @@ class ListingCard extends StatelessWidget {
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
-                          '$location · a $distance',
+                          _locationLine(location, distance),
                           style: AppTypography.caption,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -91,6 +100,68 @@ class ListingCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildImage(String? url) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 84,
+        height: 84,
+        color: AppColors.surfaceMuted,
+        child: url != null && url.isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => const _PlaceholderIcon(),
+                errorWidget: (context, url, error) => const _PlaceholderIcon(),
+              )
+            : const _PlaceholderIcon(),
+      ),
+    );
+  }
+}
+
+String _metaFor(Listing listing) {
+  final condition = conditionLabel(listing.condition);
+  return switch (listing.type) {
+    ListingType.donate =>
+      listing.expiresAt != null
+          ? 'Vence: ${formatDate(listing.expiresAt!)} · Estado: $condition'
+          : 'Estado: $condition',
+    ListingType.sell =>
+      listing.price != null
+          ? '${formatCop(listing.price!)} · Estado: $condition'
+          : 'Estado: $condition',
+    ListingType.lend =>
+      listing.returnDate != null
+          ? 'Hasta ${formatDate(listing.returnDate!)}'
+          : 'Estado: $condition',
+    ListingType.exchange =>
+      listing.wantedInExchange != null && listing.wantedInExchange!.isNotEmpty
+          ? 'Busca: ${listing.wantedInExchange}'
+          : 'Estado: $condition',
+  };
+}
+
+String _locationLine(String location, String distance) {
+  if (distance.isEmpty) return location;
+  final formattedDistance = distance.startsWith('a ')
+      ? distance
+      : 'a $distance';
+  return '$location · $formattedDistance';
+}
+
+class _PlaceholderIcon extends StatelessWidget {
+  const _PlaceholderIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(
+      Icons.image,
+      color: AppColors.textHint,
+      size: 32,
     );
   }
 }

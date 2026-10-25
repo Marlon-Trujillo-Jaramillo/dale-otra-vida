@@ -1,3 +1,4 @@
+import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -69,4 +70,32 @@ enum CategoryUi {
   final IconData icon;
   final Color circleColor;
   final Color textColor;
+
+  Category get toServer {
+    return switch (this) {
+      CategoryUi.alimentos => Category.food,
+      CategoryUi.ropa => Category.clothes,
+      CategoryUi.libros => Category.books,
+      CategoryUi.muebles => Category.furniture,
+      CategoryUi.juguetes => Category.toys,
+      CategoryUi.tecnologia => Category.tech,
+      CategoryUi.herramientas => Category.tools,
+      CategoryUi.hogar => Category.home,
+      CategoryUi.utiles => Category.supplies,
+    };
+  }
+
+  static CategoryUi fromServer(Category category) {
+    return switch (category) {
+      Category.food => CategoryUi.alimentos,
+      Category.clothes => CategoryUi.ropa,
+      Category.books => CategoryUi.libros,
+      Category.furniture => CategoryUi.muebles,
+      Category.toys => CategoryUi.juguetes,
+      Category.tech => CategoryUi.tecnologia,
+      Category.tools => CategoryUi.herramientas,
+      Category.home => CategoryUi.hogar,
+      Category.supplies => CategoryUi.utiles,
+    };
+  }
 }
