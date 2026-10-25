@@ -1,9 +1,11 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:test/test.dart';
 
 import 'package:dale_otra_vida_server/src/generated/protocol.dart';
+import 'package:dale_otra_vida_server/src/listings/listing_endpoint.dart';
 import 'test_tools/serverpod_test_tools.dart';
 
 void main() {
@@ -39,13 +41,22 @@ void main() {
       profileB = await endpoints.profile.saveMe(memberB, displayName: 'Luis');
     });
 
+    String testUuidV4() {
+      final random = math.Random.secure();
+      final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+      bytes[6] = (bytes[6] & 0x0F) | 0x40;
+      bytes[8] = (bytes[8] & 0x3F) | 0x80;
+      final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+          '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
+    }
+
     Future<String> uploadPhoto(
       TestSessionBuilder member,
       int profileId, {
       String ext = 'jpg',
     }) async {
-      final path =
-          'listings/$profileId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final path = 'listings/$profileId/${testUuidV4()}.$ext';
       final session = member.build();
       await session.storage.storeFile(
         storageId: 'public',
@@ -65,6 +76,8 @@ void main() {
       int? price,
       DateTime? expiresAt,
       DateTime? returnDate,
+      double latitude = 6.25,
+      double longitude = -75.56,
     }) {
       return Listing(
         ownerId: ownerId ?? 0,
@@ -75,8 +88,8 @@ void main() {
         condition: ItemCondition.good,
         photoUrls: photoUrls,
         neighborhood: 'Robledo',
-        latitude: 6.25,
-        longitude: -75.56,
+        latitude: latitude,
+        longitude: longitude,
         price: price,
         expiresAt: expiresAt,
         returnDate: returnDate,
@@ -267,6 +280,67 @@ void main() {
           throwsA(isA<ArgumentError>()),
         );
       });
+
+      test('NaN latitude throws', () async {
+        final path = await uploadPhoto(memberA, profileA.id!);
+        final listing = baseListing(
+          type: ListingType.donate,
+          category: Category.books,
+          photoUrls: [path],
+          latitude: double.nan,
+        );
+        await expectLater(
+          ListingEndpoint().create(memberA.build(), listing),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('directory traversal photo path is rejected', () async {
+        final malicious = 'listings/${profileA.id!}/../${profileB.id!}/x.jpg';
+        await expectLater(
+          endpoints.listing.create(
+            memberA,
+            baseListing(
+              type: ListingType.donate,
+              category: Category.books,
+              photoUrls: [malicious],
+            ),
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('duplicate photo paths are rejected', () async {
+        final path = await uploadPhoto(memberA, profileA.id!);
+        await expectLater(
+          endpoints.listing.create(
+            memberA,
+            baseListing(
+              type: ListingType.donate,
+              category: Category.books,
+              photoUrls: [path, path],
+            ),
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('created listing coordinates are rounded', () async {
+        final path = await uploadPhoto(memberA, profileA.id!);
+        final view = await endpoints.listing.create(
+          memberA,
+          baseListing(
+            type: ListingType.donate,
+            category: Category.books,
+            photoUrls: [path],
+            latitude: 6.2512345,
+            longitude: -75.5612345,
+          ),
+        );
+
+        expect(view.listing.latitude, 6.251);
+        expect(view.listing.longitude, -75.561);
+      });
     });
 
     group('when feeding listings', () {
@@ -414,6 +488,39 @@ void main() {
         expect(without.first.distanceKm, isNull);
         expect(withDistance.first.distanceKm, isNotNull);
       });
+
+      test('clamps limit and offset', () async {
+        final feed = await endpoints.listing.feed(
+          memberA,
+          limit: 500,
+          offset: -5,
+        );
+
+        expect(feed.length, lessThanOrEqualTo(50));
+      });
+
+      test('ignores NaN coordinates', () async {
+        final feed = await ListingEndpoint().feed(
+          memberA.build(),
+          latitude: double.nan,
+          longitude: double.nan,
+          limit: 20,
+          offset: 0,
+        );
+
+        expect(feed.every((v) => v.distanceKm == null), isTrue);
+      });
+
+      test('query wildcard is escaped', () async {
+        final feed = await endpoints.listing.feed(
+          memberA,
+          query: '%',
+          limit: 20,
+          offset: 0,
+        );
+
+        expect(feed, isEmpty);
+      });
     });
 
     group('when reading a listing by id', () {
@@ -444,6 +551,21 @@ void main() {
       test('returns null for missing id', () async {
         final found = await endpoints.listing.byId(memberA, -1);
         expect(found, isNull);
+      });
+
+      test('non-owner can read by id', () async {
+        final view = await createListing(
+          member: memberA,
+          type: ListingType.donate,
+          category: Category.books,
+          profileId: profileA.id!,
+        );
+
+        final found = await endpoints.listing.byId(memberB, view.listing.id!);
+
+        expect(found, isNotNull);
+        expect(found!.listing.id, view.listing.id);
+        expect(found.isMine, isFalse);
       });
     });
 
@@ -536,6 +658,15 @@ void main() {
       test('verifyPhotoUpload rejects another member path', () async {
         final path = await uploadPhoto(memberA, profileA.id!);
         final result = await endpoints.listing.verifyPhotoUpload(memberB, path);
+        expect(result, isFalse);
+      });
+
+      test('verifyPhotoUpload rejects directory traversal path', () async {
+        final malicious = 'listings/${profileA.id!}/../${profileB.id!}/x.jpg';
+        final result = await endpoints.listing.verifyPhotoUpload(
+          memberA,
+          malicious,
+        );
         expect(result, isFalse);
       });
     });

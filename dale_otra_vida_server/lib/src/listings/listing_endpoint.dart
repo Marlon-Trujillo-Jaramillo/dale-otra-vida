@@ -26,6 +26,12 @@ class ListingEndpoint extends Endpoint {
     return profile;
   }
 
+  /// Validates that a photo path belongs to the given profile and has a
+  /// server-generated UUID file name with an allowed extension.
+  bool _isOwnPhotoPath(String path, int profileId) => RegExp(
+    '^listings/$profileId/[0-9a-f-]{36}\\.(jpg|jpeg|png|webp)\$',
+  ).hasMatch(path);
+
   /// Generates a server-side upload description for a new listing photo.
   Future<PhotoUpload> photoUploadDescription(
     Session session,
@@ -54,9 +60,8 @@ class ListingEndpoint extends Endpoint {
   /// Verifies that a photo was successfully uploaded to the caller's folder.
   Future<bool> verifyPhotoUpload(Session session, String path) async {
     final profile = await _currentProfile(session);
-    final prefix = 'listings/${profile.id!}/';
 
-    if (!path.startsWith(prefix)) return false;
+    if (!_isOwnPhotoPath(path, profile.id!)) return false;
 
     return session.storage.verifyUpload(storageId: 'public', path: path);
   }
@@ -70,6 +75,14 @@ class ListingEndpoint extends Endpoint {
     final title = listing.title.trim();
     final description = listing.description.trim();
     final neighborhood = listing.neighborhood.trim();
+
+    var safeMeetingPoint = listing.safeMeetingPoint?.trim();
+    if (safeMeetingPoint != null && safeMeetingPoint.length > 120) {
+      throw ArgumentError(
+        'El punto de encuentro no puede superar 120 caracteres.',
+      );
+    }
+    if (safeMeetingPoint?.isEmpty ?? false) safeMeetingPoint = null;
 
     if (title.length < 3 || title.length > 80) {
       throw ArgumentError('El título debe tener entre 3 y 80 caracteres.');
@@ -88,10 +101,13 @@ class ListingEndpoint extends Endpoint {
       throw ArgumentError('Debes subir entre 1 y 5 fotos.');
     }
 
-    final prefix = 'listings/$callerId/';
+    final seenPaths = <String>{};
     for (final path in photos) {
-      if (!path.startsWith(prefix)) {
+      if (!_isOwnPhotoPath(path, callerId)) {
         throw ArgumentError('Foto con ruta inválida.');
+      }
+      if (!seenPaths.add(path)) {
+        throw ArgumentError('Fotos duplicadas no permitidas.');
       }
       final exists = await session.storage.fileExists(
         storageId: 'public',
@@ -151,13 +167,8 @@ class ListingEndpoint extends Endpoint {
       );
     }
 
-    final latitude = listing.latitude;
-    final longitude = listing.longitude;
-    if (latitude < -90 || latitude > 90) {
-      throw ArgumentError('Latitud inválida.');
-    }
-    if (longitude < -180 || longitude > 180) {
-      throw ArgumentError('Longitud inválida.');
+    if (!isValidCoordinate(listing.latitude, listing.longitude)) {
+      throw ArgumentError('Coordenadas inválidas.');
     }
 
     final toInsert = Listing(
@@ -176,9 +187,9 @@ class ListingEndpoint extends Endpoint {
           ? listing.wantedInExchange!.trim()
           : null,
       neighborhood: neighborhood,
-      latitude: roundCoordinate(latitude)!,
-      longitude: roundCoordinate(longitude)!,
-      safeMeetingPoint: listing.safeMeetingPoint?.trim(),
+      latitude: roundCoordinate(listing.latitude)!,
+      longitude: roundCoordinate(listing.longitude)!,
+      safeMeetingPoint: safeMeetingPoint,
     );
 
     final created = await Listing.db.insertRow(session, toInsert);
@@ -198,15 +209,21 @@ class ListingEndpoint extends Endpoint {
   }) async {
     final profile = await _currentProfile(session);
 
-    if (limit < 1 || limit > 50) {
-      throw ArgumentError('limit debe estar entre 1 y 50.');
-    }
-    if (offset < 0) {
-      throw ArgumentError('offset no puede ser negativo.');
-    }
+    limit = limit.clamp(1, 50);
+    offset = math.max(0, offset);
 
     final now = DateTime.now().toUtc();
-    final q = query?.trim();
+    var q = query?.trim();
+    if (q != null && q.length > 80) {
+      q = q.substring(0, 80);
+    }
+
+    final hasValidCoords =
+        latitude != null &&
+        longitude != null &&
+        isValidCoordinate(latitude, longitude);
+    final lat = hasValidCoords ? latitude : null;
+    final lng = hasValidCoords ? longitude : null;
 
     final rows = await Listing.db.find(
       session,
@@ -216,7 +233,10 @@ class ListingEndpoint extends Endpoint {
         if (type != null) expr = expr & t.type.equals(type);
         if (category != null) expr = expr & t.category.equals(category);
         if (q != null && q.isNotEmpty) {
-          expr = expr & (t.title.ilike('%$q%') | t.description.ilike('%$q%'));
+          final escaped = _escapeLikePattern(q);
+          expr =
+              expr &
+              (t.title.ilike('%$escaped%') | t.description.ilike('%$escaped%'));
         }
 
         expr =
@@ -224,7 +244,7 @@ class ListingEndpoint extends Endpoint {
 
         return expr;
       },
-      orderByList: (t) => [t.createdAt.desc()],
+      orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
       limit: limit,
       offset: offset,
     );
@@ -233,8 +253,8 @@ class ListingEndpoint extends Endpoint {
       session,
       rows,
       profile,
-      latitude: latitude,
-      longitude: longitude,
+      latitude: lat,
+      longitude: lng,
     );
   }
 
@@ -249,12 +269,17 @@ class ListingEndpoint extends Endpoint {
     final listing = await Listing.db.findById(session, id);
     if (listing == null) return null;
 
+    final hasValidCoords =
+        latitude != null &&
+        longitude != null &&
+        isValidCoordinate(latitude, longitude);
+
     return _toView(
       session,
       listing,
       profile,
-      latitude: latitude,
-      longitude: longitude,
+      latitude: hasValidCoords ? latitude : null,
+      longitude: hasValidCoords ? longitude : null,
     );
   }
 
@@ -265,7 +290,7 @@ class ListingEndpoint extends Endpoint {
     final rows = await Listing.db.find(
       session,
       where: (t) => t.ownerId.equals(profile.id!),
-      orderByList: (t) => [t.createdAt.desc()],
+      orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
     );
 
     return _toViews(session, rows, profile);
@@ -278,38 +303,60 @@ class ListingEndpoint extends Endpoint {
     ListingStatus status,
   ) async {
     final profile = await _currentProfile(session);
-    final listing = await Listing.db.findById(session, id);
 
-    if (listing == null) {
-      throw ArgumentError('Publicación no encontrada.');
-    }
-    if (listing.ownerId != profile.id!) {
-      throw NotAllowedException(
-        message: 'No eres el dueño de esta publicación.',
-      );
-    }
-
-    final current = listing.status;
-    final valid = _isValidStatusTransition(current, status);
-    if (!valid) {
-      throw ArgumentError('Transición de estado inválida.');
-    }
-
-    final now = DateTime.now().toUtc();
-    final updated = listing.copyWith(
-      status: status,
-      updatedAt: now,
-    );
-    final saved = await Listing.db.updateRow(session, updated);
-
-    if (status == ListingStatus.delivered) {
-      await MemberProfile.db.updateRow(
+    return await session.db.transaction((transaction) async {
+      final listing = await Listing.db.findById(
         session,
-        profile.copyWith(deliveryCount: profile.deliveryCount + 1),
+        id,
+        transaction: transaction,
       );
-    }
 
-    return _toView(session, saved, profile);
+      if (listing == null) {
+        throw ArgumentError('Publicación no encontrada.');
+      }
+      if (listing.ownerId != profile.id!) {
+        throw NotAllowedException(
+          message: 'No eres el dueño de esta publicación.',
+        );
+      }
+
+      final current = listing.status;
+      final valid = _isValidStatusTransition(current, status);
+      if (!valid) {
+        throw ArgumentError('Transición de estado inválida.');
+      }
+
+      final now = DateTime.now().toUtc();
+      final updated = listing.copyWith(
+        status: status,
+        updatedAt: now,
+      );
+      final saved = await Listing.db.updateRow(
+        session,
+        updated,
+        transaction: transaction,
+      );
+
+      if (status == ListingStatus.delivered) {
+        final ownerProfile = await MemberProfile.db.findById(
+          session,
+          profile.id!,
+          transaction: transaction,
+        );
+        if (ownerProfile != null) {
+          await MemberProfile.db.updateRow(
+            session,
+            ownerProfile.copyWith(
+              deliveryCount: ownerProfile.deliveryCount + 1,
+            ),
+            columns: (t) => [t.deliveryCount],
+            transaction: transaction,
+          );
+        }
+      }
+
+      return _toView(session, saved, profile);
+    });
   }
 
   bool _isValidStatusTransition(ListingStatus from, ListingStatus to) {
@@ -329,6 +376,11 @@ class ListingEndpoint extends Endpoint {
     return false;
   }
 
+  String _escapeLikePattern(String value) => value
+      .replaceAll('\\', '\\\\')
+      .replaceAll('%', '\\%')
+      .replaceAll('_', '\\_');
+
   Future<ListingView> _toView(
     Session session,
     Listing listing,
@@ -336,35 +388,14 @@ class ListingEndpoint extends Endpoint {
     double? latitude,
     double? longitude,
   }) async {
-    final owner = await MemberProfile.db.findById(session, listing.ownerId);
-    final publicOwner = owner?.copyWith(latitude: null, longitude: null);
-
-    double? distanceKm;
-    if (latitude != null && longitude != null) {
-      distanceKm = haversineKm(
-        latitude,
-        longitude,
-        listing.latitude,
-        listing.longitude,
-      );
-    }
-
-    final photoUrls = await Future.wait(
-      listing.photoUrls.map((path) async {
-        final uri = await session.storage.publicDownloadUrl(
-          storageId: 'public',
-          path: path,
-        );
-        return uri.toString();
-      }),
+    final views = await _toViews(
+      session,
+      [listing],
+      caller,
+      latitude: latitude,
+      longitude: longitude,
     );
-
-    return ListingView(
-      listing: listing.copyWith(photoUrls: photoUrls),
-      owner: publicOwner!,
-      distanceKm: distanceKm,
-      isMine: listing.ownerId == caller.id,
-    );
+    return views.first;
   }
 
   Future<List<ListingView>> _toViews(

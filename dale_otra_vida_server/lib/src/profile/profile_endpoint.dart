@@ -33,6 +33,28 @@ class ProfileEndpoint extends Endpoint {
       throw ArgumentError.value(displayName, 'displayName');
     }
 
+    if (latitude != null || longitude != null) {
+      if (latitude == null ||
+          longitude == null ||
+          !isValidCoordinate(latitude, longitude)) {
+        throw ArgumentError.value(
+          null,
+          'latitude/longitude',
+          'Ambas coordenadas deben estar presentes y ser válidas.',
+        );
+      }
+    }
+
+    var neighborhoodTrimmed = neighborhood?.trim();
+    if (neighborhoodTrimmed != null && neighborhoodTrimmed.length > 60) {
+      throw ArgumentError.value(
+        neighborhood,
+        'neighborhood',
+        'El barrio no puede superar 60 caracteres.',
+      );
+    }
+    if (neighborhoodTrimmed?.isEmpty ?? false) neighborhoodTrimmed = null;
+
     final existing = await me(session);
     final profile =
         (existing ??
@@ -42,7 +64,7 @@ class ProfileEndpoint extends Endpoint {
                 ))
             .copyWith(
               displayName: name,
-              neighborhood: neighborhood?.trim(),
+              neighborhood: neighborhoodTrimmed,
               latitude: roundCoordinate(latitude),
               longitude: roundCoordinate(longitude),
             );

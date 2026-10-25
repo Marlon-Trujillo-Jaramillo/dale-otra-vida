@@ -4,6 +4,15 @@ import 'dart:math' as math;
 double? roundCoordinate(double? value) =>
     value == null ? null : (value * 1000).roundToDouble() / 1000;
 
+/// Returns true when both values are finite and inside the valid ranges.
+bool isValidCoordinate(double lat, double lng) =>
+    lat.isFinite &&
+    lng.isFinite &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180;
+
 /// Calculates the great-circle distance between two points on Earth.
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const earthRadiusKm = 6371.0;
@@ -16,7 +25,8 @@ double haversineKm(double lat1, double lon1, double lat2, double lon2) {
       math.cos(_toRadians(lat1)) *
           math.cos(_toRadians(lat2)) *
           math.pow(math.sin(dLon / 2), 2);
-  final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  final clampedA = a.clamp(0.0, 1.0);
+  final c = 2 * math.atan2(math.sqrt(clampedA), math.sqrt(1 - clampedA));
 
   return earthRadiusKm * c;
 }
