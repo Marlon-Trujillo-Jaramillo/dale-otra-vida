@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 import 'package:serverpod_auth_idp_server/core.dart';
 
+import '../common/geo.dart';
 import '../generated/protocol.dart';
 
 /// Profile of the signed-in member. Created right after the first sign-in.
@@ -57,6 +58,3 @@ class ProfileEndpoint extends Endpoint {
     return profile?.copyWith(latitude: null, longitude: null);
   }
 }
-
-double? roundCoordinate(double? value) =>
-    value == null ? null : (value * 1000).roundToDouble() / 1000;

@@ -1,0 +1,4 @@
+### Thrown when a caller is not allowed to perform an operation.
+exception: NotAllowedException
+fields:
+  message: String

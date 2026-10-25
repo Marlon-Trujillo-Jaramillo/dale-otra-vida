@@ -1,0 +1,5 @@
+### Upload descriptor returned to the client before uploading a photo.
+class: PhotoUpload
+fields:
+  path: String
+  uploadDescription: String

@@ -15,6 +15,14 @@ jwtRefresh:
   - refreshAccessToken:
 greeting:
   - hello:
+listing:
+  - photoUploadDescription:
+  - verifyPhotoUpload:
+  - create:
+  - feed:
+  - byId:
+  - mine:
+  - updateStatus:
 profile:
   - me:
   - saveMe:

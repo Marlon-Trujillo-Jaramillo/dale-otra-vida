@@ -13,10 +13,20 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
 import 'dart:io' as _idi;
+import 'package:dale_otra_vida_server/src/generated/category.dart' as _ibils2fp;
 import 'package:dale_otra_vida_server/src/generated/greetings/greeting.dart'
     as _igv65sne;
+import 'package:dale_otra_vida_server/src/generated/listing.dart' as _ikgalg9n;
+import 'package:dale_otra_vida_server/src/generated/listing_status.dart'
+    as _icdnh3n6;
+import 'package:dale_otra_vida_server/src/generated/listing_type.dart'
+    as _ihn74j41;
+import 'package:dale_otra_vida_server/src/generated/listing_view.dart'
+    as _ilhjw925;
 import 'package:dale_otra_vida_server/src/generated/member_profile.dart'
     as _ivdene5f;
+import 'package:dale_otra_vida_server/src/generated/photo_upload.dart'
+    as _ih8to8xj;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
@@ -162,6 +172,8 @@ class TestEndpoints {
 
   late final _GreetingEndpoint greeting;
 
+  late final _ListingEndpoint listing;
+
   late final _ProfileEndpoint profile;
 }
 
@@ -185,6 +197,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     greeting = _GreetingEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    listing = _ListingEndpoint(
       endpoints,
       serializationManager,
     );
@@ -658,6 +674,257 @@ class _GreetingEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<_igv65sne.Greeting>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _ListingEndpoint {
+  _ListingEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _is.EndpointDispatch _endpointDispatch;
+
+  final _is.SerializationManager _serializationManager;
+
+  _ida.Future<_ih8to8xj.PhotoUpload> photoUploadDescription(
+    _ist.TestSessionBuilder sessionBuilder,
+    String fileExtension,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'photoUploadDescription',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'photoUploadDescription',
+          parameters: _ist.testObjectToJson({'fileExtension': fileExtension}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ih8to8xj.PhotoUpload>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<bool> verifyPhotoUpload(
+    _ist.TestSessionBuilder sessionBuilder,
+    String path,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'verifyPhotoUpload',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'verifyPhotoUpload',
+          parameters: _ist.testObjectToJson({'path': path}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<bool>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_ilhjw925.ListingView> create(
+    _ist.TestSessionBuilder sessionBuilder,
+    _ikgalg9n.Listing listing,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'create',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'create',
+          parameters: _ist.testObjectToJson({'listing': listing}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ilhjw925.ListingView>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_ilhjw925.ListingView>> feed(
+    _ist.TestSessionBuilder sessionBuilder, {
+    _ihn74j41.ListingType? type,
+    _ibils2fp.Category? category,
+    String? query,
+    double? latitude,
+    double? longitude,
+    required int limit,
+    required int offset,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'feed',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'feed',
+          parameters: _ist.testObjectToJson({
+            'type': type,
+            'category': category,
+            'query': query,
+            'latitude': latitude,
+            'longitude': longitude,
+            'limit': limit,
+            'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_ilhjw925.ListingView>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_ilhjw925.ListingView?> byId(
+    _ist.TestSessionBuilder sessionBuilder,
+    int id, {
+    double? latitude,
+    double? longitude,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'byId',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'byId',
+          parameters: _ist.testObjectToJson({
+            'id': id,
+            'latitude': latitude,
+            'longitude': longitude,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ilhjw925.ListingView?>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_ilhjw925.ListingView>> mine(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'mine',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'mine',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_ilhjw925.ListingView>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_ilhjw925.ListingView> updateStatus(
+    _ist.TestSessionBuilder sessionBuilder,
+    int id,
+    _icdnh3n6.ListingStatus status,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'updateStatus',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'updateStatus',
+          parameters: _ist.testObjectToJson({
+            'id': id,
+            'status': status,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ilhjw925.ListingView>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

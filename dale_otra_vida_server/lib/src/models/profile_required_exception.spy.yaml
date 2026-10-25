@@ -1,0 +1,4 @@
+### Thrown when an endpoint requires a completed member profile.
+exception: ProfileRequiredException
+fields:
+  message: String

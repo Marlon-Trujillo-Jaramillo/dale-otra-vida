@@ -1,0 +1,7 @@
+### Public view of a listing, including resolved photos and owner without location.
+class: ListingView
+fields:
+  listing: Listing
+  owner: MemberProfile
+  distanceKm: double?
+  isMine: bool

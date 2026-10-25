@@ -9,7 +9,8 @@
 # Configuration for the main API server.
 apiServer:
   port: 8080
-  publicHost: localhost
+  # Mac's LAN IP so photo URLs work on a physical phone (see server pubspec.yaml).
+  publicHost: 192.168.1.5
   publicPort: 8080
   publicScheme: http
 

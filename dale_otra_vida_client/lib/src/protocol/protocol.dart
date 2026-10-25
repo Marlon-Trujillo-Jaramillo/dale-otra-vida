@@ -11,6 +11,8 @@
 // ignore_for_file: dead_code, unnecessary_type_check
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:dale_otra_vida_client/src/protocol/listing_view.dart'
+    as _ijh8j4ei;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
@@ -26,9 +28,13 @@ import 'listing.dart' as _ir9e9w84;
 import 'listing_request.dart' as _i0jjpqa3;
 import 'listing_status.dart' as _igczfm3x;
 import 'listing_type.dart' as _i1ntjlwm;
+import 'listing_view.dart' as _ijuym7ok;
 import 'member_profile.dart' as _iuh59zig;
 import 'message_kind.dart' as _ibvtcu73;
+import 'not_allowed_exception.dart' as _icn336wo;
 import 'notification_kind.dart' as _ipnxo26v;
+import 'photo_upload.dart' as _ihl17tin;
+import 'profile_required_exception.dart' as _iarivcoc;
 import 'report.dart' as _i2t8i3ij;
 import 'report_reason.dart' as _ijgj7dn0;
 import 'request_status.dart' as _iq8zsng0;
@@ -43,9 +49,13 @@ export 'listing.dart';
 export 'listing_request.dart';
 export 'listing_status.dart';
 export 'listing_type.dart';
+export 'listing_view.dart';
 export 'member_profile.dart';
 export 'message_kind.dart';
+export 'not_allowed_exception.dart';
 export 'notification_kind.dart';
+export 'photo_upload.dart';
+export 'profile_required_exception.dart';
 export 'report.dart';
 export 'report_reason.dart';
 export 'request_status.dart';
@@ -116,14 +126,26 @@ class Protocol extends _isc.SerializationManager {
     if (t == _i1ntjlwm.ListingType) {
       return _i1ntjlwm.ListingType.fromJson(data) as T;
     }
+    if (t == _ijuym7ok.ListingView) {
+      return _ijuym7ok.ListingView.fromJson(data) as T;
+    }
     if (t == _iuh59zig.MemberProfile) {
       return _iuh59zig.MemberProfile.fromJson(data) as T;
     }
     if (t == _ibvtcu73.MessageKind) {
       return _ibvtcu73.MessageKind.fromJson(data) as T;
     }
+    if (t == _icn336wo.NotAllowedException) {
+      return _icn336wo.NotAllowedException.fromJson(data) as T;
+    }
     if (t == _ipnxo26v.NotificationKind) {
       return _ipnxo26v.NotificationKind.fromJson(data) as T;
+    }
+    if (t == _ihl17tin.PhotoUpload) {
+      return _ihl17tin.PhotoUpload.fromJson(data) as T;
+    }
+    if (t == _iarivcoc.ProfileRequiredException) {
+      return _iarivcoc.ProfileRequiredException.fromJson(data) as T;
     }
     if (t == _i2t8i3ij.Report) {
       return _i2t8i3ij.Report.fromJson(data) as T;
@@ -171,6 +193,9 @@ class Protocol extends _isc.SerializationManager {
     if (t == _isc.getType<_i1ntjlwm.ListingType?>()) {
       return (data != null ? _i1ntjlwm.ListingType.fromJson(data) : null) as T;
     }
+    if (t == _isc.getType<_ijuym7ok.ListingView?>()) {
+      return (data != null ? _ijuym7ok.ListingView.fromJson(data) : null) as T;
+    }
     if (t == _isc.getType<_iuh59zig.MemberProfile?>()) {
       return (data != null ? _iuh59zig.MemberProfile.fromJson(data) : null)
           as T;
@@ -178,8 +203,23 @@ class Protocol extends _isc.SerializationManager {
     if (t == _isc.getType<_ibvtcu73.MessageKind?>()) {
       return (data != null ? _ibvtcu73.MessageKind.fromJson(data) : null) as T;
     }
+    if (t == _isc.getType<_icn336wo.NotAllowedException?>()) {
+      return (data != null
+              ? _icn336wo.NotAllowedException.fromJson(data)
+              : null)
+          as T;
+    }
     if (t == _isc.getType<_ipnxo26v.NotificationKind?>()) {
       return (data != null ? _ipnxo26v.NotificationKind.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_ihl17tin.PhotoUpload?>()) {
+      return (data != null ? _ihl17tin.PhotoUpload.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_iarivcoc.ProfileRequiredException?>()) {
+      return (data != null
+              ? _iarivcoc.ProfileRequiredException.fromJson(data)
+              : null)
           as T;
     }
     if (t == _isc.getType<_i2t8i3ij.Report?>()) {
@@ -197,6 +237,12 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
+    }
+    if (t == List<_ijh8j4ei.ListingView>) {
+      return (data as List)
+              .map((e) => deserialize<_ijh8j4ei.ListingView>(e))
+              .toList()
+          as T;
     }
     try {
       return _iaic.Protocol().deserialize<T>(data, t);
@@ -219,9 +265,13 @@ class Protocol extends _isc.SerializationManager {
       _i0jjpqa3.ListingRequest => 'ListingRequest',
       _igczfm3x.ListingStatus => 'ListingStatus',
       _i1ntjlwm.ListingType => 'ListingType',
+      _ijuym7ok.ListingView => 'ListingView',
       _iuh59zig.MemberProfile => 'MemberProfile',
       _ibvtcu73.MessageKind => 'MessageKind',
+      _icn336wo.NotAllowedException => 'NotAllowedException',
       _ipnxo26v.NotificationKind => 'NotificationKind',
+      _ihl17tin.PhotoUpload => 'PhotoUpload',
+      _iarivcoc.ProfileRequiredException => 'ProfileRequiredException',
       _i2t8i3ij.Report => 'Report',
       _ijgj7dn0.ReportReason => 'ReportReason',
       _iq8zsng0.RequestStatus => 'RequestStatus',
@@ -263,12 +313,20 @@ class Protocol extends _isc.SerializationManager {
         return 'ListingStatus';
       case _i1ntjlwm.ListingType():
         return 'ListingType';
+      case _ijuym7ok.ListingView():
+        return 'ListingView';
       case _iuh59zig.MemberProfile():
         return 'MemberProfile';
       case _ibvtcu73.MessageKind():
         return 'MessageKind';
+      case _icn336wo.NotAllowedException():
+        return 'NotAllowedException';
       case _ipnxo26v.NotificationKind():
         return 'NotificationKind';
+      case _ihl17tin.PhotoUpload():
+        return 'PhotoUpload';
+      case _iarivcoc.ProfileRequiredException():
+        return 'ProfileRequiredException';
       case _i2t8i3ij.Report():
         return 'Report';
       case _ijgj7dn0.ReportReason():
@@ -329,14 +387,26 @@ class Protocol extends _isc.SerializationManager {
     if (dataClassName == 'ListingType') {
       return deserialize<_i1ntjlwm.ListingType>(data['data']);
     }
+    if (dataClassName == 'ListingView') {
+      return deserialize<_ijuym7ok.ListingView>(data['data']);
+    }
     if (dataClassName == 'MemberProfile') {
       return deserialize<_iuh59zig.MemberProfile>(data['data']);
     }
     if (dataClassName == 'MessageKind') {
       return deserialize<_ibvtcu73.MessageKind>(data['data']);
     }
+    if (dataClassName == 'NotAllowedException') {
+      return deserialize<_icn336wo.NotAllowedException>(data['data']);
+    }
     if (dataClassName == 'NotificationKind') {
       return deserialize<_ipnxo26v.NotificationKind>(data['data']);
+    }
+    if (dataClassName == 'PhotoUpload') {
+      return deserialize<_ihl17tin.PhotoUpload>(data['data']);
+    }
+    if (dataClassName == 'ProfileRequiredException') {
+      return deserialize<_iarivcoc.ProfileRequiredException>(data['data']);
     }
     if (dataClassName == 'Report') {
       return deserialize<_i2t8i3ij.Report>(data['data']);

@@ -10,6 +10,12 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:dale_otra_vida_server/src/generated/category.dart' as _ibils2fp;
+import 'package:dale_otra_vida_server/src/generated/listing.dart' as _ikgalg9n;
+import 'package:dale_otra_vida_server/src/generated/listing_status.dart'
+    as _icdnh3n6;
+import 'package:dale_otra_vida_server/src/generated/listing_type.dart'
+    as _ihn74j41;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
@@ -19,6 +25,7 @@ import '../auth/email_idp_endpoint.dart' as _iuc1hd5t;
 import '../auth/google_idp_endpoint.dart' as _i71axiz0;
 import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
 import '../greetings/greeting_endpoint.dart' as _il624ik7;
+import '../listings/listing_endpoint.dart' as _i9qx1xff;
 import '../profile/profile_endpoint.dart' as _i6ky944g;
 
 class Endpoints extends _is.EndpointDispatch {
@@ -47,6 +54,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'greeting',
+          null,
+        ),
+      'listing': _i9qx1xff.ListingEndpoint()
+        ..initialize(
+          server,
+          'listing',
           null,
         ),
       'profile': _i6ky944g.ProfileEndpoint()
@@ -355,6 +368,190 @@ class Endpoints extends _is.EndpointDispatch {
                   (endpoints['greeting'] as _il624ik7.GreetingEndpoint).hello(
                     session,
                     params['name'],
+                  ),
+        ),
+      },
+    );
+    connectors['listing'] = _is.EndpointConnector(
+      name: 'listing',
+      endpoint: endpoints['listing']!,
+      methodConnectors: {
+        'photoUploadDescription': _is.MethodConnector(
+          name: 'photoUploadDescription',
+          params: {
+            'fileExtension': _is.ParameterDescription(
+              name: 'fileExtension',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['listing'] as _i9qx1xff.ListingEndpoint)
+                  .photoUploadDescription(
+                    session,
+                    params['fileExtension'],
+                  ),
+        ),
+        'verifyPhotoUpload': _is.MethodConnector(
+          name: 'verifyPhotoUpload',
+          params: {
+            'path': _is.ParameterDescription(
+              name: 'path',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['listing'] as _i9qx1xff.ListingEndpoint)
+                  .verifyPhotoUpload(
+                    session,
+                    params['path'],
+                  ),
+        ),
+        'create': _is.MethodConnector(
+          name: 'create',
+          params: {
+            'listing': _is.ParameterDescription(
+              name: 'listing',
+              type: _is.getType<_ikgalg9n.Listing>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['listing'] as _i9qx1xff.ListingEndpoint).create(
+                    session,
+                    params['listing'],
+                  ),
+        ),
+        'feed': _is.MethodConnector(
+          name: 'feed',
+          params: {
+            'type': _is.ParameterDescription(
+              name: 'type',
+              type: _is.getType<_ihn74j41.ListingType?>(),
+              nullable: true,
+            ),
+            'category': _is.ParameterDescription(
+              name: 'category',
+              type: _is.getType<_ibils2fp.Category?>(),
+              nullable: true,
+            ),
+            'query': _is.ParameterDescription(
+              name: 'query',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['listing'] as _i9qx1xff.ListingEndpoint).feed(
+                    session,
+                    type: params['type'],
+                    category: params['category'],
+                    query: params['query'],
+                    latitude: params['latitude'],
+                    longitude: params['longitude'],
+                    limit: params['limit'],
+                    offset: params['offset'],
+                  ),
+        ),
+        'byId': _is.MethodConnector(
+          name: 'byId',
+          params: {
+            'id': _is.ParameterDescription(
+              name: 'id',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['listing'] as _i9qx1xff.ListingEndpoint).byId(
+                    session,
+                    params['id'],
+                    latitude: params['latitude'],
+                    longitude: params['longitude'],
+                  ),
+        ),
+        'mine': _is.MethodConnector(
+          name: 'mine',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['listing'] as _i9qx1xff.ListingEndpoint)
+                  .mine(session),
+        ),
+        'updateStatus': _is.MethodConnector(
+          name: 'updateStatus',
+          params: {
+            'id': _is.ParameterDescription(
+              name: 'id',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'status': _is.ParameterDescription(
+              name: 'status',
+              type: _is.getType<_icdnh3n6.ListingStatus>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['listing'] as _i9qx1xff.ListingEndpoint)
+                  .updateStatus(
+                    session,
+                    params['id'],
+                    params['status'],
                   ),
         ),
       },

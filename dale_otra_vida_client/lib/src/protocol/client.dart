@@ -11,10 +11,20 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
+import 'package:dale_otra_vida_client/src/protocol/category.dart' as _i0m5ztok;
 import 'package:dale_otra_vida_client/src/protocol/greetings/greeting.dart'
     as _iqtlzsy5;
+import 'package:dale_otra_vida_client/src/protocol/listing.dart' as _iz1p8yt7;
+import 'package:dale_otra_vida_client/src/protocol/listing_status.dart'
+    as _i9248wmd;
+import 'package:dale_otra_vida_client/src/protocol/listing_type.dart'
+    as _is804cud;
+import 'package:dale_otra_vida_client/src/protocol/listing_view.dart'
+    as _ijh8j4ei;
 import 'package:dale_otra_vida_client/src/protocol/member_profile.dart'
     as _ibcyrd05;
+import 'package:dale_otra_vida_client/src/protocol/photo_upload.dart'
+    as _ihcne4ez;
 import 'package:http/http.dart' as _i85jenna;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
@@ -322,6 +332,99 @@ class EndpointGreeting extends _isc.EndpointRef {
       );
 }
 
+/// Endpoints for creating and browsing listings.
+/// {@category Endpoint}
+class EndpointListing extends _isc.EndpointRef {
+  EndpointListing(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'listing';
+
+  /// Generates a server-side upload description for a new listing photo.
+  _ida.Future<_ihcne4ez.PhotoUpload> photoUploadDescription(
+    String fileExtension,
+  ) => caller.callServerEndpoint<_ihcne4ez.PhotoUpload>(
+    'listing',
+    'photoUploadDescription',
+    {'fileExtension': fileExtension},
+  );
+
+  /// Verifies that a photo was successfully uploaded to the caller's folder.
+  _ida.Future<bool> verifyPhotoUpload(String path) =>
+      caller.callServerEndpoint<bool>(
+        'listing',
+        'verifyPhotoUpload',
+        {'path': path},
+      );
+
+  /// Creates a new listing after validating and sanitizing the input.
+  _ida.Future<_ijh8j4ei.ListingView> create(_iz1p8yt7.Listing listing) =>
+      caller.callServerEndpoint<_ijh8j4ei.ListingView>(
+        'listing',
+        'create',
+        {'listing': listing},
+      );
+
+  /// Returns available listings, optionally filtered.
+  _ida.Future<List<_ijh8j4ei.ListingView>> feed({
+    _is804cud.ListingType? type,
+    _i0m5ztok.Category? category,
+    String? query,
+    double? latitude,
+    double? longitude,
+    required int limit,
+    required int offset,
+  }) => caller.callServerEndpoint<List<_ijh8j4ei.ListingView>>(
+    'listing',
+    'feed',
+    {
+      'type': type,
+      'category': category,
+      'query': query,
+      'latitude': latitude,
+      'longitude': longitude,
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+
+  /// Returns a single listing by id, regardless of status.
+  _ida.Future<_ijh8j4ei.ListingView?> byId(
+    int id, {
+    double? latitude,
+    double? longitude,
+  }) => caller.callServerEndpoint<_ijh8j4ei.ListingView?>(
+    'listing',
+    'byId',
+    {
+      'id': id,
+      'latitude': latitude,
+      'longitude': longitude,
+    },
+  );
+
+  /// Returns the caller's listings, newest first.
+  _ida.Future<List<_ijh8j4ei.ListingView>> mine() =>
+      caller.callServerEndpoint<List<_ijh8j4ei.ListingView>>(
+        'listing',
+        'mine',
+        {},
+      );
+
+  /// Updates the status of a listing owned by the caller.
+  _ida.Future<_ijh8j4ei.ListingView> updateStatus(
+    int id,
+    _i9248wmd.ListingStatus status,
+  ) => caller.callServerEndpoint<_ijh8j4ei.ListingView>(
+    'listing',
+    'updateStatus',
+    {
+      'id': id,
+      'status': status,
+    },
+  );
+}
+
 /// Profile of the signed-in member. Created right after the first sign-in.
 /// {@category Endpoint}
 class EndpointProfile extends _isc.EndpointRef {
@@ -409,6 +512,7 @@ class Client extends _isc.ServerpodClientShared {
     googleIdp = EndpointGoogleIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
     greeting = EndpointGreeting(this);
+    listing = EndpointListing(this);
     profile = EndpointProfile(this);
     modules = Modules(this);
   }
@@ -421,6 +525,8 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointGreeting greeting;
 
+  late final EndpointListing listing;
+
   late final EndpointProfile profile;
 
   late final Modules modules;
@@ -431,6 +537,7 @@ class Client extends _isc.ServerpodClientShared {
     'googleIdp': googleIdp,
     'jwtRefresh': jwtRefresh,
     'greeting': greeting,
+    'listing': listing,
     'profile': profile,
   };
 
