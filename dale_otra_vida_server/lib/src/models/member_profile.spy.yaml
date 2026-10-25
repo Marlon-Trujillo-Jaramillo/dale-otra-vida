@@ -1,0 +1,20 @@
+### Public profile of an app user, one per auth user.
+class: MemberProfile
+table: member_profile
+fields:
+  authUser: module:serverpod_auth_core:AuthUser?, relation(onDelete=Cascade)
+  displayName: String
+  neighborhood: String?
+  ### Approximate home location (rounded to ~100 m), never an exact address.
+  latitude: double?
+  longitude: double?
+  avatarUrl: String?
+  isVerified: bool, default=false
+  ratingAvg: double, default=0
+  reviewCount: int, default=0
+  deliveryCount: int, default=0
+  createdAt: DateTime, default=now
+indexes:
+  member_profile_auth_user_idx:
+    fields: authUserId
+    unique: true

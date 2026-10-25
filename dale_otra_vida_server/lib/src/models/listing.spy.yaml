@@ -1,0 +1,34 @@
+### Something a user offers to donate, exchange, sell or lend.
+class: Listing
+table: listing
+fields:
+  ownerId: int, relation(parent=member_profile, onDelete=Cascade)
+  title: String
+  description: String
+  type: ListingType
+  category: Category
+  condition: ItemCondition
+  status: ListingStatus, default=available
+  photoUrls: List<String>
+  ### Required for food.
+  expiresAt: DateTime?
+  ### Price in COP, only for `sell`.
+  price: int?
+  ### Only for `lend`.
+  returnDate: DateTime?
+  ### Only for `exchange`: what the owner wants in return.
+  wantedInExchange: String?
+  neighborhood: String
+  ### Approximate location (rounded to ~100 m).
+  latitude: double
+  longitude: double
+  safeMeetingPoint: String?
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+indexes:
+  listing_status_created_idx:
+    fields: status, createdAt
+  listing_owner_idx:
+    fields: ownerId
+  listing_category_idx:
+    fields: category

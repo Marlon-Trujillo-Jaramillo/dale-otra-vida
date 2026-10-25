@@ -1,0 +1,17 @@
+### Chat between a listing owner and one interested user.
+class: Conversation
+table: conversation
+fields:
+  listingId: int, relation(parent=listing, onDelete=Cascade)
+  ownerId: int, relation(parent=member_profile, onDelete=Cascade)
+  requesterId: int, relation(parent=member_profile, onDelete=Cascade)
+  lastMessageAt: DateTime, default=now
+  lastMessagePreview: String?
+indexes:
+  conversation_unique_idx:
+    fields: listingId, requesterId
+    unique: true
+  conversation_owner_idx:
+    fields: ownerId
+  conversation_requester_idx:
+    fields: requesterId

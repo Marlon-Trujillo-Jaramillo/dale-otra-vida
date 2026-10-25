@@ -1,0 +1,13 @@
+### A "Lo quiero" request from a user on a listing.
+class: ListingRequest
+table: listing_request
+fields:
+  listingId: int, relation(parent=listing, onDelete=Cascade)
+  requesterId: int, relation(parent=member_profile, onDelete=Cascade)
+  message: String?
+  status: RequestStatus, default=pending
+  createdAt: DateTime, default=now
+indexes:
+  listing_request_unique_idx:
+    fields: listingId, requesterId
+    unique: true

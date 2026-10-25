@@ -1,0 +1,11 @@
+enum: Category
+values:
+  - food
+  - clothes
+  - books
+  - furniture
+  - toys
+  - tech
+  - tools
+  - home
+  - supplies

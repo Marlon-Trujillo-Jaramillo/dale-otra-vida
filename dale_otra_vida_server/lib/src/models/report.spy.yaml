@@ -1,0 +1,9 @@
+class: Report
+table: report
+fields:
+  reporterId: int, relation(parent=member_profile, onDelete=Cascade)
+  reportedUserId: int?, relation(parent=member_profile, onDelete=Cascade)
+  listingId: int?, relation(parent=listing, onDelete=Cascade)
+  reason: ReportReason
+  details: String?
+  createdAt: DateTime, default=now

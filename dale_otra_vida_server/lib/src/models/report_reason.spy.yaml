@@ -1,0 +1,7 @@
+enum: ReportReason
+values:
+  - spam
+  - scam
+  - inappropriate
+  - unsafeFood
+  - other

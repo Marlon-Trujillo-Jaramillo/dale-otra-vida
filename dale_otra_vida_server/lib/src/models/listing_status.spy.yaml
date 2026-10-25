@@ -1,0 +1,6 @@
+enum: ListingStatus
+values:
+  - available
+  - reserved
+  - delivered
+  - withdrawn

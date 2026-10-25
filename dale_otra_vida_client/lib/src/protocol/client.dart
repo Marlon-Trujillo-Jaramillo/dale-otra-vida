@@ -13,6 +13,8 @@
 import 'dart:async' as _ida;
 import 'package:dale_otra_vida_client/src/protocol/greetings/greeting.dart'
     as _iqtlzsy5;
+import 'package:dale_otra_vida_client/src/protocol/member_profile.dart'
+    as _ibcyrd05;
 import 'package:http/http.dart' as _i85jenna;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
@@ -264,6 +266,51 @@ class EndpointGreeting extends _isc.EndpointRef {
       );
 }
 
+/// Profile of the signed-in member. Created right after the first sign-in.
+/// {@category Endpoint}
+class EndpointProfile extends _isc.EndpointRef {
+  EndpointProfile(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'profile';
+
+  /// Returns the signed-in member's profile, or null if they have not
+  /// completed onboarding yet.
+  _ida.Future<_ibcyrd05.MemberProfile?> me() =>
+      caller.callServerEndpoint<_ibcyrd05.MemberProfile?>(
+        'profile',
+        'me',
+        {},
+      );
+
+  /// Creates or updates the signed-in member's profile.
+  ///
+  /// Coordinates are rounded to ~100 m so an exact address is never stored.
+  _ida.Future<_ibcyrd05.MemberProfile> saveMe({
+    required String displayName,
+    String? neighborhood,
+    double? latitude,
+    double? longitude,
+  }) => caller.callServerEndpoint<_ibcyrd05.MemberProfile>(
+    'profile',
+    'saveMe',
+    {
+      'displayName': displayName,
+      'neighborhood': neighborhood,
+      'latitude': latitude,
+      'longitude': longitude,
+    },
+  );
+
+  /// Public profile of any member, used on listing detail and chat headers.
+  _ida.Future<_ibcyrd05.MemberProfile?> byId(int profileId) =>
+      caller.callServerEndpoint<_ibcyrd05.MemberProfile?>(
+        'profile',
+        'byId',
+        {'profileId': profileId},
+      );
+}
+
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _iaic.Caller(client);
@@ -305,6 +352,7 @@ class Client extends _isc.ServerpodClientShared {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
     greeting = EndpointGreeting(this);
+    profile = EndpointProfile(this);
     modules = Modules(this);
   }
 
@@ -314,6 +362,8 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointGreeting greeting;
 
+  late final EndpointProfile profile;
+
   late final Modules modules;
 
   @override
@@ -321,6 +371,7 @@ class Client extends _isc.ServerpodClientShared {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
     'greeting': greeting,
+    'profile': profile,
   };
 
   @override

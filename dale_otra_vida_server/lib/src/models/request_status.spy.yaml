@@ -1,0 +1,6 @@
+enum: RequestStatus
+values:
+  - pending
+  - accepted
+  - rejected
+  - cancelled

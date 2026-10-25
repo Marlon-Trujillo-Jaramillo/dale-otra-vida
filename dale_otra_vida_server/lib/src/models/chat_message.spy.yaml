@@ -1,0 +1,13 @@
+class: ChatMessage
+table: chat_message
+fields:
+  conversationId: int, relation(parent=conversation, onDelete=Cascade)
+  ### Null for system messages.
+  senderId: int?, relation(parent=member_profile, onDelete=SetNull)
+  kind: MessageKind, default=text
+  text: String
+  createdAt: DateTime, default=now
+  readAt: DateTime?
+indexes:
+  chat_message_conversation_idx:
+    fields: conversationId, createdAt

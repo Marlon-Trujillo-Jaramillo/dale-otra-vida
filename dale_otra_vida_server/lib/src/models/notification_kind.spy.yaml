@@ -1,0 +1,8 @@
+enum: NotificationKind
+values:
+  - newRequest
+  - requestAccepted
+  - requestRejected
+  - newMessage
+  - newReview
+  - listingExpiring

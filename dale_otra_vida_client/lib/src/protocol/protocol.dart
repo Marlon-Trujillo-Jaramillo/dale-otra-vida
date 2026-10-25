@@ -16,8 +16,40 @@ import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _iaic;
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
+import 'app_notification.dart' as _ip1vhxmg;
+import 'category.dart' as _issw2w8j;
+import 'chat_message.dart' as _ivuncx2e;
+import 'conversation.dart' as _ineda879;
 import 'greetings/greeting.dart' as _izw8z7ou;
+import 'item_condition.dart' as _ittj06x2;
+import 'listing.dart' as _ir9e9w84;
+import 'listing_request.dart' as _i0jjpqa3;
+import 'listing_status.dart' as _igczfm3x;
+import 'listing_type.dart' as _i1ntjlwm;
+import 'member_profile.dart' as _iuh59zig;
+import 'message_kind.dart' as _ibvtcu73;
+import 'notification_kind.dart' as _ipnxo26v;
+import 'report.dart' as _i2t8i3ij;
+import 'report_reason.dart' as _ijgj7dn0;
+import 'request_status.dart' as _iq8zsng0;
+import 'review.dart' as _itqm5y01;
+export 'app_notification.dart';
+export 'category.dart';
+export 'chat_message.dart';
+export 'conversation.dart';
 export 'greetings/greeting.dart';
+export 'item_condition.dart';
+export 'listing.dart';
+export 'listing_request.dart';
+export 'listing_status.dart';
+export 'listing_type.dart';
+export 'member_profile.dart';
+export 'message_kind.dart';
+export 'notification_kind.dart';
+export 'report.dart';
+export 'report_reason.dart';
+export 'request_status.dart';
+export 'review.dart';
 export 'client.dart';
 
 class Protocol extends _isc.SerializationManager {
@@ -54,11 +86,117 @@ class Protocol extends _isc.SerializationManager {
       }
     }
 
+    if (t == _ip1vhxmg.AppNotification) {
+      return _ip1vhxmg.AppNotification.fromJson(data) as T;
+    }
+    if (t == _issw2w8j.Category) {
+      return _issw2w8j.Category.fromJson(data) as T;
+    }
+    if (t == _ivuncx2e.ChatMessage) {
+      return _ivuncx2e.ChatMessage.fromJson(data) as T;
+    }
+    if (t == _ineda879.Conversation) {
+      return _ineda879.Conversation.fromJson(data) as T;
+    }
     if (t == _izw8z7ou.Greeting) {
       return _izw8z7ou.Greeting.fromJson(data) as T;
     }
+    if (t == _ittj06x2.ItemCondition) {
+      return _ittj06x2.ItemCondition.fromJson(data) as T;
+    }
+    if (t == _ir9e9w84.Listing) {
+      return _ir9e9w84.Listing.fromJson(data) as T;
+    }
+    if (t == _i0jjpqa3.ListingRequest) {
+      return _i0jjpqa3.ListingRequest.fromJson(data) as T;
+    }
+    if (t == _igczfm3x.ListingStatus) {
+      return _igczfm3x.ListingStatus.fromJson(data) as T;
+    }
+    if (t == _i1ntjlwm.ListingType) {
+      return _i1ntjlwm.ListingType.fromJson(data) as T;
+    }
+    if (t == _iuh59zig.MemberProfile) {
+      return _iuh59zig.MemberProfile.fromJson(data) as T;
+    }
+    if (t == _ibvtcu73.MessageKind) {
+      return _ibvtcu73.MessageKind.fromJson(data) as T;
+    }
+    if (t == _ipnxo26v.NotificationKind) {
+      return _ipnxo26v.NotificationKind.fromJson(data) as T;
+    }
+    if (t == _i2t8i3ij.Report) {
+      return _i2t8i3ij.Report.fromJson(data) as T;
+    }
+    if (t == _ijgj7dn0.ReportReason) {
+      return _ijgj7dn0.ReportReason.fromJson(data) as T;
+    }
+    if (t == _iq8zsng0.RequestStatus) {
+      return _iq8zsng0.RequestStatus.fromJson(data) as T;
+    }
+    if (t == _itqm5y01.Review) {
+      return _itqm5y01.Review.fromJson(data) as T;
+    }
+    if (t == _isc.getType<_ip1vhxmg.AppNotification?>()) {
+      return (data != null ? _ip1vhxmg.AppNotification.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_issw2w8j.Category?>()) {
+      return (data != null ? _issw2w8j.Category.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_ivuncx2e.ChatMessage?>()) {
+      return (data != null ? _ivuncx2e.ChatMessage.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_ineda879.Conversation?>()) {
+      return (data != null ? _ineda879.Conversation.fromJson(data) : null) as T;
+    }
     if (t == _isc.getType<_izw8z7ou.Greeting?>()) {
       return (data != null ? _izw8z7ou.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_ittj06x2.ItemCondition?>()) {
+      return (data != null ? _ittj06x2.ItemCondition.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_ir9e9w84.Listing?>()) {
+      return (data != null ? _ir9e9w84.Listing.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_i0jjpqa3.ListingRequest?>()) {
+      return (data != null ? _i0jjpqa3.ListingRequest.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_igczfm3x.ListingStatus?>()) {
+      return (data != null ? _igczfm3x.ListingStatus.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_i1ntjlwm.ListingType?>()) {
+      return (data != null ? _i1ntjlwm.ListingType.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_iuh59zig.MemberProfile?>()) {
+      return (data != null ? _iuh59zig.MemberProfile.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_ibvtcu73.MessageKind?>()) {
+      return (data != null ? _ibvtcu73.MessageKind.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_ipnxo26v.NotificationKind?>()) {
+      return (data != null ? _ipnxo26v.NotificationKind.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_i2t8i3ij.Report?>()) {
+      return (data != null ? _i2t8i3ij.Report.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_ijgj7dn0.ReportReason?>()) {
+      return (data != null ? _ijgj7dn0.ReportReason.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_iq8zsng0.RequestStatus?>()) {
+      return (data != null ? _iq8zsng0.RequestStatus.fromJson(data) : null)
+          as T;
+    }
+    if (t == _isc.getType<_itqm5y01.Review?>()) {
+      return (data != null ? _itqm5y01.Review.fromJson(data) : null) as T;
+    }
+    if (t == List<String>) {
+      return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
     try {
       return _iaic.Protocol().deserialize<T>(data, t);
@@ -71,7 +209,23 @@ class Protocol extends _isc.SerializationManager {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
+      _ip1vhxmg.AppNotification => 'AppNotification',
+      _issw2w8j.Category => 'Category',
+      _ivuncx2e.ChatMessage => 'ChatMessage',
+      _ineda879.Conversation => 'Conversation',
       _izw8z7ou.Greeting => 'Greeting',
+      _ittj06x2.ItemCondition => 'ItemCondition',
+      _ir9e9w84.Listing => 'Listing',
+      _i0jjpqa3.ListingRequest => 'ListingRequest',
+      _igczfm3x.ListingStatus => 'ListingStatus',
+      _i1ntjlwm.ListingType => 'ListingType',
+      _iuh59zig.MemberProfile => 'MemberProfile',
+      _ibvtcu73.MessageKind => 'MessageKind',
+      _ipnxo26v.NotificationKind => 'NotificationKind',
+      _i2t8i3ij.Report => 'Report',
+      _ijgj7dn0.ReportReason => 'ReportReason',
+      _iq8zsng0.RequestStatus => 'RequestStatus',
+      _itqm5y01.Review => 'Review',
       _ => null,
     };
   }
@@ -89,8 +243,40 @@ class Protocol extends _isc.SerializationManager {
     }
 
     switch (data) {
+      case _ip1vhxmg.AppNotification():
+        return 'AppNotification';
+      case _issw2w8j.Category():
+        return 'Category';
+      case _ivuncx2e.ChatMessage():
+        return 'ChatMessage';
+      case _ineda879.Conversation():
+        return 'Conversation';
       case _izw8z7ou.Greeting():
         return 'Greeting';
+      case _ittj06x2.ItemCondition():
+        return 'ItemCondition';
+      case _ir9e9w84.Listing():
+        return 'Listing';
+      case _i0jjpqa3.ListingRequest():
+        return 'ListingRequest';
+      case _igczfm3x.ListingStatus():
+        return 'ListingStatus';
+      case _i1ntjlwm.ListingType():
+        return 'ListingType';
+      case _iuh59zig.MemberProfile():
+        return 'MemberProfile';
+      case _ibvtcu73.MessageKind():
+        return 'MessageKind';
+      case _ipnxo26v.NotificationKind():
+        return 'NotificationKind';
+      case _i2t8i3ij.Report():
+        return 'Report';
+      case _ijgj7dn0.ReportReason():
+        return 'ReportReason';
+      case _iq8zsng0.RequestStatus():
+        return 'RequestStatus';
+      case _itqm5y01.Review():
+        return 'Review';
     }
     className = _iaic.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -113,8 +299,56 @@ class Protocol extends _isc.SerializationManager {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'AppNotification') {
+      return deserialize<_ip1vhxmg.AppNotification>(data['data']);
+    }
+    if (dataClassName == 'Category') {
+      return deserialize<_issw2w8j.Category>(data['data']);
+    }
+    if (dataClassName == 'ChatMessage') {
+      return deserialize<_ivuncx2e.ChatMessage>(data['data']);
+    }
+    if (dataClassName == 'Conversation') {
+      return deserialize<_ineda879.Conversation>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
       return deserialize<_izw8z7ou.Greeting>(data['data']);
+    }
+    if (dataClassName == 'ItemCondition') {
+      return deserialize<_ittj06x2.ItemCondition>(data['data']);
+    }
+    if (dataClassName == 'Listing') {
+      return deserialize<_ir9e9w84.Listing>(data['data']);
+    }
+    if (dataClassName == 'ListingRequest') {
+      return deserialize<_i0jjpqa3.ListingRequest>(data['data']);
+    }
+    if (dataClassName == 'ListingStatus') {
+      return deserialize<_igczfm3x.ListingStatus>(data['data']);
+    }
+    if (dataClassName == 'ListingType') {
+      return deserialize<_i1ntjlwm.ListingType>(data['data']);
+    }
+    if (dataClassName == 'MemberProfile') {
+      return deserialize<_iuh59zig.MemberProfile>(data['data']);
+    }
+    if (dataClassName == 'MessageKind') {
+      return deserialize<_ibvtcu73.MessageKind>(data['data']);
+    }
+    if (dataClassName == 'NotificationKind') {
+      return deserialize<_ipnxo26v.NotificationKind>(data['data']);
+    }
+    if (dataClassName == 'Report') {
+      return deserialize<_i2t8i3ij.Report>(data['data']);
+    }
+    if (dataClassName == 'ReportReason') {
+      return deserialize<_ijgj7dn0.ReportReason>(data['data']);
+    }
+    if (dataClassName == 'RequestStatus') {
+      return deserialize<_iq8zsng0.RequestStatus>(data['data']);
+    }
+    if (dataClassName == 'Review') {
+      return deserialize<_itqm5y01.Review>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);

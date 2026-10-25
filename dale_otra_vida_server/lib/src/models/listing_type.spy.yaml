@@ -1,0 +1,6 @@
+enum: ListingType
+values:
+  - donate
+  - exchange
+  - sell
+  - lend

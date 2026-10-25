@@ -1,0 +1,14 @@
+class: AppNotification
+table: app_notification
+fields:
+  userId: int, relation(parent=member_profile, onDelete=Cascade)
+  kind: NotificationKind
+  title: String
+  body: String
+  ### Id of the related listing, request or conversation, depending on [kind].
+  refId: int?
+  readAt: DateTime?
+  createdAt: DateTime, default=now
+indexes:
+  app_notification_user_idx:
+    fields: userId, createdAt

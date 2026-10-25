@@ -1,0 +1,17 @@
+### Rating left after a delivered listing.
+class: Review
+table: review
+fields:
+  listingId: int, relation(parent=listing, onDelete=Cascade)
+  reviewerId: int, relation(parent=member_profile, onDelete=Cascade)
+  revieweeId: int, relation(parent=member_profile, onDelete=Cascade)
+  ### 1 to 5.
+  rating: int
+  comment: String?
+  createdAt: DateTime, default=now
+indexes:
+  review_unique_idx:
+    fields: listingId, reviewerId
+    unique: true
+  review_reviewee_idx:
+    fields: revieweeId

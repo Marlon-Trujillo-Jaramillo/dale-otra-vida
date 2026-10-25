@@ -18,6 +18,7 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
 import '../auth/email_idp_endpoint.dart' as _iuc1hd5t;
 import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
 import '../greetings/greeting_endpoint.dart' as _il624ik7;
+import '../profile/profile_endpoint.dart' as _i6ky944g;
 
 class Endpoints extends _is.EndpointDispatch {
   @override
@@ -39,6 +40,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'greeting',
+          null,
+        ),
+      'profile': _i6ky944g.ProfileEndpoint()
+        ..initialize(
+          server,
+          'profile',
           null,
         ),
     };
@@ -269,6 +276,79 @@ class Endpoints extends _is.EndpointDispatch {
                   (endpoints['greeting'] as _il624ik7.GreetingEndpoint).hello(
                     session,
                     params['name'],
+                  ),
+        ),
+      },
+    );
+    connectors['profile'] = _is.EndpointConnector(
+      name: 'profile',
+      endpoint: endpoints['profile']!,
+      methodConnectors: {
+        'me': _is.MethodConnector(
+          name: 'me',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['profile'] as _i6ky944g.ProfileEndpoint).me(
+                session,
+              ),
+        ),
+        'saveMe': _is.MethodConnector(
+          name: 'saveMe',
+          params: {
+            'displayName': _is.ParameterDescription(
+              name: 'displayName',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'neighborhood': _is.ParameterDescription(
+              name: 'neighborhood',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['profile'] as _i6ky944g.ProfileEndpoint).saveMe(
+                    session,
+                    displayName: params['displayName'],
+                    neighborhood: params['neighborhood'],
+                    latitude: params['latitude'],
+                    longitude: params['longitude'],
+                  ),
+        ),
+        'byId': _is.MethodConnector(
+          name: 'byId',
+          params: {
+            'profileId': _is.ParameterDescription(
+              name: 'profileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['profile'] as _i6ky944g.ProfileEndpoint).byId(
+                    session,
+                    params['profileId'],
                   ),
         ),
       },
