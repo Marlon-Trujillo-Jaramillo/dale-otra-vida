@@ -6,8 +6,11 @@ import 'package:dale_otra_vida_flutter/core/widgets/app_primary_button.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_secondary_button.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_segmented_control.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_text_field.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
+
+import 'auth_errors.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key, this.controller});
@@ -228,13 +231,14 @@ class _ControllerError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (controller.errorMessage == null) {
+    final error = controller.error;
+    if (error == null) {
       return const SizedBox.shrink();
     }
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.l),
       child: Text(
-        controller.errorMessage!,
+        authErrorMessage(error),
         style: AppTypography.body.copyWith(color: AppColors.danger),
         textAlign: TextAlign.center,
       ),
@@ -374,17 +378,20 @@ class _LoginStepState extends State<_LoginStep> {
             isLoading: widget.controller.isLoading,
             onPressed: _validateAndLogin,
           ),
-          const SizedBox(height: AppSpacing.xl),
-          const _DividerWithText(text: 'o'),
-          const SizedBox(height: AppSpacing.xl),
-          ListenableBuilder(
-            listenable: _google,
-            builder: (context, _) => AppSecondaryButton(
-              label: 'Continuar con Google',
-              isLoading: _google.isLoading,
-              onPressed: _signInWithGoogle,
+          // Google sign-in is set up for the Android and iOS apps only.
+          if (!kIsWeb) ...[
+            const SizedBox(height: AppSpacing.xl),
+            const _DividerWithText(text: 'o'),
+            const SizedBox(height: AppSpacing.xl),
+            ListenableBuilder(
+              listenable: _google,
+              builder: (context, _) => AppSecondaryButton(
+                label: 'Continuar con Google',
+                isLoading: _google.isLoading,
+                onPressed: _signInWithGoogle,
+              ),
             ),
-          ),
+          ],
           _ControllerError(controller: widget.controller),
         ],
       ),
@@ -472,12 +479,11 @@ class _RegisterVerifyStep extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.l),
           AppTextField(
-            label: 'Código de 6 dígitos',
-            hint: '000000',
+            label: 'Código de verificación',
+            hint: 'Revisa tu correo',
             controller: controller.verificationCodeController,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
-            maxLength: 6,
             autofillHints: const [AutofillHints.oneTimeCode],
           ),
           const SizedBox(height: AppSpacing.l),
@@ -702,12 +708,11 @@ class _ResetVerifyStep extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.l),
           AppTextField(
-            label: 'Código de 6 dígitos',
-            hint: '000000',
+            label: 'Código de verificación',
+            hint: 'Revisa tu correo',
             controller: controller.verificationCodeController,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
-            maxLength: 6,
             autofillHints: const [AutofillHints.oneTimeCode],
           ),
           const SizedBox(height: AppSpacing.l),
