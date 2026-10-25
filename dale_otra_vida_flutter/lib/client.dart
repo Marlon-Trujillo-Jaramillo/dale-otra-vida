@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
+import 'package:flutter/foundation.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 
@@ -24,9 +25,28 @@ final serverUrl = getServerUrl();
 /// instead of using a global client object. This is just a simple example.
 late final Client client;
 
+// Google OAuth client IDs (public identifiers, not secrets). The web client is
+// the one the server verifies tokens against.
+const _googleWebClientId =
+    '135415936830-avmi1huhp4kt0cl0b6laovbtlqiaqpcq.apps.googleusercontent.com';
+const _googleIosClientId =
+    '135415936830-ph8cti0b40fvp45fu4ie0ngpb560qqe0.apps.googleusercontent.com';
+
 Future<void> initializeClient() async {
   client = Client(await serverUrl)
     ..connectivityMonitor = FlutterConnectivityMonitor()
     ..authSessionManager = FlutterAuthSessionManager();
   unawaited(client.auth.initialize());
+
+  if (!kIsWeb) {
+    unawaited(
+      client.auth.initializeGoogleSignIn(
+        // Android identifies the app by package name + SHA-1 instead.
+        clientId: defaultTargetPlatform == TargetPlatform.iOS
+            ? _googleIosClientId
+            : null,
+        serverClientId: _googleWebClientId,
+      ),
+    );
+  }
 }

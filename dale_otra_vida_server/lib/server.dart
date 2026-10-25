@@ -1,5 +1,6 @@
 import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
+import 'package:serverpod_auth_idp_server/providers/google.dart';
 import 'package:serverpod_cloud_storage/serverpod_cloud_storage.dart';
 
 import 'src/generated/serverpod.dart';
@@ -26,8 +27,10 @@ void run(List<String> args) async {
       // service. If you want to use a custom provider for sending emails, use
       // `EmailIdpConfigFromPasswords`.
       ServerpodCloudEmailIdpConfig(
-        appDisplayName: 'dale_otra_vida',
+        appDisplayName: 'Dale Otra Vida',
       ),
+      // Reads `googleClientSecret` from config/passwords.yaml.
+      GoogleIdpConfigFromPasswords(),
     ],
   );
 

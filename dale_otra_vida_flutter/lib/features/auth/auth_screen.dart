@@ -278,6 +278,34 @@ class _LoginStepState extends State<_LoginStep> {
   String? _emailError;
   String? _passwordError;
 
+  // Only report Google errors the user caused by tapping the button, not
+  // initialization failures while the screen builds.
+  bool _googleRequested = false;
+
+  void _signInWithGoogle() {
+    _googleRequested = true;
+    _google.signIn();
+  }
+
+  late final _google = GoogleAuthController(
+    client: client,
+    onError: (_) {
+      if (!mounted || !_googleRequested) return;
+      _googleRequested = false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No pudimos ingresar con Google. Inténtalo de nuevo.'),
+        ),
+      );
+    },
+  );
+
+  @override
+  void dispose() {
+    _google.dispose();
+    super.dispose();
+  }
+
   void _validateAndLogin() {
     setState(() {
       _emailError = _validateEmail(widget.controller.emailController.text);
@@ -349,15 +377,13 @@ class _LoginStepState extends State<_LoginStep> {
           const SizedBox(height: AppSpacing.xl),
           const _DividerWithText(text: 'o'),
           const SizedBox(height: AppSpacing.xl),
-          AppSecondaryButton(
-            label: 'Continuar con Google',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Muy pronto podrás ingresar con Google'),
-                ),
-              );
-            },
+          ListenableBuilder(
+            listenable: _google,
+            builder: (context, _) => AppSecondaryButton(
+              label: 'Continuar con Google',
+              isLoading: _google.isLoading,
+              onPressed: _signInWithGoogle,
+            ),
           ),
           _ControllerError(controller: widget.controller),
         ],

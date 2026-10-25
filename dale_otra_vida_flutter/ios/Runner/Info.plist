@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dale Otra Vida Flutter</string>
+	<string>Dale Otra Vida</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -65,6 +65,21 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>GIDClientID</key>
+	<string>135415936830-ph8cti0b40fvp45fu4ie0ngpb560qqe0.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>135415936830-avmi1huhp4kt0cl0b6laovbtlqiaqpcq.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.135415936830-ph8cti0b40fvp45fu4ie0ngpb560qqe0</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
