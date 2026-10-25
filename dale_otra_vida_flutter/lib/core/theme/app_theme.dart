@@ -81,11 +81,21 @@ abstract final class AppTheme {
           borderSide: BorderSide(color: AppColors.danger, width: 1.5),
         ),
       ),
-      chipTheme: const ChipThemeData(
+      chipTheme: ChipThemeData(
         backgroundColor: AppColors.surface,
         selectedColor: AppColors.primary,
-        labelStyle: TextStyle(),
-        padding: EdgeInsets.symmetric(
+        showCheckmark: false,
+        // Unselected chips were rendering light text on the light surface.
+        // `secondaryLabelStyle` is the one Flutter uses for selected chips.
+        labelStyle: AppTypography.bodyStrong.copyWith(
+          fontSize: 14,
+          color: AppColors.textPrimary,
+        ),
+        secondaryLabelStyle: AppTypography.bodyStrong.copyWith(
+          fontSize: 14,
+          color: AppColors.onPrimary,
+        ),
+        padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.m,
           vertical: AppSpacing.s,
         ),

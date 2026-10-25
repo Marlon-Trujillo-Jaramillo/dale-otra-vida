@@ -591,6 +591,10 @@ class _PublishScreenState extends State<PublishScreen> {
                   condition: selected ? null : condition,
                 ),
               ),
+              labelStyle: TextStyle(
+                color: selected ? AppColors.onPrimary : AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             );
           }).toList(),
         ),
