@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
@@ -16,6 +17,12 @@ class AppTextField extends StatefulWidget {
     this.textInputAction,
     this.onSubmitted,
     this.onChanged,
+    this.autofillHints,
+    this.focusNode,
+    this.enabled,
+    this.maxLength,
+    this.textCapitalization = TextCapitalization.none,
+    this.inputFormatters,
   });
 
   final String label;
@@ -27,6 +34,12 @@ class AppTextField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
   final ValueChanged<String>? onChanged;
+  final Iterable<String>? autofillHints;
+  final FocusNode? focusNode;
+  final bool? enabled;
+  final int? maxLength;
+  final TextCapitalization textCapitalization;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -58,14 +71,21 @@ class _AppTextFieldState extends State<AppTextField> {
         const SizedBox(height: AppSpacing.s),
         TextField(
           controller: widget.controller,
+          focusNode: widget.focusNode,
+          enabled: widget.enabled,
           obscureText: _isObscured,
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
+          textCapitalization: widget.textCapitalization,
+          maxLength: widget.maxLength,
+          inputFormatters: widget.inputFormatters,
+          autofillHints: widget.autofillHints,
           onSubmitted: widget.onSubmitted,
           onChanged: widget.onChanged,
           decoration: InputDecoration(
             hintText: widget.hint,
             errorText: widget.errorText,
+            counterText: '',
             suffixIcon: widget.obscure
                 ? IconButton(
                     icon: Icon(
