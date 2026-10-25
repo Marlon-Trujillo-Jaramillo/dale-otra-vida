@@ -292,10 +292,12 @@ class ListingEndpoint extends Endpoint {
     final profile = await currentProfile(session);
 
     return await session.db.transaction((transaction) async {
+      // Lock the listing row so concurrent mutations serialize on it.
       final listing = await Listing.db.findById(
         session,
         id,
         transaction: transaction,
+        lockMode: LockMode.forUpdate,
       );
 
       if (listing == null) {

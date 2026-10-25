@@ -185,6 +185,32 @@ void main() {
         expect(await endpoints.notification.unreadCount(memberA), 0);
         expect(await endpoints.notification.unreadCount(memberB), 1);
       });
+
+      test('markAllRead sets readAt on every unread notification', () async {
+        final one = await insertNotification(profileA.id!, 'Uno');
+        final two = await insertNotification(profileA.id!, 'Dos');
+        final foreign = await insertNotification(profileB.id!, 'Ajena');
+
+        await endpoints.notification.markAllRead(memberA);
+
+        final refreshedOne = await AppNotification.db.findById(
+          sessionBuilder.build(),
+          one.id!,
+        );
+        final refreshedTwo = await AppNotification.db.findById(
+          sessionBuilder.build(),
+          two.id!,
+        );
+        expect(refreshedOne!.readAt, isNotNull);
+        expect(refreshedTwo!.readAt, isNotNull);
+        expect(await endpoints.notification.unreadCount(memberA), 0);
+
+        final refreshedForeign = await AppNotification.db.findById(
+          sessionBuilder.build(),
+          foreign.id!,
+        );
+        expect(refreshedForeign!.readAt, isNull);
+      });
     });
   });
 }

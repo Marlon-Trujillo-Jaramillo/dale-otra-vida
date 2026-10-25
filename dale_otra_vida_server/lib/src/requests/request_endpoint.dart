@@ -15,7 +15,8 @@ class RequestEndpoint extends Endpoint {
   /// Ensures a conversation with the owner exists, stores a system message
   /// (plus the optional [message]) and notifies the owner. An existing
   /// pending or accepted request is returned unchanged; a cancelled one is
-  /// reopened with a fresh createdAt.
+  /// reopened with a fresh createdAt and only the new [message] (null if
+  /// none), never the old one.
   Future<ListingRequest> create(
     Session session,
     int listingId, {
@@ -30,10 +31,12 @@ class RequestEndpoint extends Endpoint {
     }
 
     return await session.db.transaction((transaction) async {
+      // Always lock the listing row first.
       final listing = await Listing.db.findById(
         session,
         listingId,
         transaction: transaction,
+        lockMode: LockMode.forUpdate,
       );
       if (listing == null) {
         throw ArgumentError('Publicación no encontrada.');
@@ -135,7 +138,7 @@ class RequestEndpoint extends Endpoint {
               existing.copyWith(
                 status: RequestStatus.pending,
                 createdAt: now,
-                message: text ?? existing.message,
+                message: text,
               ),
               transaction: transaction,
             );
@@ -154,9 +157,9 @@ class RequestEndpoint extends Endpoint {
     });
   }
 
-  /// Returns every request on one of the caller's listings, pending first
-  /// and then newest first, with the requester's public profile and the
-  /// chat conversation id.
+  /// Returns the newest 100 requests on one of the caller's listings,
+  /// pending first and then newest first, with the requester's public
+  /// profile and the chat conversation id.
   Future<List<RequestView>> forListing(Session session, int listingId) async {
     final profile = await currentProfile(session);
 
@@ -173,6 +176,8 @@ class RequestEndpoint extends Endpoint {
     final requests = await ListingRequest.db.find(
       session,
       where: (t) => t.listingId.equals(listingId),
+      orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
+      limit: 100,
     );
 
     final requesterIds = requests.map((r) => r.requesterId).toSet();
@@ -220,8 +225,8 @@ class RequestEndpoint extends Endpoint {
     return views;
   }
 
-  /// Returns the requests of the caller, newest first, with the listing
-  /// view and the chat conversation id.
+  /// Returns the newest 100 requests of the caller, newest first, with the
+  /// listing view and the chat conversation id.
   Future<List<MyRequestView>> mine(Session session) async {
     final profile = await currentProfile(session);
 
@@ -229,6 +234,7 @@ class RequestEndpoint extends Endpoint {
       session,
       where: (t) => t.requesterId.equals(profile.id!),
       orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
+      limit: 100,
     );
     if (requests.isEmpty) return [];
 
@@ -264,25 +270,59 @@ class RequestEndpoint extends Endpoint {
 
   /// Accepts a pending request, reserves the listing and rejects every
   /// other pending request on it.
+  ///
+  /// Throws [NotAllowedException] when another request on the listing was
+  /// already accepted while this call waited for the listing lock.
   Future<ListingRequest> accept(Session session, int requestId) async {
     final profile = await currentProfile(session);
 
     return await session.db.transaction((transaction) async {
+      // Unlocked read to find which listing to lock.
+      final initial = await ListingRequest.db.findById(
+        session,
+        requestId,
+        transaction: transaction,
+      );
+      if (initial == null) {
+        throw ArgumentError('Solicitud no encontrada.');
+      }
+
+      // Always lock the listing row first.
+      final listing = await _ownedListing(
+        session,
+        initial,
+        profile,
+        transaction,
+      );
+
+      // Re-read the request under lock and validate the fresh rows.
       final request = await ListingRequest.db.findById(
         session,
         requestId,
         transaction: transaction,
+        lockMode: LockMode.forUpdate,
       );
       if (request == null) {
         throw ArgumentError('Solicitud no encontrada.');
       }
 
-      final listing = await _ownedListing(
+      // While we waited for the listing lock another request may have
+      // been accepted on this listing. This check runs before the own
+      // status check so the loser of a double accept reports the
+      // reservation, not its auto-rejected request.
+      final otherAccepted = await ListingRequest.db.findFirstRow(
         session,
-        request,
-        profile,
-        transaction,
+        where: (t) =>
+            t.listingId.equals(listing.id!) &
+            t.status.equals(RequestStatus.accepted) &
+            t.id.notEquals(requestId),
+        transaction: transaction,
       );
+      if (otherAccepted != null) {
+        throw NotAllowedException(
+          message: 'Esta publicación ya fue reservada.',
+        );
+      }
 
       if (request.status != RequestStatus.pending) {
         throw ArgumentError('La solicitud ya fue respondida.');
@@ -383,21 +423,34 @@ class RequestEndpoint extends Endpoint {
     final profile = await currentProfile(session);
 
     return await session.db.transaction((transaction) async {
-      final request = await ListingRequest.db.findById(
+      // Unlocked read to find which listing to lock.
+      final initial = await ListingRequest.db.findById(
         session,
         requestId,
         transaction: transaction,
       );
-      if (request == null) {
+      if (initial == null) {
         throw ArgumentError('Solicitud no encontrada.');
       }
 
+      // Always lock the listing row first.
       final listing = await _ownedListing(
         session,
-        request,
+        initial,
         profile,
         transaction,
       );
+
+      // Re-read the request under lock and validate the fresh row.
+      final request = await ListingRequest.db.findById(
+        session,
+        requestId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (request == null) {
+        throw ArgumentError('Solicitud no encontrada.');
+      }
 
       if (request.status != RequestStatus.pending) {
         throw ArgumentError('La solicitud ya fue respondida.');
@@ -422,15 +475,38 @@ class RequestEndpoint extends Endpoint {
   }
 
   /// Cancels one of the caller's requests. Cancelling an accepted request
-  /// makes the listing available again.
+  /// makes the listing available again and notifies the owner — unless the
+  /// listing already progressed: a delivered listing cannot be reopened
+  /// (throws [NotAllowedException]) and a withdrawn one is cancelled
+  /// silently.
   Future<ListingRequest> cancel(Session session, int requestId) async {
     final profile = await currentProfile(session);
 
     return await session.db.transaction((transaction) async {
+      // Unlocked read to find which listing to lock.
+      final initial = await ListingRequest.db.findById(
+        session,
+        requestId,
+        transaction: transaction,
+      );
+      if (initial == null) {
+        throw ArgumentError('Solicitud no encontrada.');
+      }
+
+      // Always lock the listing row first.
+      final listing = await Listing.db.findById(
+        session,
+        initial.listingId,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+
+      // Re-read the request under lock and validate the fresh row.
       final request = await ListingRequest.db.findById(
         session,
         requestId,
         transaction: transaction,
+        lockMode: LockMode.forUpdate,
       );
       if (request == null) {
         throw ArgumentError('Solicitud no encontrada.');
@@ -448,47 +524,56 @@ class RequestEndpoint extends Endpoint {
 
       final wasAccepted = request.status == RequestStatus.accepted;
 
+      if (wasAccepted && listing != null) {
+        if (listing.status == ListingStatus.delivered) {
+          throw NotAllowedException(
+            message: 'La entrega ya se completó.',
+          );
+        }
+      }
+
       final cancelled = await ListingRequest.db.updateRow(
         session,
         request.copyWith(status: RequestStatus.cancelled),
         transaction: transaction,
       );
 
-      if (wasAccepted) {
-        final listing = await Listing.db.findById(
+      // Only a still-reserved listing is reopened (and its owner notified);
+      // a withdrawn or otherwise changed listing is left alone.
+      if (wasAccepted &&
+          listing != null &&
+          listing.status == ListingStatus.reserved) {
+        await Listing.db.updateRow(
           session,
-          request.listingId,
+          listing.copyWith(
+            status: ListingStatus.available,
+            updatedAt: DateTime.now().toUtc(),
+          ),
           transaction: transaction,
         );
-        if (listing != null) {
-          await Listing.db.updateRow(
-            session,
-            listing.copyWith(
-              status: ListingStatus.available,
-              updatedAt: DateTime.now().toUtc(),
-            ),
-            transaction: transaction,
-          );
 
-          await notify(
-            session,
-            userId: listing.ownerId,
-            kind: NotificationKind.requestCancelled,
-            title: 'Reserva cancelada',
-            body:
-                '${profile.displayName} canceló su solicitud de '
-                '«${listing.title}».',
-            refId: listing.id,
-            transaction: transaction,
-          );
-        }
+        await notify(
+          session,
+          userId: listing.ownerId,
+          kind: NotificationKind.requestCancelled,
+          title: 'Reserva cancelada',
+          body:
+              '${profile.displayName} canceló su solicitud de '
+              '«${listing.title}».',
+          refId: listing.id,
+          transaction: transaction,
+        );
       }
 
       return cancelled;
     });
   }
 
-  /// Loads the listing of [request] and verifies the caller owns it.
+  /// Loads the listing of [request] with a FOR UPDATE lock and verifies the
+  /// caller owns it.
+  ///
+  /// The lock is always taken on the listing row before any request row,
+  /// so every mutating transaction serializes on the listing.
   Future<Listing> _ownedListing(
     Session session,
     ListingRequest request,
@@ -499,6 +584,7 @@ class RequestEndpoint extends Endpoint {
       session,
       request.listingId,
       transaction: transaction,
+      lockMode: LockMode.forUpdate,
     );
     if (listing == null) {
       throw ArgumentError('Publicación no encontrada.');

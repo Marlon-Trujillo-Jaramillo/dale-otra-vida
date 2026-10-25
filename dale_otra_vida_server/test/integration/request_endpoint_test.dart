@@ -371,6 +371,24 @@ void main() {
         expect(notifications, hasLength(2));
       });
 
+      test('a reopened request without a message drops the old one', () async {
+        final first = await endpoints.request.create(
+          memberB,
+          listing.listing.id!,
+          message: 'Primera',
+        );
+        await endpoints.request.cancel(memberB, first.id!);
+
+        final reopened = await endpoints.request.create(
+          memberB,
+          listing.listing.id!,
+        );
+
+        expect(reopened.id, first.id);
+        expect(reopened.status, RequestStatus.pending);
+        expect(reopened.message, isNull);
+      });
+
       test('rejected request cannot be recreated', () async {
         final request = await endpoints.request.create(
           memberB,
@@ -610,6 +628,32 @@ void main() {
           throwsA(isA<ArgumentError>()),
         );
       });
+
+      test(
+        'accepting another request after one was accepted throws NotAllowedException',
+        () async {
+          await endpoints.request.accept(memberA, requestB.id!);
+
+          // requestC was auto-rejected by the first accept; the re-check
+          // must report the reservation, not the stale request status.
+          await expectLater(
+            endpoints.request.accept(memberA, requestC.id!),
+            throwsA(
+              isA<NotAllowedException>().having(
+                (e) => e.message,
+                'message',
+                'Esta publicación ya fue reservada.',
+              ),
+            ),
+          );
+
+          final view = await endpoints.listing.byId(
+            memberA,
+            listing.listing.id!,
+          );
+          expect(view!.listing.status, ListingStatus.reserved);
+        },
+      );
     });
 
     group('when rejecting a request', () {
@@ -722,6 +766,86 @@ void main() {
             'Luis canceló su solicitud de «Título de prueba».',
           );
           expect(ownerNotifications.first.refId, listing.listing.id);
+        },
+      );
+
+      test(
+        'cancelling an accepted request on a delivered listing throws and keeps it delivered',
+        () async {
+          await endpoints.request.accept(memberA, requestB.id!);
+          await endpoints.listing.updateStatus(
+            memberA,
+            listing.listing.id!,
+            ListingStatus.delivered,
+          );
+
+          await expectLater(
+            endpoints.request.cancel(memberB, requestB.id!),
+            throwsA(
+              isA<NotAllowedException>().having(
+                (e) => e.message,
+                'message',
+                'La entrega ya se completó.',
+              ),
+            ),
+          );
+
+          final view = await endpoints.listing.byId(
+            memberA,
+            listing.listing.id!,
+          );
+          expect(view!.listing.status, ListingStatus.delivered);
+
+          final refreshedB = await ListingRequest.db.findById(
+            sessionBuilder.build(),
+            requestB.id!,
+          );
+          expect(refreshedB!.status, RequestStatus.accepted);
+
+          // The failed cancellation must not have notified the owner.
+          final ownerNotifications = await notificationsFor(profileA.id!);
+          expect(ownerNotifications, hasLength(1));
+          expect(ownerNotifications.first.kind, NotificationKind.newRequest);
+        },
+      );
+
+      test(
+        'cancelling an accepted request on a withdrawn listing just cancels the request',
+        () async {
+          await endpoints.request.accept(memberA, requestB.id!);
+
+          // The API withdraw path cancels the accepted request itself, so
+          // build the withdrawn+accepted combination with a direct row
+          // update.
+          final listingRow = await Listing.db.findById(
+            sessionBuilder.build(),
+            listing.listing.id!,
+          );
+          await Listing.db.updateRow(
+            sessionBuilder.build(),
+            listingRow!.copyWith(
+              status: ListingStatus.withdrawn,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+          );
+
+          final cancelled = await endpoints.request.cancel(
+            memberB,
+            requestB.id!,
+          );
+          expect(cancelled.status, RequestStatus.cancelled);
+
+          final refreshedListing = await Listing.db.findById(
+            sessionBuilder.build(),
+            listing.listing.id!,
+          );
+          expect(refreshedListing!.status, ListingStatus.withdrawn);
+
+          // Withdrawing is silent: no requestCancelled notification for
+          // the owner beyond the newRequest from setUp.
+          final ownerNotifications = await notificationsFor(profileA.id!);
+          expect(ownerNotifications, hasLength(1));
+          expect(ownerNotifications.first.kind, NotificationKind.newRequest);
         },
       );
 
@@ -979,6 +1103,111 @@ void main() {
 
       test('a member without requests gets an empty list', () async {
         expect(await endpoints.request.mine(memberD), isEmpty);
+      });
+    });
+
+    group('when the requests of a listing exceed the response limit', () {
+      test('forListing returns at most the newest 100 requests', () async {
+        final listing = await createOwnedListing();
+
+        // The (listingId, requesterId) unique index forces distinct
+        // requesters; direct rows keep the seeding light.
+        final session = sessionBuilder.build();
+        final base = DateTime.now().toUtc();
+        final authUsers = await AuthUser.db.insert(
+          session,
+          [for (var i = 0; i < 101; i++) AuthUser(scopeNames: {})],
+        );
+        final requesters = await MemberProfile.db.insert(
+          session,
+          [
+            for (var i = 0; i < 101; i++)
+              MemberProfile(
+                authUserId: authUsers[i].id!,
+                displayName: 'Miembro $i',
+              ),
+          ],
+        );
+        final seeded = await ListingRequest.db.insert(
+          session,
+          [
+            for (var i = 0; i < 101; i++)
+              ListingRequest(
+                listingId: listing.listing.id!,
+                requesterId: requesters[i].id!,
+                createdAt: base.add(Duration(minutes: i)),
+              ),
+          ],
+        );
+
+        final views = await endpoints.request.forListing(
+          memberA,
+          listing.listing.id!,
+        );
+
+        expect(views, hasLength(100));
+        // The newest 100 are kept, so the oldest seeded request is left out.
+        expect(
+          views.map((v) => v.request.id),
+          isNot(contains(seeded.first.id)),
+        );
+        expect(views.first.request.id, seeded.last.id);
+      });
+    });
+
+    group('when my requests exceed the response limit', () {
+      test('mine returns at most the newest 100 requests', () async {
+        final session = sessionBuilder.build();
+
+        // One stored photo shared by every seeded listing is enough for
+        // the views to resolve their public download URLs.
+        final photoPath = 'listings/${profileA.id!}/seed.jpg';
+        await session.storage.storeFile(
+          storageId: 'public',
+          path: photoPath,
+          byteData: ByteData(8),
+        );
+
+        final base = DateTime.now().toUtc();
+        final listings = await Listing.db.insert(
+          session,
+          [
+            for (var i = 0; i < 101; i++)
+              Listing(
+                ownerId: profileA.id!,
+                title: 'Publicación $i',
+                description: 'Descripción de prueba suficientemente larga.',
+                type: ListingType.donate,
+                category: Category.books,
+                condition: ItemCondition.good,
+                photoUrls: [photoPath],
+                neighborhood: 'Robledo',
+                latitude: 6.25,
+                longitude: -75.56,
+                createdAt: base.add(Duration(minutes: i)),
+              ),
+          ],
+        );
+        await ListingRequest.db.insert(
+          session,
+          [
+            for (var i = 0; i < 101; i++)
+              ListingRequest(
+                listingId: listings[i].id!,
+                requesterId: profileB.id!,
+                createdAt: base.add(Duration(minutes: i)),
+              ),
+          ],
+        );
+
+        final mine = await endpoints.request.mine(memberB);
+
+        expect(mine, hasLength(100));
+        expect(mine.first.request.listingId, listings.last.id);
+        expect(
+          mine.map((v) => v.request.listingId),
+          isNot(contains(listings.first.id)),
+        );
       });
     });
   });

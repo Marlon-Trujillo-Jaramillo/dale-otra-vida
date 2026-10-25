@@ -62,17 +62,11 @@ class NotificationEndpoint extends Endpoint {
   Future<void> markAllRead(Session session) async {
     final profile = await currentProfile(session);
 
-    final unread = await AppNotification.db.find(
+    await AppNotification.db.updateWhere(
       session,
       where: (t) => t.userId.equals(profile.id!) & t.readAt.equals(null),
+      columnValues: (t) => [t.readAt(DateTime.now().toUtc())],
+      noReturn: true,
     );
-
-    final now = DateTime.now().toUtc();
-    for (final notification in unread) {
-      await AppNotification.db.updateRow(
-        session,
-        notification.copyWith(readAt: now),
-      );
-    }
   }
 }

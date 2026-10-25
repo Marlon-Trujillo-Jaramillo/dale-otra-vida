@@ -536,7 +536,8 @@ class EndpointRequest extends _isc.EndpointRef {
   /// Ensures a conversation with the owner exists, stores a system message
   /// (plus the optional [message]) and notifies the owner. An existing
   /// pending or accepted request is returned unchanged; a cancelled one is
-  /// reopened with a fresh createdAt.
+  /// reopened with a fresh createdAt and only the new [message] (null if
+  /// none), never the old one.
   _ida.Future<_iftx1you.ListingRequest> create(
     int listingId, {
     String? message,
@@ -549,9 +550,9 @@ class EndpointRequest extends _isc.EndpointRef {
     },
   );
 
-  /// Returns every request on one of the caller's listings, pending first
-  /// and then newest first, with the requester's public profile and the
-  /// chat conversation id.
+  /// Returns the newest 100 requests on one of the caller's listings,
+  /// pending first and then newest first, with the requester's public
+  /// profile and the chat conversation id.
   _ida.Future<List<_isipxjtl.RequestView>> forListing(int listingId) =>
       caller.callServerEndpoint<List<_isipxjtl.RequestView>>(
         'request',
@@ -559,8 +560,8 @@ class EndpointRequest extends _isc.EndpointRef {
         {'listingId': listingId},
       );
 
-  /// Returns the requests of the caller, newest first, with the listing
-  /// view and the chat conversation id.
+  /// Returns the newest 100 requests of the caller, newest first, with the
+  /// listing view and the chat conversation id.
   _ida.Future<List<_ikulhwb6.MyRequestView>> mine() =>
       caller.callServerEndpoint<List<_ikulhwb6.MyRequestView>>(
         'request',
@@ -570,6 +571,9 @@ class EndpointRequest extends _isc.EndpointRef {
 
   /// Accepts a pending request, reserves the listing and rejects every
   /// other pending request on it.
+  ///
+  /// Throws [NotAllowedException] when another request on the listing was
+  /// already accepted while this call waited for the listing lock.
   _ida.Future<_iftx1you.ListingRequest> accept(int requestId) =>
       caller.callServerEndpoint<_iftx1you.ListingRequest>(
         'request',
@@ -586,7 +590,10 @@ class EndpointRequest extends _isc.EndpointRef {
       );
 
   /// Cancels one of the caller's requests. Cancelling an accepted request
-  /// makes the listing available again.
+  /// makes the listing available again and notifies the owner — unless the
+  /// listing already progressed: a delivered listing cannot be reopened
+  /// (throws [NotAllowedException]) and a withdrawn one is cancelled
+  /// silently.
   _ida.Future<_iftx1you.ListingRequest> cancel(int requestId) =>
       caller.callServerEndpoint<_iftx1you.ListingRequest>(
         'request',
