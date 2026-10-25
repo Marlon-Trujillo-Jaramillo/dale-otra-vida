@@ -74,4 +74,35 @@ void main() {
       expect(initialsFor('  Ana López  '), 'AL');
     });
   });
+
+  group('formatRelative', () {
+    test('same minute returns "ahora"', () {
+      final now = DateTime(2026, 10, 25, 14, 30);
+      expect(formatRelative(now, now: now), 'ahora');
+    });
+
+    test('less than 60 min returns "hace N min"', () {
+      final now = DateTime(2026, 10, 25, 14, 30);
+      final date = now.subtract(const Duration(minutes: 5));
+      expect(formatRelative(date, now: now), 'hace 5 min');
+    });
+
+    test('less than 24 h returns "hace N h"', () {
+      final now = DateTime(2026, 10, 25, 14, 30);
+      final date = now.subtract(const Duration(hours: 2));
+      expect(formatRelative(date, now: now), 'hace 2 h');
+    });
+
+    test('yesterday returns "ayer"', () {
+      final now = DateTime(2026, 10, 25, 14, 30);
+      final date = DateTime(2026, 10, 24, 10, 0);
+      expect(formatRelative(date, now: now), 'ayer');
+    });
+
+    test('older dates return short date', () {
+      final now = DateTime(2026, 10, 25, 14, 30);
+      final date = DateTime(2026, 10, 23, 10, 0);
+      expect(formatRelative(date, now: now), '23 oct');
+    });
+  });
 }

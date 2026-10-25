@@ -16,6 +16,8 @@ import '../../core/widgets/listing_card.dart';
 import '../../core/widgets/listing_grid_card.dart';
 import '../../core/widgets/section_header.dart';
 import '../listing/listing_detail_screen.dart';
+import '../notifications/notifications_badge_controller.dart';
+import '../notifications/notifications_screen.dart';
 import 'home_controller.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -23,10 +25,12 @@ class HomeScreen extends StatefulWidget {
     super.key,
     required this.profile,
     this.fetchFeed,
+    this.badgeController,
   });
 
   final MemberProfile profile;
   final ListingFeedFetch? fetchFeed;
+  final NotificationsBadgeController? badgeController;
 
   @override
   State<HomeScreen> createState() => HomeScreenState();
@@ -65,11 +69,17 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const _PlaceholderScreen(title: 'Notificaciones'),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (context) => const NotificationsScreen(),
+          ),
+        )
+        .then((_) {
+          if (mounted) {
+            widget.badgeController?.refresh();
+          }
+        });
   }
 
   void _openMap() {
@@ -379,21 +389,16 @@ class HomeScreenState extends State<HomeScreen> {
       children: [
         Expanded(child: greeting),
         if (showBell)
-          InkWell(
-            onTap: _openNotifications,
-            borderRadius: BorderRadius.circular(22),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(
-                Icons.notifications_outlined,
-                color: AppColors.textPrimary,
-              ),
-            ),
+          AnimatedBuilder(
+            animation: widget.badgeController ?? Listenable.merge([]),
+            builder: (context, child) {
+              final controller = widget.badgeController;
+              return _HomeBell(
+                countLabel: controller?.label ?? '',
+                hasUnread: controller?.hasUnread ?? false,
+                onTap: _openNotifications,
+              );
+            },
           ),
       ],
     );
@@ -615,21 +620,16 @@ class HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          InkWell(
-            onTap: _openNotifications,
-            borderRadius: BorderRadius.circular(22),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(
-                Icons.notifications_outlined,
-                color: AppColors.textPrimary,
-              ),
-            ),
+          AnimatedBuilder(
+            animation: widget.badgeController ?? Listenable.merge([]),
+            builder: (context, child) {
+              final controller = widget.badgeController;
+              return _HomeBell(
+                countLabel: controller?.label ?? '',
+                hasUnread: controller?.hasUnread ?? false,
+                onTap: _openNotifications,
+              );
+            },
           ),
         ],
       ),
@@ -971,6 +971,65 @@ class _SidebarCategoryRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HomeBell extends StatelessWidget {
+  const _HomeBell({
+    required this.countLabel,
+    required this.hasUnread,
+    required this.onTap,
+  });
+
+  final String countLabel;
+  final bool hasUnread;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          if (hasUnread)
+            Positioned(
+              top: -2,
+              right: -2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: const BoxDecoration(
+                  color: AppColors.accentStrong,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                child: Center(
+                  child: Text(
+                    countLabel,
+                    style: AppTypography.badge.copyWith(
+                      color: AppColors.onPrimary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

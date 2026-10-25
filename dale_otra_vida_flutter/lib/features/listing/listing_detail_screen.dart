@@ -11,6 +11,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
+import 'listing_detail_logic.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   const ListingDetailScreen({super.key, required this.view});
@@ -27,10 +28,30 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   bool _updating = false;
   bool _galleryHover = false;
 
+  List<RequestView>? _requests;
+  bool _loadingRequests = false;
+
   @override
   void initState() {
     super.initState();
     _view = widget.view;
+    if (_view.isMine) {
+      _loadRequests();
+    }
+  }
+
+  Future<void> _refreshView() async {
+    final id = _view.listing.id;
+    if (id == null) return;
+    try {
+      final updated = await client.listing.byId(id);
+      if (!mounted) return;
+      if (updated != null) {
+        setState(() => _view = updated.copyWith(distanceKm: _view.distanceKm));
+      }
+    } catch (_) {
+      // Keep the current view if refresh fails.
+    }
   }
 
   Future<void> _updateStatus(ListingStatus status) async {
@@ -48,13 +69,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         Navigator.of(context).pop(true);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Revisa los datos e inténtalo de nuevo.'),
-          ),
-        );
-      }
+      _showErrorFor(e);
     } finally {
       if (mounted) {
         setState(() => _updating = false);
@@ -88,10 +103,163 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     if (confirmed == true) await _updateStatus(ListingStatus.withdrawn);
   }
 
-  void _showSoonSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Disponible muy pronto')),
+  Future<void> _loadRequests() async {
+    final id = _view.listing.id;
+    if (id == null) return;
+    setState(() => _loadingRequests = true);
+    try {
+      final result = await client.request.forListing(id);
+      if (!mounted) return;
+      setState(() {
+        _requests = result;
+      });
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('No pudimos cargar las solicitudes.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loadingRequests = false);
+      }
+    }
+  }
+
+  Future<void> _createRequest(String? message) async {
+    setState(() => _updating = true);
+    try {
+      await client.request.create(
+        _view.listing.id!,
+        message: message,
+      );
+      if (!mounted) return;
+      await _refreshView();
+      if (mounted) {
+        _showSnackBar('¡Solicitud enviada!');
+      }
+    } catch (e) {
+      _showErrorFor(e);
+    } finally {
+      if (mounted) {
+        setState(() => _updating = false);
+      }
+    }
+  }
+
+  Future<void> _acceptRequest(RequestView requestView) async {
+    final name = requestView.requester.displayName;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reservar'),
+        content: Text(
+          'Se reservará para $name y las demás solicitudes se rechazarán.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
     );
+    if (confirmed != true) return;
+
+    setState(() => _updating = true);
+    try {
+      await client.request.accept(requestView.request.id!);
+      if (!mounted) return;
+      await _refreshAfterRequestAction();
+    } catch (e) {
+      _showErrorFor(e);
+      setState(() => _updating = false);
+    }
+  }
+
+  Future<void> _rejectRequest(RequestView requestView) async {
+    setState(() => _updating = true);
+    try {
+      await client.request.reject(requestView.request.id!);
+      if (!mounted) return;
+      await _refreshAfterRequestAction();
+    } catch (e) {
+      _showErrorFor(e);
+      setState(() => _updating = false);
+    }
+  }
+
+  Future<void> _cancelMyRequest() async {
+    final myRequest = _view.myRequest;
+    if (myRequest?.id == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar solicitud'),
+        content: const Text(
+          '¿Seguro que quieres cancelar tu solicitud? Puedes volver a intentarlo después.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No, mantener'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Sí, cancelar',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _updating = true);
+    try {
+      await client.request.cancel(myRequest!.id!);
+      if (!mounted) return;
+      await _refreshView();
+      if (mounted) {
+        _showSnackBar('Solicitud cancelada.');
+      }
+    } catch (e) {
+      _showErrorFor(e);
+    } finally {
+      if (mounted) {
+        setState(() => _updating = false);
+      }
+    }
+  }
+
+  Future<void> _refreshAfterRequestAction() async {
+    await _loadRequests();
+    await _refreshView();
+    if (mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  void _showErrorFor(Object error) {
+    final message = error is NotAllowedException
+        ? error.message
+        : 'Revisa los datos e inténtalo de nuevo.';
+    _showSnackBar(message);
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  void _showSoonSnackBar() {
+    _showSnackBar('Disponible muy pronto');
   }
 
   void _openPhotoFullscreen(String url) {
@@ -100,6 +268,53 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         builder: (context) => _PhotoViewerScreen(imageUrl: url),
       ),
     );
+  }
+
+  void _openRequestSheetOrDialog() {
+    final size = ScreenSize.of(context);
+    final title = '¿Te interesa «${_view.listing.title}»?';
+    final isCompact = size == ScreenSize.compact;
+
+    if (isCompact) {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (context) => _RequestForm(
+          title: title,
+          onSend: (message) async {
+            Navigator.of(context).pop();
+            await _createRequest(message);
+          },
+          isLoading: _updating,
+        ),
+      );
+    } else {
+      showDialog<void>(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: AppColors.surface,
+          insetPadding: const EdgeInsets.all(AppSpacing.screenHorizontal),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: _RequestForm(
+                title: title,
+                onSend: (message) async {
+                  Navigator.of(context).pop();
+                  await _createRequest(message);
+                },
+                isLoading: _updating,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -145,6 +360,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         _buildMeetingPoint(listing),
                         const SizedBox(height: AppSpacing.l),
                         _buildOwnerCard(owner),
+                        if (_view.isMine) ...[
+                          const SizedBox(height: AppSpacing.l),
+                          _buildRequestsSection(context),
+                        ],
                         const SizedBox(height: AppSpacing.xl),
                       ]),
                     ),
@@ -216,6 +435,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           _buildOwnerCard(owner),
                           const SizedBox(height: AppSpacing.l),
                           _buildWideActions(),
+                          if (_view.isMine) ...[
+                            const SizedBox(height: AppSpacing.xl),
+                            _buildRequestsSection(context),
+                          ],
                           const SizedBox(height: AppSpacing.xl),
                         ],
                       ),
@@ -616,6 +839,67 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  Widget _buildRequestsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Solicitudes', style: AppTypography.sectionLabel),
+            const SizedBox(width: AppSpacing.s),
+            if (_view.pendingRequestCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${_view.pendingRequestCount}',
+                  style: AppTypography.badge.copyWith(
+                    color: AppColors.onPrimary,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.m),
+        if (_loadingRequests && _requests == null)
+          const Center(child: CircularProgressIndicator())
+        else if (_requests?.isEmpty ?? false)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.m),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              'Aún nadie la ha pedido. Comparte tu publicación.',
+              style: AppTypography.body,
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          ...?_requests?.map((requestView) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.m),
+              child: _RequestRow(
+                view: requestView,
+                onAccept: () => _acceptRequest(requestView),
+                onReject: () => _rejectRequest(requestView),
+                busy: _updating,
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
   Widget _buildBottomBar() {
     final listing = _view.listing;
     final status = listing.status;
@@ -659,31 +943,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         );
       }
     } else {
-      content = Row(
-        children: [
-          InkWell(
-            onTap: _showSoonSnackBar,
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.border),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.chat_bubble_outline),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s),
-          Expanded(
-            child: AppPrimaryButton(
-              label: 'Lo quiero',
-              onPressed: _showSoonSnackBar,
-            ),
-          ),
-        ],
-      );
+      content = _buildRequesterActions(compact: true);
     }
 
     final banner = status != ListingStatus.available
@@ -767,31 +1027,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         );
       }
     } else {
-      content = Row(
-        children: [
-          InkWell(
-            onTap: _showSoonSnackBar,
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.border),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.chat_bubble_outline),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s),
-          Expanded(
-            child: AppPrimaryButton(
-              label: 'Lo quiero',
-              onPressed: _showSoonSnackBar,
-            ),
-          ),
-        ],
-      );
+      content = _buildRequesterActions(compact: false);
     }
 
     final banner = status != ListingStatus.available
@@ -813,6 +1049,114 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       children: [
         banner,
         content,
+      ],
+    );
+  }
+
+  Widget _buildRequesterActions({required bool compact}) {
+    final state = requesterActionState(_view);
+
+    Widget actionWidget;
+    switch (state) {
+      case RequesterActionState.canRequest:
+        actionWidget = AppPrimaryButton(
+          label: 'Lo quiero',
+          onPressed: _openRequestSheetOrDialog,
+        );
+      case RequesterActionState.pending:
+        actionWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StatusPill(
+              label: 'Solicitud enviada · esperando respuesta',
+              backgroundColor: AppColors.surfaceMuted,
+              foregroundColor: AppColors.textSecondary,
+            ),
+            const SizedBox(height: AppSpacing.s),
+            TextButton(
+              onPressed: _updating ? null : _cancelMyRequest,
+              child: Text(
+                'Cancelar solicitud',
+                style: AppTypography.bodyStrong.copyWith(
+                  color: AppColors.danger,
+                ),
+              ),
+            ),
+          ],
+        );
+      case RequesterActionState.accepted:
+        actionWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.m),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4EDDA),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Color(0xFF155724),
+                        size: 18,
+                      ),
+                      const SizedBox(width: AppSpacing.s),
+                      Text(
+                        '¡Te lo reservaron!',
+                        style: AppTypography.bodyStrong.copyWith(
+                          color: const Color(0xFF155724),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Coordina la entrega por el chat.',
+                    style: AppTypography.body.copyWith(
+                      color: const Color(0xFF155724),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s),
+            AppSecondaryButton(
+              label: 'Cancelar reserva',
+              onPressed: _updating ? null : _cancelMyRequest,
+            ),
+          ],
+        );
+      case RequesterActionState.rejected:
+        actionWidget = _StatusPill(
+          label: 'El dueño eligió a otra persona',
+          backgroundColor: AppColors.surfaceMuted,
+          foregroundColor: AppColors.textSecondary,
+        );
+      case RequesterActionState.unavailable:
+        actionWidget = const SizedBox.shrink();
+    }
+
+    if (compact) {
+      return Row(
+        children: [
+          _ChatButton(onTap: _showSoonSnackBar),
+          const SizedBox(width: AppSpacing.s),
+          Expanded(child: actionWidget),
+        ],
+      );
+    }
+
+    // Wide layout: chat icon stays inline.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ChatButton(onTap: _showSoonSnackBar),
+        const SizedBox(width: AppSpacing.s),
+        Expanded(child: actionWidget),
       ],
     );
   }
@@ -864,6 +1208,304 @@ String _statusLabel(ListingStatus status) {
     ListingStatus.delivered => 'Entregado',
     ListingStatus.withdrawn => 'Retirado',
   };
+}
+
+class _ChatButton extends StatelessWidget {
+  const _ChatButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(Icons.chat_bubble_outline),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.label,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: AppTypography.bodyStrong.copyWith(color: foregroundColor),
+      ),
+    );
+  }
+}
+
+class _RequestForm extends StatefulWidget {
+  const _RequestForm({
+    required this.title,
+    required this.onSend,
+    required this.isLoading,
+  });
+
+  final String title;
+  final Future<void> Function(String? message) onSend;
+  final bool isLoading;
+
+  @override
+  State<_RequestForm> createState() => _RequestFormState();
+}
+
+class _RequestFormState extends State<_RequestForm> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(widget.title, style: AppTypography.title),
+            const SizedBox(height: AppSpacing.l),
+            AppTextField(
+              label: 'Mensaje (opcional)',
+              hint: 'Cuéntale cuándo podrías recogerlo…',
+              controller: _controller,
+              maxLength: 300,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: AppSpacing.m),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.m),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF6E3CF),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.security,
+                    color: Color(0xFF8A3D10),
+                    size: 18,
+                  ),
+                  const SizedBox(width: AppSpacing.s),
+                  Expanded(
+                    child: Text(
+                      'Por tu seguridad, acuerden la entrega en un punto '
+                      'público y no compartan datos bancarios.',
+                      style: AppTypography.body.copyWith(
+                        color: const Color(0xFF8A3D10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.l),
+            AppPrimaryButton(
+              label: 'Enviar solicitud',
+              isLoading: widget.isLoading,
+              onPressed: widget.isLoading
+                  ? null
+                  : () => widget.onSend(_textOrNull(_controller.text)),
+            ),
+            const SizedBox(height: AppSpacing.m),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String? _textOrNull(String text) {
+    final trimmed = text.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+}
+
+class _RequestRow extends StatelessWidget {
+  const _RequestRow({
+    required this.view,
+    required this.onAccept,
+    required this.onReject,
+    required this.busy,
+  });
+
+  final RequestView view;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final requester = view.requester;
+    final request = view.request;
+    final isPending = request.status == RequestStatus.pending;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppAvatar(initials: initialsFor(requester.displayName)),
+              const SizedBox(width: AppSpacing.m),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      requester.displayName,
+                      style: AppTypography.bodyStrong,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      '★ ${requester.ratingAvg.toStringAsFixed(1)} · '
+                      '${requester.deliveryCount} entregas',
+                      style: AppTypography.caption,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      formatRelative(request.createdAt),
+                      style: AppTypography.caption,
+                    ),
+                  ],
+                ),
+              ),
+              _RequestStatusChip(status: request.status),
+            ],
+          ),
+          if (request.message != null && request.message!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.s),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.m),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '"${request.message}"',
+                style: AppTypography.body,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+          if (isPending) ...[
+            const SizedBox(height: AppSpacing.m),
+            Row(
+              children: [
+                Expanded(
+                  child: AppPrimaryButton(
+                    label: 'Aceptar',
+                    onPressed: busy ? null : onAccept,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.m),
+                Expanded(
+                  child: TextButton(
+                    onPressed: busy ? null : onReject,
+                    child: Text(
+                      'Rechazar',
+                      style: AppTypography.bodyStrong.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RequestStatusChip extends StatelessWidget {
+  const _RequestStatusChip({required this.status});
+
+  final RequestStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, background, foreground) = switch (status) {
+      RequestStatus.pending => (
+        'Pendiente',
+        const Color(0xFFF6E3CF),
+        const Color(0xFF6E300B),
+      ),
+      RequestStatus.accepted => (
+        'Aceptada',
+        const Color(0xFFD4EDDA),
+        const Color(0xFF155724),
+      ),
+      RequestStatus.rejected => (
+        'Rechazada',
+        AppColors.surfaceMuted,
+        AppColors.textSecondary,
+      ),
+      RequestStatus.cancelled => (
+        'Cancelada',
+        AppColors.surfaceMuted,
+        AppColors.textSecondary,
+      ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.badge.copyWith(color: foreground),
+      ),
+    );
+  }
 }
 
 class _InfoCard extends StatelessWidget {

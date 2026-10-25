@@ -6,25 +6,26 @@ import 'package:dale_otra_vida_flutter/core/theme/app_colors.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_spacing.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_typography.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_avatar.dart';
-import 'package:dale_otra_vida_flutter/core/widgets/app_secondary_button.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/empty_state.dart';
 import 'package:dale_otra_vida_flutter/features/home/home_controller.dart';
 import 'package:dale_otra_vida_flutter/features/home/home_screen.dart';
+import 'package:dale_otra_vida_flutter/features/notifications/notifications_badge_controller.dart';
+import 'package:dale_otra_vida_flutter/features/notifications/notifications_screen.dart';
+import 'package:dale_otra_vida_flutter/features/profile/profile_screen.dart';
 import 'package:dale_otra_vida_flutter/features/publish/publish_screen.dart';
-import 'package:dale_otra_vida_flutter/screens/design_gallery_screen.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
     this.initialProfile,
     this.fetchFeed,
+    this.badgeController,
   });
 
   final MemberProfile? initialProfile;
   final ListingFeedFetch? fetchFeed;
+  final NotificationsBadgeController? badgeController;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -37,10 +38,18 @@ class _AppShellState extends State<AppShell> {
   String? _profileError;
 
   final _homeKey = GlobalKey<HomeScreenState>();
+  late final NotificationsBadgeController _badgeController;
 
   @override
   void initState() {
     super.initState();
+    _badgeController =
+        widget.badgeController ??
+        NotificationsBadgeController(
+          fetchUnreadCount: () => client.notification.unreadCount(),
+        );
+    _badgeController.start();
+
     final initial = widget.initialProfile;
     if (initial != null) {
       _profile = initial;
@@ -48,6 +57,16 @@ class _AppShellState extends State<AppShell> {
     } else {
       _loadProfile();
     }
+  }
+
+  @override
+  void dispose() {
+    if (widget.badgeController == null) {
+      _badgeController.dispose();
+    } else {
+      _badgeController.stop();
+    }
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -95,11 +114,17 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const _PlaceholderScreen(title: 'Notificaciones'),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (context) => const NotificationsScreen(),
+          ),
+        )
+        .then((_) {
+          if (mounted) {
+            _badgeController.refresh();
+          }
+        });
   }
 
   void _onTabSelected(int index) {
@@ -134,13 +159,14 @@ class _AppShellState extends State<AppShell> {
         key: _homeKey,
         profile: _profile!,
         fetchFeed: widget.fetchFeed,
+        badgeController: _badgeController,
       ),
       const _PlaceholderTab(
         icon: Icons.chat_bubble_outline,
         title: 'Mensajes',
         message: 'Aquí verás tus conversaciones.',
       ),
-      const _ProfilePlaceholder(),
+      ProfileScreen(profile: _profile!),
     ];
 
     final size = ScreenSize.of(context);
@@ -256,6 +282,16 @@ class _AppShellState extends State<AppShell> {
                   ],
                 ),
               ),
+              trailing: AnimatedBuilder(
+                animation: _badgeController,
+                builder: (context, child) {
+                  return _RailBell(
+                    countLabel: _badgeController.label,
+                    hasUnread: _badgeController.hasUnread,
+                    onTap: _openNotifications,
+                  );
+                },
+              ),
               destinations: const [
                 NavigationRailDestination(
                   icon: Icon(Icons.home_outlined),
@@ -341,12 +377,15 @@ class _AppShellState extends State<AppShell> {
                     onTap: () => _onTabSelected(2),
                   ),
                   const SizedBox(width: AppSpacing.xl),
-                  IconButton(
-                    onPressed: _openNotifications,
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: AppColors.textPrimary,
-                    ),
+                  AnimatedBuilder(
+                    animation: _badgeController,
+                    builder: (context, child) {
+                      return _BellIconButton(
+                        countLabel: _badgeController.label,
+                        hasUnread: _badgeController.hasUnread,
+                        onTap: _openNotifications,
+                      );
+                    },
                   ),
                   const SizedBox(width: AppSpacing.s),
                   FilledButton.icon(
@@ -530,39 +569,58 @@ class _PlaceholderTab extends StatelessWidget {
   }
 }
 
-class _ProfilePlaceholder extends StatelessWidget {
-  const _ProfilePlaceholder();
+class _BellIconButton extends StatelessWidget {
+  const _BellIconButton({
+    required this.countLabel,
+    required this.hasUnread,
+    required this.onTap,
+  });
+
+  final String countLabel;
+  final bool hasUnread;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          const EmptyState(
-            icon: Icons.person_outline,
-            title: 'Perfil',
-            message: 'Aquí verás y editarás tu perfil.',
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.screenHorizontal,
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.border),
             ),
-            child: AppSecondaryButton(
-              label: 'Cerrar sesión',
-              onPressed: () async => client.auth.signOutDevice(),
+            child: const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.textPrimary,
             ),
           ),
-          if (kDebugMode)
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (context) => const DesignGalleryScreen(),
+          if (hasUnread)
+            Positioned(
+              top: -2,
+              right: -2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: const BoxDecoration(
+                  color: AppColors.accentStrong,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                child: Center(
+                  child: Text(
+                    countLabel,
+                    style: AppTypography.badge.copyWith(
+                      color: AppColors.onPrimary,
+                      fontSize: 10,
+                    ),
                   ),
-                );
-              },
-              child: const Text('Design Gallery'),
+                ),
+              ),
             ),
         ],
       ),
@@ -570,16 +628,62 @@ class _ProfilePlaceholder extends StatelessWidget {
   }
 }
 
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title});
+class _RailBell extends StatelessWidget {
+  const _RailBell({
+    required this.countLabel,
+    required this.hasUnread,
+    required this.onTap,
+  });
 
-  final String title;
+  final String countLabel;
+  final bool hasUnread;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const Center(child: Text('Disponible muy pronto')),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.onPrimary,
+            ),
+            if (hasUnread)
+              Positioned(
+                top: -4,
+                right: -6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppColors.accentStrong,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Center(
+                    child: Text(
+                      countLabel,
+                      style: AppTypography.badge.copyWith(
+                        color: AppColors.onPrimary,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

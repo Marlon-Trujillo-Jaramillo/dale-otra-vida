@@ -37,3 +37,36 @@ String initialsFor(String? name) {
   }
   return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }
+
+String formatRelative(DateTime date, {DateTime? now}) {
+  final reference = now?.toLocal() ?? DateTime.now().toLocal();
+  final local = date.toLocal();
+
+  if (local.year == reference.year &&
+      local.month == reference.month &&
+      local.day == reference.day &&
+      local.hour == reference.hour &&
+      local.minute == reference.minute) {
+    return 'ahora';
+  }
+
+  final diff = reference.difference(local);
+  final minutes = diff.inMinutes;
+  if (minutes < 60 && minutes > 0) {
+    return 'hace $minutes min';
+  }
+
+  final hours = diff.inHours;
+  if (hours < 24 && hours > 0) {
+    return 'hace $hours h';
+  }
+
+  final yesterday = reference.subtract(const Duration(days: 1));
+  if (local.year == yesterday.year &&
+      local.month == yesterday.month &&
+      local.day == yesterday.day) {
+    return 'ayer';
+  }
+
+  return DateFormat('d MMM', 'es').format(local).toLowerCase();
+}
