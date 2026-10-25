@@ -24,3 +24,9 @@ Delegation rules:
   (`dart analyze`, `flutter analyze`, tests) and "no commits".
 - Claude verifies every delegated result (diff + analyze + tests) before committing.
 - Never start the server for the user (see AGENTS.md); server tests run with `dart test`.
+
+## Commits
+Commits are authored by Marlon only (repo-local git identity is set). Do NOT add
+`Co-Authored-By` or any AI attribution lines to commit messages or PR descriptions.
+Public repo: github.com/Marlon-Trujillo-Jaramillo/dale-otra-vida — never commit secrets
+(`config/passwords.yaml`, `config/google_client_secret.json`, `client_secret_*.json`).

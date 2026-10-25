@@ -21,3 +21,9 @@ pubspec_overrides.yaml
 # Agent working files
 .atl/
 odd/
+
+# macOS
+.DS_Store
+
+# Any Google OAuth client secret file
+client_secret_*.json
