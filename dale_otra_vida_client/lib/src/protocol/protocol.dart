@@ -13,6 +13,10 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:dale_otra_vida_client/src/protocol/app_notification.dart'
     as _irhv3nen;
+import 'package:dale_otra_vida_client/src/protocol/chat_message.dart'
+    as _ir83d1bh;
+import 'package:dale_otra_vida_client/src/protocol/conversation_view.dart'
+    as _ixj8t0ja;
 import 'package:dale_otra_vida_client/src/protocol/listing_view.dart'
     as _ijh8j4ei;
 import 'package:dale_otra_vida_client/src/protocol/my_request_view.dart'
@@ -28,6 +32,7 @@ import 'app_notification.dart' as _ip1vhxmg;
 import 'category.dart' as _issw2w8j;
 import 'chat_message.dart' as _ivuncx2e;
 import 'conversation.dart' as _ineda879;
+import 'conversation_view.dart' as _iz4kexi3;
 import 'greetings/greeting.dart' as _izw8z7ou;
 import 'item_condition.dart' as _ittj06x2;
 import 'listing.dart' as _ir9e9w84;
@@ -51,6 +56,7 @@ export 'app_notification.dart';
 export 'category.dart';
 export 'chat_message.dart';
 export 'conversation.dart';
+export 'conversation_view.dart';
 export 'greetings/greeting.dart';
 export 'item_condition.dart';
 export 'listing.dart';
@@ -117,6 +123,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _ineda879.Conversation) {
       return _ineda879.Conversation.fromJson(data) as T;
+    }
+    if (t == _iz4kexi3.ConversationView) {
+      return _iz4kexi3.ConversationView.fromJson(data) as T;
     }
     if (t == _izw8z7ou.Greeting) {
       return _izw8z7ou.Greeting.fromJson(data) as T;
@@ -187,6 +196,10 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _isc.getType<_ineda879.Conversation?>()) {
       return (data != null ? _ineda879.Conversation.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_iz4kexi3.ConversationView?>()) {
+      return (data != null ? _iz4kexi3.ConversationView.fromJson(data) : null)
+          as T;
     }
     if (t == _isc.getType<_izw8z7ou.Greeting?>()) {
       return (data != null ? _izw8z7ou.Greeting.fromJson(data) : null) as T;
@@ -261,6 +274,18 @@ class Protocol extends _isc.SerializationManager {
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
+    if (t == List<_ixj8t0ja.ConversationView>) {
+      return (data as List)
+              .map((e) => deserialize<_ixj8t0ja.ConversationView>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_ir83d1bh.ChatMessage>) {
+      return (data as List)
+              .map((e) => deserialize<_ir83d1bh.ChatMessage>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_ijh8j4ei.ListingView>) {
       return (data as List)
               .map((e) => deserialize<_ijh8j4ei.ListingView>(e))
@@ -300,6 +325,7 @@ class Protocol extends _isc.SerializationManager {
       _issw2w8j.Category => 'Category',
       _ivuncx2e.ChatMessage => 'ChatMessage',
       _ineda879.Conversation => 'Conversation',
+      _iz4kexi3.ConversationView => 'ConversationView',
       _izw8z7ou.Greeting => 'Greeting',
       _ittj06x2.ItemCondition => 'ItemCondition',
       _ir9e9w84.Listing => 'Listing',
@@ -344,6 +370,8 @@ class Protocol extends _isc.SerializationManager {
         return 'ChatMessage';
       case _ineda879.Conversation():
         return 'Conversation';
+      case _iz4kexi3.ConversationView():
+        return 'ConversationView';
       case _izw8z7ou.Greeting():
         return 'Greeting';
       case _ittj06x2.ItemCondition():
@@ -415,6 +443,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'Conversation') {
       return deserialize<_ineda879.Conversation>(data['data']);
+    }
+    if (dataClassName == 'ConversationView') {
+      return deserialize<_iz4kexi3.ConversationView>(data['data']);
     }
     if (dataClassName == 'Greeting') {
       return deserialize<_izw8z7ou.Greeting>(data['data']);

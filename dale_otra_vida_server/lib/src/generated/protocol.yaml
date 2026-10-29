@@ -13,6 +13,15 @@ googleIdp:
   - hasAccount:
 jwtRefresh:
   - refreshAccessToken:
+chat:
+  - conversations:
+  - conversation:
+  - messages:
+  - send:
+  - markRead:
+  - unreadTotal:
+  - subscribe:
+  - inbox:
 greeting:
   - hello:
 listing:

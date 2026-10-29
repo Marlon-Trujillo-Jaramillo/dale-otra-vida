@@ -14,6 +14,10 @@ import 'dart:async' as _ida;
 import 'package:dale_otra_vida_client/src/protocol/app_notification.dart'
     as _irhv3nen;
 import 'package:dale_otra_vida_client/src/protocol/category.dart' as _i0m5ztok;
+import 'package:dale_otra_vida_client/src/protocol/chat_message.dart'
+    as _ir83d1bh;
+import 'package:dale_otra_vida_client/src/protocol/conversation_view.dart'
+    as _ixj8t0ja;
 import 'package:dale_otra_vida_client/src/protocol/greetings/greeting.dart'
     as _iqtlzsy5;
 import 'package:dale_otra_vida_client/src/protocol/listing.dart' as _iz1p8yt7;
@@ -27,6 +31,8 @@ import 'package:dale_otra_vida_client/src/protocol/listing_view.dart'
     as _ijh8j4ei;
 import 'package:dale_otra_vida_client/src/protocol/member_profile.dart'
     as _ibcyrd05;
+import 'package:dale_otra_vida_client/src/protocol/message_kind.dart'
+    as _i711izxw;
 import 'package:dale_otra_vida_client/src/protocol/my_request_view.dart'
     as _ikulhwb6;
 import 'package:dale_otra_vida_client/src/protocol/photo_upload.dart'
@@ -319,6 +325,103 @@ class EndpointJwtRefresh extends _iacc.EndpointRefreshJwtTokens {
         'refreshAccessToken',
         {'refreshToken': refreshToken},
         authenticated: false,
+      );
+}
+
+/// Chat between a listing owner and one interested member.
+/// {@category Endpoint}
+class EndpointChat extends _isc.EndpointRef {
+  EndpointChat(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'chat';
+
+  /// Returns the caller's newest 100 conversations, most recent first.
+  _ida.Future<List<_ixj8t0ja.ConversationView>> conversations() =>
+      caller.callServerEndpoint<List<_ixj8t0ja.ConversationView>>(
+        'chat',
+        'conversations',
+        {},
+      );
+
+  /// Returns one of the caller's conversations.
+  _ida.Future<_ixj8t0ja.ConversationView> conversation(int conversationId) =>
+      caller.callServerEndpoint<_ixj8t0ja.ConversationView>(
+        'chat',
+        'conversation',
+        {'conversationId': conversationId},
+      );
+
+  /// Returns a page of messages, newest first. Pass the id of the oldest
+  /// message already loaded as [beforeId] to get the previous page.
+  _ida.Future<List<_ir83d1bh.ChatMessage>> messages(
+    int conversationId, {
+    int? beforeId,
+    int? limit,
+  }) => caller.callServerEndpoint<List<_ir83d1bh.ChatMessage>>(
+    'chat',
+    'messages',
+    {
+      'conversationId': conversationId,
+      'beforeId': beforeId,
+      'limit': limit,
+    },
+  );
+
+  /// Sends a text message (the default [kind]) or a safe meeting point
+  /// proposal.
+  _ida.Future<_ir83d1bh.ChatMessage> send(
+    int conversationId,
+    String text, {
+    _i711izxw.MessageKind? kind,
+  }) => caller.callServerEndpoint<_ir83d1bh.ChatMessage>(
+    'chat',
+    'send',
+    {
+      'conversationId': conversationId,
+      'text': text,
+      'kind': kind,
+    },
+  );
+
+  /// Marks the other participant's messages, and the caller's new message
+  /// notifications for this conversation, as read.
+  _ida.Future<void> markRead(int conversationId) =>
+      caller.callServerEndpoint<void>(
+        'chat',
+        'markRead',
+        {'conversationId': conversationId},
+      );
+
+  /// Total unread messages across the caller's conversations.
+  _ida.Future<int> unreadTotal() => caller.callServerEndpoint<int>(
+    'chat',
+    'unreadTotal',
+    {},
+  );
+
+  /// Streams new messages of one conversation.
+  _ida.Stream<_ir83d1bh.ChatMessage> subscribe(int conversationId) =>
+      caller.callStreamingServerEndpoint<
+        _ida.Stream<_ir83d1bh.ChatMessage>,
+        _ir83d1bh.ChatMessage
+      >(
+        'chat',
+        'subscribe',
+        {'conversationId': conversationId},
+        {},
+      );
+
+  /// Streams every new message in any of the caller's conversations.
+  _ida.Stream<_ir83d1bh.ChatMessage> inbox() =>
+      caller.callStreamingServerEndpoint<
+        _ida.Stream<_ir83d1bh.ChatMessage>,
+        _ir83d1bh.ChatMessage
+      >(
+        'chat',
+        'inbox',
+        {},
+        {},
       );
 }
 
@@ -643,6 +746,7 @@ class Client extends _isc.ServerpodClientShared {
     emailIdp = EndpointEmailIdp(this);
     googleIdp = EndpointGoogleIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
+    chat = EndpointChat(this);
     greeting = EndpointGreeting(this);
     listing = EndpointListing(this);
     notification = EndpointNotification(this);
@@ -656,6 +760,8 @@ class Client extends _isc.ServerpodClientShared {
   late final EndpointGoogleIdp googleIdp;
 
   late final EndpointJwtRefresh jwtRefresh;
+
+  late final EndpointChat chat;
 
   late final EndpointGreeting greeting;
 
@@ -674,6 +780,7 @@ class Client extends _isc.ServerpodClientShared {
     'emailIdp': emailIdp,
     'googleIdp': googleIdp,
     'jwtRefresh': jwtRefresh,
+    'chat': chat,
     'greeting': greeting,
     'listing': listing,
     'notification': notification,

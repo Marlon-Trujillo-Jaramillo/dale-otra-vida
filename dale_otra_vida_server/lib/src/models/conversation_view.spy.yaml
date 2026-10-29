@@ -1,0 +1,12 @@
+### A conversation as seen by one of its two participants.
+class: ConversationView
+fields:
+  conversation: Conversation
+  listing: ListingView
+  ### The other participant, without coordinates.
+  other: MemberProfile
+  isOwner: bool
+  ### Messages from the other participant not read yet.
+  unreadCount: int, default=0
+  ### The requester's request on the listing.
+  request: ListingRequest?

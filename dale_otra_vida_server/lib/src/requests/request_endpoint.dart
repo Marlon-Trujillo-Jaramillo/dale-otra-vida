@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../common/current_profile.dart';
+import '../chat/chat_messages.dart';
 import '../generated/protocol.dart';
 import '../listings/listing_views.dart';
 import '../notifications/notify.dart';
@@ -30,7 +31,8 @@ class RequestEndpoint extends Endpoint {
       throw ArgumentError('El mensaje no puede superar los 300 caracteres.');
     }
 
-    return await session.db.transaction((transaction) async {
+    final toPublish = <(Conversation, ChatMessage)>[];
+    final result = await session.db.transaction((transaction) async {
       // Always lock the listing row first.
       final listing = await Listing.db.findById(
         session,
@@ -88,39 +90,26 @@ class RequestEndpoint extends Endpoint {
         transaction: transaction,
       );
 
-      var lastMessage = await ChatMessage.db.insertRow(
+      final systemMessage = await insertChatMessage(
         session,
-        ChatMessage(
-          conversationId: conversation.id!,
-          senderId: null,
-          kind: MessageKind.system,
-          text: '${profile.displayName} quiere esta publicación.',
-          createdAt: now,
-        ),
+        conversation,
+        kind: MessageKind.system,
+        text: '${profile.displayName} quiere esta publicación.',
+        createdAt: now,
         transaction: transaction,
       );
+      toPublish.add((conversation, systemMessage));
       if (text != null) {
-        lastMessage = await ChatMessage.db.insertRow(
+        final textMessage = await insertChatMessage(
           session,
-          ChatMessage(
-            conversationId: conversation.id!,
-            senderId: profile.id,
-            kind: MessageKind.text,
-            text: text,
-            createdAt: now,
-          ),
+          conversation,
+          senderId: profile.id,
+          text: text,
+          createdAt: now,
           transaction: transaction,
         );
+        toPublish.add((conversation, textMessage));
       }
-
-      await Conversation.db.updateRow(
-        session,
-        conversation.copyWith(
-          lastMessageAt: lastMessage.createdAt,
-          lastMessagePreview: lastMessage.text,
-        ),
-        transaction: transaction,
-      );
 
       final request = existing == null
           ? await ListingRequest.db.insertRow(
@@ -155,6 +144,11 @@ class RequestEndpoint extends Endpoint {
 
       return request;
     });
+
+    for (final (conversation, message) in toPublish) {
+      await publishChatMessage(session, conversation, message);
+    }
+    return result;
   }
 
   /// Returns the newest 100 requests on one of the caller's listings,
@@ -276,7 +270,8 @@ class RequestEndpoint extends Endpoint {
   Future<ListingRequest> accept(Session session, int requestId) async {
     final profile = await currentProfile(session);
 
-    return await session.db.transaction((transaction) async {
+    final toPublish = <(Conversation, ChatMessage)>[];
+    final result = await session.db.transaction((transaction) async {
       // Unlocked read to find which listing to lock.
       final initial = await ListingRequest.db.findById(
         session,
@@ -370,27 +365,17 @@ class RequestEndpoint extends Endpoint {
         transaction: transaction,
       );
       if (conversation != null) {
-        final systemMessage = await ChatMessage.db.insertRow(
+        final systemMessage = await insertChatMessage(
           session,
-          ChatMessage(
-            conversationId: conversation.id!,
-            senderId: null,
-            kind: MessageKind.system,
-            text:
-                '${profile.displayName} reservó esta publicación para ti. '
-                'Acuerden un punto de encuentro seguro.',
-            createdAt: now,
-          ),
+          conversation,
+          kind: MessageKind.system,
+          text:
+              '${profile.displayName} reservó esta publicación para ti. '
+              'Acuerden un punto de encuentro seguro.',
+          createdAt: now,
           transaction: transaction,
         );
-        await Conversation.db.updateRow(
-          session,
-          conversation.copyWith(
-            lastMessageAt: systemMessage.createdAt,
-            lastMessagePreview: systemMessage.text,
-          ),
-          transaction: transaction,
-        );
+        toPublish.add((conversation, systemMessage));
       }
 
       await notify(
@@ -416,6 +401,11 @@ class RequestEndpoint extends Endpoint {
 
       return accepted;
     });
+
+    for (final (conversation, message) in toPublish) {
+      await publishChatMessage(session, conversation, message);
+    }
+    return result;
   }
 
   /// Rejects a pending request on one of the caller's listings.

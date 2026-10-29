@@ -16,6 +16,10 @@ import 'dart:io' as _idi;
 import 'package:dale_otra_vida_server/src/generated/app_notification.dart'
     as _i8mrzz0i;
 import 'package:dale_otra_vida_server/src/generated/category.dart' as _ibils2fp;
+import 'package:dale_otra_vida_server/src/generated/chat_message.dart'
+    as _icgl1ktv;
+import 'package:dale_otra_vida_server/src/generated/conversation_view.dart'
+    as _inonxfdt;
 import 'package:dale_otra_vida_server/src/generated/greetings/greeting.dart'
     as _igv65sne;
 import 'package:dale_otra_vida_server/src/generated/listing.dart' as _ikgalg9n;
@@ -29,6 +33,8 @@ import 'package:dale_otra_vida_server/src/generated/listing_view.dart'
     as _ilhjw925;
 import 'package:dale_otra_vida_server/src/generated/member_profile.dart'
     as _ivdene5f;
+import 'package:dale_otra_vida_server/src/generated/message_kind.dart'
+    as _in7kqln3;
 import 'package:dale_otra_vida_server/src/generated/my_request_view.dart'
     as _ij0l268m;
 import 'package:dale_otra_vida_server/src/generated/photo_upload.dart'
@@ -178,6 +184,8 @@ class TestEndpoints {
 
   late final _JwtRefreshEndpoint jwtRefresh;
 
+  late final _ChatEndpoint chat;
+
   late final _GreetingEndpoint greeting;
 
   late final _ListingEndpoint listing;
@@ -205,6 +213,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     jwtRefresh = _JwtRefreshEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    chat = _ChatEndpoint(
       endpoints,
       serializationManager,
     );
@@ -657,6 +669,276 @@ class _JwtRefreshEndpoint {
         await _localUniqueSession.close();
       }
     });
+  }
+}
+
+class _ChatEndpoint {
+  _ChatEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _is.EndpointDispatch _endpointDispatch;
+
+  final _is.SerializationManager _serializationManager;
+
+  _ida.Future<List<_inonxfdt.ConversationView>> conversations(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'conversations',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'conversations',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_inonxfdt.ConversationView>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_inonxfdt.ConversationView> conversation(
+    _ist.TestSessionBuilder sessionBuilder,
+    int conversationId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'conversation',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'conversation',
+          parameters: _ist.testObjectToJson({'conversationId': conversationId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_inonxfdt.ConversationView>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_icgl1ktv.ChatMessage>> messages(
+    _ist.TestSessionBuilder sessionBuilder,
+    int conversationId, {
+    int? beforeId,
+    int? limit,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'messages',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'messages',
+          parameters: _ist.testObjectToJson({
+            'conversationId': conversationId,
+            'beforeId': beforeId,
+            'limit': limit,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_icgl1ktv.ChatMessage>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_icgl1ktv.ChatMessage> send(
+    _ist.TestSessionBuilder sessionBuilder,
+    int conversationId,
+    String text, {
+    _in7kqln3.MessageKind? kind,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'send',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'send',
+          parameters: _ist.testObjectToJson({
+            'conversationId': conversationId,
+            'text': text,
+            'kind': kind,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_icgl1ktv.ChatMessage>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<void> markRead(
+    _ist.TestSessionBuilder sessionBuilder,
+    int conversationId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'markRead',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'markRead',
+          parameters: _ist.testObjectToJson({'conversationId': conversationId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<int> unreadTotal(_ist.TestSessionBuilder sessionBuilder) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'unreadTotal',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'unreadTotal',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<int>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Stream<_icgl1ktv.ChatMessage> subscribe(
+    _ist.TestSessionBuilder sessionBuilder,
+    int conversationId,
+  ) {
+    var _localTestStreamManager =
+        _ist.TestStreamManager<_icgl1ktv.ChatMessage>();
+    _ist.callStreamFunctionAndHandleExceptions(
+      () async {
+        var _localUniqueSession =
+            (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+              endpoint: 'chat',
+              method: 'subscribe',
+            );
+        var _localCallContext = await _endpointDispatch
+            .getMethodStreamCallContext(
+              createSessionCallback: (_) => _localUniqueSession,
+              endpointPath: 'chat',
+              methodName: 'subscribe',
+              arguments: {'conversationId': conversationId},
+              requestedInputStreams: [],
+              serializationManager: _serializationManager,
+            );
+        await _localTestStreamManager.callStreamMethod(
+          _localCallContext,
+          _localUniqueSession,
+          {},
+        );
+      },
+      _localTestStreamManager.outputStreamController,
+    );
+    return _localTestStreamManager.outputStreamController.stream;
+  }
+
+  _ida.Stream<_icgl1ktv.ChatMessage> inbox(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) {
+    var _localTestStreamManager =
+        _ist.TestStreamManager<_icgl1ktv.ChatMessage>();
+    _ist.callStreamFunctionAndHandleExceptions(
+      () async {
+        var _localUniqueSession =
+            (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+              endpoint: 'chat',
+              method: 'inbox',
+            );
+        var _localCallContext = await _endpointDispatch
+            .getMethodStreamCallContext(
+              createSessionCallback: (_) => _localUniqueSession,
+              endpointPath: 'chat',
+              methodName: 'inbox',
+              arguments: {},
+              requestedInputStreams: [],
+              serializationManager: _serializationManager,
+            );
+        await _localTestStreamManager.callStreamMethod(
+          _localCallContext,
+          _localUniqueSession,
+          {},
+        );
+      },
+      _localTestStreamManager.outputStreamController,
+    );
+    return _localTestStreamManager.outputStreamController.stream;
   }
 }
 

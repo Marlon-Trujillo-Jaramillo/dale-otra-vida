@@ -16,6 +16,8 @@ import 'package:dale_otra_vida_server/src/generated/listing_status.dart'
     as _icdnh3n6;
 import 'package:dale_otra_vida_server/src/generated/listing_type.dart'
     as _ihn74j41;
+import 'package:dale_otra_vida_server/src/generated/message_kind.dart'
+    as _in7kqln3;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
@@ -24,6 +26,7 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
 import '../auth/email_idp_endpoint.dart' as _iuc1hd5t;
 import '../auth/google_idp_endpoint.dart' as _i71axiz0;
 import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
+import '../chat/chat_endpoint.dart' as _i3w57des;
 import '../greetings/greeting_endpoint.dart' as _il624ik7;
 import '../listings/listing_endpoint.dart' as _i9qx1xff;
 import '../notifications/notification_endpoint.dart' as _ibyw8x7k;
@@ -50,6 +53,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'jwtRefresh',
+          null,
+        ),
+      'chat': _i3w57des.ChatEndpoint()
+        ..initialize(
+          server,
+          'chat',
           null,
         ),
       'greeting': _il624ik7.GreetingEndpoint()
@@ -358,6 +367,162 @@ class Endpoints extends _is.EndpointDispatch {
                         session,
                         refreshToken: params['refreshToken'],
                       ),
+        ),
+      },
+    );
+    connectors['chat'] = _is.EndpointConnector(
+      name: 'chat',
+      endpoint: endpoints['chat']!,
+      methodConnectors: {
+        'conversations': _is.MethodConnector(
+          name: 'conversations',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i3w57des.ChatEndpoint)
+                  .conversations(session),
+        ),
+        'conversation': _is.MethodConnector(
+          name: 'conversation',
+          params: {
+            'conversationId': _is.ParameterDescription(
+              name: 'conversationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['chat'] as _i3w57des.ChatEndpoint).conversation(
+                    session,
+                    params['conversationId'],
+                  ),
+        ),
+        'messages': _is.MethodConnector(
+          name: 'messages',
+          params: {
+            'conversationId': _is.ParameterDescription(
+              name: 'conversationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'beforeId': _is.ParameterDescription(
+              name: 'beforeId',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i3w57des.ChatEndpoint).messages(
+                session,
+                params['conversationId'],
+                beforeId: params['beforeId'],
+                limit: params['limit'],
+              ),
+        ),
+        'send': _is.MethodConnector(
+          name: 'send',
+          params: {
+            'conversationId': _is.ParameterDescription(
+              name: 'conversationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'text': _is.ParameterDescription(
+              name: 'text',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'kind': _is.ParameterDescription(
+              name: 'kind',
+              type: _is.getType<_in7kqln3.MessageKind?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i3w57des.ChatEndpoint).send(
+                session,
+                params['conversationId'],
+                params['text'],
+                kind: params['kind'],
+              ),
+        ),
+        'markRead': _is.MethodConnector(
+          name: 'markRead',
+          params: {
+            'conversationId': _is.ParameterDescription(
+              name: 'conversationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i3w57des.ChatEndpoint).markRead(
+                session,
+                params['conversationId'],
+              ),
+        ),
+        'unreadTotal': _is.MethodConnector(
+          name: 'unreadTotal',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i3w57des.ChatEndpoint)
+                  .unreadTotal(session),
+        ),
+        'subscribe': _is.MethodStreamConnector(
+          name: 'subscribe',
+          params: {
+            'conversationId': _is.ParameterDescription(
+              name: 'conversationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          streamParams: {},
+          returnType: _is.MethodStreamReturnType.streamType,
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+                Map<String, Stream> streamParams,
+              ) => (endpoints['chat'] as _i3w57des.ChatEndpoint).subscribe(
+                session,
+                params['conversationId'],
+              ),
+        ),
+        'inbox': _is.MethodStreamConnector(
+          name: 'inbox',
+          params: {},
+          streamParams: {},
+          returnType: _is.MethodStreamReturnType.streamType,
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+                Map<String, Stream> streamParams,
+              ) => (endpoints['chat'] as _i3w57des.ChatEndpoint).inbox(session),
         ),
       },
     );
