@@ -7,6 +7,7 @@ import 'package:dale_otra_vida_flutter/core/theme/app_spacing.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_typography.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_avatar.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/empty_state.dart';
+import 'package:dale_otra_vida_flutter/features/chat/conversations_screen.dart';
 import 'package:dale_otra_vida_flutter/features/home/home_controller.dart';
 import 'package:dale_otra_vida_flutter/features/home/home_screen.dart';
 import 'package:dale_otra_vida_flutter/features/notifications/notifications_badge_controller.dart';
@@ -21,11 +22,19 @@ class AppShell extends StatefulWidget {
     this.initialProfile,
     this.fetchFeed,
     this.badgeController,
+    this.chatBadgeController,
+    this.fetchConversations,
+    this.inbox,
   });
 
   final MemberProfile? initialProfile;
   final ListingFeedFetch? fetchFeed;
   final NotificationsBadgeController? badgeController;
+
+  /// Unread chat messages, shown on the Mensajes tab.
+  final NotificationsBadgeController? chatBadgeController;
+  final ConversationsFetch? fetchConversations;
+  final InboxStream? inbox;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -39,6 +48,7 @@ class _AppShellState extends State<AppShell> {
 
   final _homeKey = GlobalKey<HomeScreenState>();
   late final NotificationsBadgeController _badgeController;
+  late final NotificationsBadgeController _chatBadgeController;
 
   @override
   void initState() {
@@ -49,6 +59,12 @@ class _AppShellState extends State<AppShell> {
           fetchUnreadCount: () => client.notification.unreadCount(),
         );
     _badgeController.start();
+    _chatBadgeController =
+        widget.chatBadgeController ??
+        NotificationsBadgeController(
+          fetchUnreadCount: () => client.chat.unreadTotal(),
+        );
+    _chatBadgeController.start();
 
     final initial = widget.initialProfile;
     if (initial != null) {
@@ -65,6 +81,11 @@ class _AppShellState extends State<AppShell> {
       _badgeController.dispose();
     } else {
       _badgeController.stop();
+    }
+    if (widget.chatBadgeController == null) {
+      _chatBadgeController.dispose();
+    } else {
+      _chatBadgeController.stop();
     }
     super.dispose();
   }
@@ -161,10 +182,13 @@ class _AppShellState extends State<AppShell> {
         fetchFeed: widget.fetchFeed,
         badgeController: _badgeController,
       ),
-      const _PlaceholderTab(
-        icon: Icons.chat_bubble_outline,
-        title: 'Mensajes',
-        message: 'Aquí verás tus conversaciones.',
+      ConversationsScreen(
+        fetchConversations: widget.fetchConversations,
+        inbox: widget.inbox,
+        onUnreadChanged: () {
+          _chatBadgeController.refresh();
+          _badgeController.refresh();
+        },
       ),
       ProfileScreen(profile: _profile!),
     ];
@@ -209,6 +233,7 @@ class _AppShellState extends State<AppShell> {
                       ),
                       Expanded(
                         child: _BottomTab(
+                          badgeController: _chatBadgeController,
                           icon: Icons.chat_bubble_outline,
                           activeIcon: Icons.chat_bubble,
                           label: 'Mensajes',
@@ -292,18 +317,24 @@ class _AppShellState extends State<AppShell> {
                   );
                 },
               ),
-              destinations: const [
-                NavigationRailDestination(
+              destinations: [
+                const NavigationRailDestination(
                   icon: Icon(Icons.home_outlined),
                   selectedIcon: Icon(Icons.home),
                   label: Text('Inicio'),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.chat_bubble_outline),
-                  selectedIcon: Icon(Icons.chat_bubble),
-                  label: Text('Mensajes'),
+                  icon: _UnreadBadge(
+                    controller: _chatBadgeController,
+                    child: const Icon(Icons.chat_bubble_outline),
+                  ),
+                  selectedIcon: _UnreadBadge(
+                    controller: _chatBadgeController,
+                    child: const Icon(Icons.chat_bubble),
+                  ),
+                  label: const Text('Mensajes'),
                 ),
-                NavigationRailDestination(
+                const NavigationRailDestination(
                   icon: Icon(Icons.person_outline),
                   selectedIcon: Icon(Icons.person),
                   label: Text('Perfil'),
@@ -365,10 +396,13 @@ class _AppShellState extends State<AppShell> {
                     onTap: () => _onTabSelected(0),
                   ),
                   const SizedBox(width: AppSpacing.l),
-                  _TopNavButton(
-                    label: 'Mensajes',
-                    selected: _currentIndex == 1,
-                    onTap: () => _onTabSelected(1),
+                  _UnreadBadge(
+                    controller: _chatBadgeController,
+                    child: _TopNavButton(
+                      label: 'Mensajes',
+                      selected: _currentIndex == 1,
+                      onTap: () => _onTabSelected(1),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.l),
                   _TopNavButton(
@@ -500,6 +534,7 @@ class _TopNavButton extends StatelessWidget {
 
 class _BottomTab extends StatelessWidget {
   const _BottomTab({
+    this.badgeController,
     required this.icon,
     required this.activeIcon,
     required this.label,
@@ -507,6 +542,7 @@ class _BottomTab extends StatelessWidget {
     required this.onTap,
   });
 
+  final NotificationsBadgeController? badgeController;
   final IconData icon;
   final IconData activeIcon;
   final String label;
@@ -525,10 +561,13 @@ class _BottomTab extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                selected ? activeIcon : icon,
-                color: color,
-                size: 22,
+              _UnreadBadge(
+                controller: badgeController,
+                child: Icon(
+                  selected ? activeIcon : icon,
+                  color: color,
+                  size: 22,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
@@ -546,25 +585,28 @@ class _BottomTab extends StatelessWidget {
   }
 }
 
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
+/// Accent count badge over [child] while [controller] has unread items.
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.controller, required this.child});
 
-  final IconData icon;
-  final String title;
-  final String message;
+  final NotificationsBadgeController? controller;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: EmptyState(
-        icon: icon,
-        title: title,
-        message: message,
+    final controller = this.controller;
+    if (controller == null) return child;
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) => Badge(
+        isLabelVisible: controller.hasUnread,
+        label: Text(controller.label),
+        backgroundColor: AppColors.accent,
+        textColor: AppColors.textPrimary,
+        textStyle: AppTypography.badge.copyWith(fontSize: 10),
+        child: child,
       ),
+      child: child,
     );
   }
 }

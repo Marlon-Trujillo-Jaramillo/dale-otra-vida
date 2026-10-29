@@ -92,6 +92,8 @@ void main() {
         home: AppShell(
           initialProfile: fakeProfile(),
           fetchFeed: fakeFetch,
+          fetchConversations: () async => [],
+          inbox: () => const Stream.empty(),
         ),
       ),
     );
@@ -104,6 +106,6 @@ void main() {
     await tester.tap(find.text('Mensajes'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Aquí verás tus conversaciones.'), findsOneWidget);
+    expect(find.text('Aún no tienes conversaciones'), findsOneWidget);
   });
 }

@@ -11,6 +11,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
+import '../chat/chat_screen.dart';
 import 'listing_detail_logic.dart';
 
 class ListingDetailScreen extends StatefulWidget {
@@ -258,8 +259,36 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-  void _showSoonSnackBar() {
-    _showSnackBar('Disponible muy pronto');
+  void _openChat(int conversationId) {
+    Navigator.of(context)
+        .push<void>(
+          MaterialPageRoute<void>(
+            builder: (context) => ChatScreen(conversationId: conversationId),
+          ),
+        )
+        .then((_) => _refreshView());
+  }
+
+  /// Opens the requester's conversation with the owner.
+  Future<void> _openMyChat() async {
+    if (_view.myRequest == null) {
+      _showSnackBar('Primero toca «Lo quiero» para hablar con el dueño.');
+      return;
+    }
+    try {
+      final conversations = await client.chat.conversations();
+      if (!mounted) return;
+      for (final conversation in conversations) {
+        if (!conversation.isOwner &&
+            conversation.conversation.listingId == _view.listing.id) {
+          _openChat(conversation.conversation.id!);
+          return;
+        }
+      }
+      _showSnackBar('No encontramos la conversación.');
+    } catch (_) {
+      _showSnackBar('No pudimos abrir el chat.');
+    }
   }
 
   void _openPhotoFullscreen(String url) {
@@ -892,6 +921,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 view: requestView,
                 onAccept: () => _acceptRequest(requestView),
                 onReject: () => _rejectRequest(requestView),
+                onChat: requestView.conversationId == null
+                    ? null
+                    : () => _openChat(requestView.conversationId!),
                 busy: _updating,
               ),
             );
@@ -1143,7 +1175,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     if (compact) {
       return Row(
         children: [
-          _ChatButton(onTap: _showSoonSnackBar),
+          _ChatButton(onTap: _openMyChat),
           const SizedBox(width: AppSpacing.s),
           Expanded(child: actionWidget),
         ],
@@ -1154,7 +1186,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _ChatButton(onTap: _showSoonSnackBar),
+        _ChatButton(onTap: _openMyChat),
         const SizedBox(width: AppSpacing.s),
         Expanded(child: actionWidget),
       ],
@@ -1362,12 +1394,14 @@ class _RequestRow extends StatelessWidget {
     required this.view,
     required this.onAccept,
     required this.onReject,
+    this.onChat,
     required this.busy,
   });
 
   final RequestView view;
   final VoidCallback onAccept;
   final VoidCallback onReject;
+  final VoidCallback? onChat;
   final bool busy;
 
   @override
@@ -1413,7 +1447,18 @@ class _RequestRow extends StatelessWidget {
                   ],
                 ),
               ),
-              _RequestStatusChip(status: request.status),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _RequestStatusChip(status: request.status),
+                  if (onChat != null)
+                    IconButton(
+                      tooltip: 'Abrir chat',
+                      onPressed: onChat,
+                      icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                    ),
+                ],
+              ),
             ],
           ),
           if (request.message != null && request.message!.isNotEmpty) ...[

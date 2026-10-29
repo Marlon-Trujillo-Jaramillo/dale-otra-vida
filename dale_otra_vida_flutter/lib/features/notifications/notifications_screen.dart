@@ -8,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/empty_state.dart';
+import '../chat/chat_screen.dart';
 import '../listing/listing_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -130,6 +131,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     if (isListingKind && refId != null) {
       _openListing(refId);
+      return;
+    }
+
+    if (kind == NotificationKind.newMessage && refId != null) {
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => ChatScreen(conversationId: refId),
+        ),
+      );
       return;
     }
 
