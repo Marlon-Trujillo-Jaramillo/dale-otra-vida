@@ -15,6 +15,7 @@ typedef ListingFeedFetch =
       String? query,
       double? latitude,
       double? longitude,
+      bool? nearest,
       required int limit,
       required int offset,
     });
@@ -38,6 +39,9 @@ class HomeController extends ChangeNotifier {
   String? loadMoreError;
   bool hasMore = true;
   ({double lat, double lng})? location;
+
+  /// Closest first instead of newest first; needs a location.
+  bool nearest = false;
 
   static const _limit = 20;
   int _gen = 0;
@@ -68,6 +72,12 @@ class HomeController extends ChangeNotifier {
     } else {
       selectedCategory = category;
     }
+    _load(refresh: true);
+  }
+
+  void setNearest(bool value) {
+    if (nearest == value) return;
+    nearest = value;
     _load(refresh: true);
   }
 
@@ -111,6 +121,7 @@ class HomeController extends ChangeNotifier {
         query: query.isNotEmpty ? query : null,
         latitude: location?.lat,
         longitude: location?.lng,
+        nearest: nearest && location != null ? true : null,
         limit: _limit,
         offset: offset,
       );

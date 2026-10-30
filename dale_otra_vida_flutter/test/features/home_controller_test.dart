@@ -39,6 +39,7 @@ void main() {
         String? query,
         double? latitude,
         double? longitude,
+        bool? nearest,
         required int limit,
         required int offset,
       }) async {
@@ -82,6 +83,7 @@ void main() {
         String? query,
         double? latitude,
         double? longitude,
+        bool? nearest,
         required int limit,
         required int offset,
       }) async {
@@ -103,6 +105,43 @@ void main() {
       completer.complete([fakeView(1)]);
       await Future.delayed(Duration.zero);
       expect(controller.loading, isFalse);
+
+      controller.dispose();
+    });
+  });
+
+  group('HomeController nearest', () {
+    test('asks for nearest only when a location is known', () async {
+      final calls = <bool?>[];
+      Future<List<ListingView>> fetch({
+        ListingType? type,
+        Category? category,
+        String? query,
+        double? latitude,
+        double? longitude,
+        bool? nearest,
+        required int limit,
+        required int offset,
+      }) async {
+        calls.add(nearest);
+        return [];
+      }
+
+      final controller = HomeController(
+        profile: fakeProfile(),
+        fetchFeed: fetch,
+      );
+
+      controller.setNearest(true);
+      await Future.delayed(Duration.zero);
+      expect(calls.last, isNull);
+
+      controller.location = (lat: 6.25, lng: -75.56);
+      controller.setNearest(false);
+      controller.setNearest(true);
+      await Future.delayed(Duration.zero);
+      expect(calls.last, isTrue);
+      expect(controller.nearest, isTrue);
 
       controller.dispose();
     });

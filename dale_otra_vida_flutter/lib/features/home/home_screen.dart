@@ -16,6 +16,7 @@ import '../../core/widgets/listing_card.dart';
 import '../../core/widgets/listing_grid_card.dart';
 import '../../core/widgets/section_header.dart';
 import '../listing/listing_detail_screen.dart';
+import '../map/map_screen.dart';
 import '../notifications/notifications_badge_controller.dart';
 import '../notifications/notifications_screen.dart';
 import 'home_controller.dart';
@@ -85,7 +86,7 @@ class HomeScreenState extends State<HomeScreen> {
   void _openMap() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => const _PlaceholderScreen(title: 'Mapa'),
+        builder: (context) => const MapScreen(),
       ),
     );
   }
@@ -538,10 +539,34 @@ class HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.screenHorizontal,
       ),
-      child: SectionHeader(
-        label: 'Cerca de ti',
-        actionLabel: 'Ver mapa',
-        onAction: _openMap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+            label: 'Cerca de ti',
+            actionLabel: 'Ver mapa',
+            onAction: _openMap,
+          ),
+          if (_controller.location != null) ...[
+            const SizedBox(height: AppSpacing.s),
+            Wrap(
+              spacing: AppSpacing.s,
+              children: [
+                _SortChip(
+                  label: 'Más recientes',
+                  selected: !_controller.nearest,
+                  onTap: () => _controller.setNearest(false),
+                ),
+                _SortChip(
+                  label: 'Más cerca',
+                  icon: Icons.near_me_outlined,
+                  selected: _controller.nearest,
+                  onTap: () => _controller.setNearest(true),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1035,16 +1060,38 @@ class _HomeBell extends StatelessWidget {
   }
 }
 
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title});
+class _SortChip extends StatelessWidget {
+  const _SortChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+  });
 
-  final String title;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const Center(child: Text('Disponible muy pronto')),
+    final color = selected ? AppColors.onPrimary : AppColors.textPrimary;
+    return ChoiceChip(
+      selected: selected,
+      onSelected: (_) => onTap(),
+      showCheckmark: false,
+      avatar: icon == null ? null : Icon(icon, size: 16, color: color),
+      label: Text(label),
+      labelStyle: AppTypography.caption.copyWith(
+        color: color,
+        fontWeight: FontWeight.w700,
+      ),
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      side: BorderSide(
+        color: selected ? AppColors.primary : AppColors.border,
+      ),
+      shape: const StadiumBorder(),
     );
   }
 }

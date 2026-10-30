@@ -21,6 +21,7 @@ void main() {
     String? query,
     double? latitude,
     double? longitude,
+    bool? nearest,
     required int limit,
     required int offset,
   }) async {

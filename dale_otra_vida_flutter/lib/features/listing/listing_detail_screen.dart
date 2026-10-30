@@ -12,6 +12,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
 import '../chat/chat_screen.dart';
+import '../map/zone_map.dart';
 import '../profile/public_profile_screen.dart';
 import '../publish/publish_screen.dart';
 import '../reports/report_sheet.dart';
@@ -810,6 +811,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             distance != null
                 ? '${listing.neighborhood} · $distance'
                 : listing.neighborhood,
+            style: AppTypography.caption,
+          ),
+          const SizedBox(height: AppSpacing.m),
+          ZoneMap(latitude: listing.latitude, longitude: listing.longitude),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Zona aproximada: nunca mostramos direcciones exactas.',
             style: AppTypography.caption,
           ),
         ],
