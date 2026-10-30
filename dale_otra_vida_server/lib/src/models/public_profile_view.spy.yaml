@@ -1,0 +1,12 @@
+### Profile screen data: stats, listings, delivery history and reviews.
+class: PublicProfileView
+fields:
+  ### Without coordinates.
+  profile: MemberProfile
+  isMe: bool
+  ### Available and reserved listings, newest first.
+  listings: List<ListingView>
+  ### Delivered listings, newest first.
+  history: List<ListingView>
+  ### Newest reviews received.
+  reviews: List<ReviewView>

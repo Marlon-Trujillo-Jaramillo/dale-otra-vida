@@ -2,6 +2,9 @@ import 'package:serverpod/serverpod.dart';
 import 'package:serverpod_auth_idp_server/core.dart';
 
 import '../common/geo.dart';
+import '../common/current_profile.dart';
+import '../listings/listing_views.dart';
+import '../reviews/review_endpoint.dart';
 import '../generated/protocol.dart';
 
 /// Profile of the signed-in member. Created right after the first sign-in.
@@ -78,5 +81,45 @@ class ProfileEndpoint extends Endpoint {
   Future<MemberProfile?> byId(Session session, int profileId) async {
     final profile = await MemberProfile.db.findById(session, profileId);
     return profile?.copyWith(latitude: null, longitude: null);
+  }
+
+  /// Profile screen data for any member: stats, open listings, delivery
+  /// history and the newest reviews.
+  Future<PublicProfileView> publicProfile(
+    Session session,
+    int profileId,
+  ) async {
+    final caller = await currentProfile(session);
+    final profile = await MemberProfile.db.findById(session, profileId);
+    if (profile == null) {
+      throw NotAllowedException(message: 'Usuario no encontrado.');
+    }
+
+    final listings = await Listing.db.find(
+      session,
+      where: (t) =>
+          t.ownerId.equals(profileId) &
+          (t.status.equals(ListingStatus.available) |
+              t.status.equals(ListingStatus.reserved)),
+      orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
+      limit: 50,
+    );
+    final delivered = await Listing.db.find(
+      session,
+      where: (t) =>
+          t.ownerId.equals(profileId) &
+          t.status.equals(ListingStatus.delivered),
+      orderByList: (t) => [t.updatedAt.desc(), t.id.desc()],
+      limit: 50,
+    );
+    final views = await toViews(session, [...listings, ...delivered], caller);
+
+    return PublicProfileView(
+      profile: profile.copyWith(latitude: null, longitude: null),
+      isMe: profile.id == caller.id,
+      listings: views.take(listings.length).toList(),
+      history: views.skip(listings.length).toList(),
+      reviews: await reviewViews(session, profileId),
+    );
   }
 }

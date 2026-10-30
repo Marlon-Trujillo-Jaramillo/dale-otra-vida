@@ -296,6 +296,21 @@ class ChatEndpoint extends Endpoint {
         (request.listingId, request.requesterId): request,
     };
 
+    // Delivered listings the caller has not rated yet.
+    final deliveredIds = {
+      for (final listing in listings)
+        if (listing.status == ListingStatus.delivered) listing.id!,
+    };
+    final myReviews = deliveredIds.isEmpty
+        ? <Review>[]
+        : await Review.db.find(
+            session,
+            where: (t) =>
+                t.listingId.inSet(deliveredIds) &
+                t.reviewerId.equals(profile.id!),
+          );
+    final reviewedIds = myReviews.map((r) => r.listingId).toSet();
+
     return [
       for (final c in conversations)
         ConversationView(
@@ -306,6 +321,11 @@ class ChatEndpoint extends Endpoint {
           isOwner: c.ownerId == profile.id,
           unreadCount: unreadByConversationId[c.id] ?? 0,
           request: requestByKey[(c.listingId, c.requesterId)],
+          canReview:
+              deliveredIds.contains(c.listingId) &&
+              !reviewedIds.contains(c.listingId) &&
+              requestByKey[(c.listingId, c.requesterId)]?.status ==
+                  RequestStatus.accepted,
         ),
     ];
   }

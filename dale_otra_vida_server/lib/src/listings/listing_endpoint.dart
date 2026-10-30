@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:serverpod/serverpod.dart';
 
+import '../chat/chat_messages.dart';
 import '../common/current_profile.dart';
 import '../common/geo.dart';
 import '../generated/protocol.dart';
@@ -56,7 +57,94 @@ class ListingEndpoint extends Endpoint {
   /// Creates a new listing after validating and sanitizing the input.
   Future<ListingView> create(Session session, Listing listing) async {
     final profile = await currentProfile(session);
-    final callerId = profile.id!;
+    final toInsert = await _sanitized(session, listing, profile.id!);
+    final created = await Listing.db.insertRow(session, toInsert);
+    return toView(session, created, profile);
+  }
+
+  /// Edits the text, dates and price of one of the caller's open listings.
+  /// Type, category, photos and status stay as they are.
+  Future<ListingView> update(Session session, int id, Listing changes) async {
+    final profile = await currentProfile(session);
+
+    return await session.db.transaction((transaction) async {
+      final listing = await Listing.db.findById(
+        session,
+        id,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (listing == null) {
+        throw ArgumentError('Publicación no encontrada.');
+      }
+      if (listing.ownerId != profile.id!) {
+        throw NotAllowedException(
+          message: 'No eres el dueño de esta publicación.',
+        );
+      }
+      if (listing.status != ListingStatus.available &&
+          listing.status != ListingStatus.reserved) {
+        throw NotAllowedException(
+          message: 'Esta publicación ya no se puede editar.',
+        );
+      }
+
+      final clean = await _sanitized(
+        session,
+        changes.copyWith(
+          type: listing.type,
+          category: listing.category,
+          photoUrls: listing.photoUrls,
+        ),
+        profile.id!,
+        checkPhotos: false,
+      );
+
+      final saved = await Listing.db.updateRow(
+        session,
+        listing.copyWith(
+          title: clean.title,
+          description: clean.description,
+          condition: clean.condition,
+          expiresAt: clean.expiresAt,
+          price: clean.price,
+          returnDate: clean.returnDate,
+          wantedInExchange: clean.wantedInExchange,
+          neighborhood: clean.neighborhood,
+          latitude: clean.latitude,
+          longitude: clean.longitude,
+          safeMeetingPoint: clean.safeMeetingPoint,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+        transaction: transaction,
+      );
+
+      // A new expiry date earns a new "vence pronto" reminder.
+      if (saved.expiresAt != listing.expiresAt) {
+        await AppNotification.db.deleteWhere(
+          session,
+          where: (t) =>
+              t.userId.equals(profile.id!) &
+              t.kind.equals(NotificationKind.listingExpiring) &
+              t.refId.equals(id),
+          transaction: transaction,
+        );
+      }
+
+      return toView(session, saved, profile);
+    });
+  }
+
+  /// Validates [listing] and returns a clean copy owned by [callerId].
+  ///
+  /// Photos are only checked when [checkPhotos] is true: edits keep the
+  /// stored photos.
+  Future<Listing> _sanitized(
+    Session session,
+    Listing listing,
+    int callerId, {
+    bool checkPhotos = true,
+  }) async {
     final now = DateTime.now().toUtc();
 
     final title = listing.title.trim();
@@ -84,24 +172,26 @@ class ListingEndpoint extends Endpoint {
     }
 
     final photos = listing.photoUrls;
-    if (photos.isEmpty || photos.length > 5) {
-      throw ArgumentError('Debes subir entre 1 y 5 fotos.');
-    }
+    if (checkPhotos) {
+      if (photos.isEmpty || photos.length > 5) {
+        throw ArgumentError('Debes subir entre 1 y 5 fotos.');
+      }
 
-    final seenPaths = <String>{};
-    for (final path in photos) {
-      if (!_isOwnPhotoPath(path, callerId)) {
-        throw ArgumentError('Foto con ruta inválida.');
-      }
-      if (!seenPaths.add(path)) {
-        throw ArgumentError('Fotos duplicadas no permitidas.');
-      }
-      final exists = await session.storage.fileExists(
-        storageId: 'public',
-        path: path,
-      );
-      if (!exists) {
-        throw ArgumentError('Foto no encontrada en el almacenamiento.');
+      final seenPaths = <String>{};
+      for (final path in photos) {
+        if (!_isOwnPhotoPath(path, callerId)) {
+          throw ArgumentError('Foto con ruta inválida.');
+        }
+        if (!seenPaths.add(path)) {
+          throw ArgumentError('Fotos duplicadas no permitidas.');
+        }
+        final exists = await session.storage.fileExists(
+          storageId: 'public',
+          path: path,
+        );
+        if (!exists) {
+          throw ArgumentError('Foto no encontrada en el almacenamiento.');
+        }
       }
     }
 
@@ -158,7 +248,7 @@ class ListingEndpoint extends Endpoint {
       throw ArgumentError('Coordenadas inválidas.');
     }
 
-    final toInsert = Listing(
+    return Listing(
       ownerId: callerId,
       title: title,
       description: description,
@@ -178,9 +268,6 @@ class ListingEndpoint extends Endpoint {
       longitude: roundCoordinate(listing.longitude)!,
       safeMeetingPoint: safeMeetingPoint,
     );
-
-    final created = await Listing.db.insertRow(session, toInsert);
-    return toView(session, created, profile);
   }
 
   /// Returns available listings, optionally filtered.
@@ -291,7 +378,8 @@ class ListingEndpoint extends Endpoint {
   ) async {
     final profile = await currentProfile(session);
 
-    return await session.db.transaction((transaction) async {
+    final toPublish = <(Conversation, ChatMessage)>[];
+    final result = await session.db.transaction((transaction) async {
       // Lock the listing row so concurrent mutations serialize on it.
       final listing = await Listing.db.findById(
         session,
@@ -341,6 +429,45 @@ class ListingEndpoint extends Endpoint {
             columns: (t) => [t.deliveryCount],
             transaction: transaction,
           );
+        }
+
+        // Tell the receiver and invite both sides to rate each other.
+        final accepted = await ListingRequest.db.findFirstRow(
+          session,
+          where: (t) =>
+              t.listingId.equals(listing.id!) &
+              t.status.equals(RequestStatus.accepted),
+          transaction: transaction,
+        );
+        if (accepted != null) {
+          await notify(
+            session,
+            userId: accepted.requesterId,
+            kind: NotificationKind.deliveryCompleted,
+            title: '¡Entrega completada!',
+            body: 'Califica a ${profile.displayName} por «${listing.title}».',
+            refId: listing.id,
+            transaction: transaction,
+          );
+          final conversation = await Conversation.db.findFirstRow(
+            session,
+            where: (t) =>
+                t.listingId.equals(listing.id!) &
+                t.requesterId.equals(accepted.requesterId),
+            transaction: transaction,
+          );
+          if (conversation != null) {
+            final message = await insertChatMessage(
+              session,
+              conversation,
+              kind: MessageKind.system,
+              text:
+                  'Entrega completada. ¡Gracias por darle otra vida! '
+                  'Califiquen su experiencia.',
+              transaction: transaction,
+            );
+            toPublish.add((conversation, message));
+          }
         }
       }
 
@@ -395,6 +522,11 @@ class ListingEndpoint extends Endpoint {
 
       return toView(session, saved, profile);
     });
+
+    for (final (conversation, message) in toPublish) {
+      await publishChatMessage(session, conversation, message);
+    }
+    return result;
   }
 
   bool _isValidStatusTransition(ListingStatus from, ListingStatus to) {

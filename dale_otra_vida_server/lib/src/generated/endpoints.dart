@@ -18,6 +18,8 @@ import 'package:dale_otra_vida_server/src/generated/listing_type.dart'
     as _ihn74j41;
 import 'package:dale_otra_vida_server/src/generated/message_kind.dart'
     as _in7kqln3;
+import 'package:dale_otra_vida_server/src/generated/report_reason.dart'
+    as _ib8wmkpc;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
@@ -31,7 +33,9 @@ import '../greetings/greeting_endpoint.dart' as _il624ik7;
 import '../listings/listing_endpoint.dart' as _i9qx1xff;
 import '../notifications/notification_endpoint.dart' as _ibyw8x7k;
 import '../profile/profile_endpoint.dart' as _i6ky944g;
+import '../reports/report_endpoint.dart' as _iqte9uvc;
 import '../requests/request_endpoint.dart' as _ibwuu02n;
+import '../reviews/review_endpoint.dart' as _i1vkl601;
 
 class Endpoints extends _is.EndpointDispatch {
   @override
@@ -85,10 +89,22 @@ class Endpoints extends _is.EndpointDispatch {
           'profile',
           null,
         ),
+      'report': _iqte9uvc.ReportEndpoint()
+        ..initialize(
+          server,
+          'report',
+          null,
+        ),
       'request': _ibwuu02n.RequestEndpoint()
         ..initialize(
           server,
           'request',
+          null,
+        ),
+      'review': _i1vkl601.ReviewEndpoint()
+        ..initialize(
+          server,
+          'review',
           null,
         ),
     };
@@ -612,6 +628,31 @@ class Endpoints extends _is.EndpointDispatch {
                     params['listing'],
                   ),
         ),
+        'update': _is.MethodConnector(
+          name: 'update',
+          params: {
+            'id': _is.ParameterDescription(
+              name: 'id',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'changes': _is.ParameterDescription(
+              name: 'changes',
+              type: _is.getType<_ikgalg9n.Listing>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['listing'] as _i9qx1xff.ListingEndpoint).update(
+                    session,
+                    params['id'],
+                    params['changes'],
+                  ),
+        ),
         'feed': _is.MethodConnector(
           name: 'feed',
           params: {
@@ -880,6 +921,68 @@ class Endpoints extends _is.EndpointDispatch {
                     params['profileId'],
                   ),
         ),
+        'publicProfile': _is.MethodConnector(
+          name: 'publicProfile',
+          params: {
+            'profileId': _is.ParameterDescription(
+              name: 'profileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['profile'] as _i6ky944g.ProfileEndpoint)
+                  .publicProfile(
+                    session,
+                    params['profileId'],
+                  ),
+        ),
+      },
+    );
+    connectors['report'] = _is.EndpointConnector(
+      name: 'report',
+      endpoint: endpoints['report']!,
+      methodConnectors: {
+        'create': _is.MethodConnector(
+          name: 'create',
+          params: {
+            'reason': _is.ParameterDescription(
+              name: 'reason',
+              type: _is.getType<_ib8wmkpc.ReportReason>(),
+              nullable: false,
+            ),
+            'reportedUserId': _is.ParameterDescription(
+              name: 'reportedUserId',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'listingId': _is.ParameterDescription(
+              name: 'listingId',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'details': _is.ParameterDescription(
+              name: 'details',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['report'] as _iqte9uvc.ReportEndpoint).create(
+                    session,
+                    params['reason'],
+                    reportedUserId: params['reportedUserId'],
+                    listingId: params['listingId'],
+                    details: params['details'],
+                  ),
+        ),
       },
     );
     connectors['request'] = _is.EndpointConnector(
@@ -995,6 +1098,74 @@ class Endpoints extends _is.EndpointDispatch {
                   (endpoints['request'] as _ibwuu02n.RequestEndpoint).cancel(
                     session,
                     params['requestId'],
+                  ),
+        ),
+      },
+    );
+    connectors['review'] = _is.EndpointConnector(
+      name: 'review',
+      endpoint: endpoints['review']!,
+      methodConnectors: {
+        'create': _is.MethodConnector(
+          name: 'create',
+          params: {
+            'listingId': _is.ParameterDescription(
+              name: 'listingId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'rating': _is.ParameterDescription(
+              name: 'rating',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'comment': _is.ParameterDescription(
+              name: 'comment',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['review'] as _i1vkl601.ReviewEndpoint).create(
+                    session,
+                    params['listingId'],
+                    params['rating'],
+                    comment: params['comment'],
+                  ),
+        ),
+        'forMember': _is.MethodConnector(
+          name: 'forMember',
+          params: {
+            'profileId': _is.ParameterDescription(
+              name: 'profileId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'limit': _is.ParameterDescription(
+              name: 'limit',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'offset': _is.ParameterDescription(
+              name: 'offset',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['review'] as _i1vkl601.ReviewEndpoint).forMember(
+                    session,
+                    params['profileId'],
+                    limit: params['limit'],
+                    offset: params['offset'],
                   ),
         ),
       },

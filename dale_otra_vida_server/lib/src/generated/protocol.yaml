@@ -28,6 +28,7 @@ listing:
   - photoUploadDescription:
   - verifyPhotoUpload:
   - create:
+  - update:
   - feed:
   - byId:
   - mine:
@@ -41,6 +42,9 @@ profile:
   - me:
   - saveMe:
   - byId:
+  - publicProfile:
+report:
+  - create:
 request:
   - create:
   - forListing:
@@ -48,3 +52,6 @@ request:
   - accept:
   - reject:
   - cancel:
+review:
+  - create:
+  - forMember:

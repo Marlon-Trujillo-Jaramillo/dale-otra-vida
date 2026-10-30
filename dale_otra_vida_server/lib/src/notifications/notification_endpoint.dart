@@ -4,6 +4,7 @@ import 'package:serverpod/serverpod.dart';
 
 import '../common/current_profile.dart';
 import '../generated/protocol.dart';
+import 'notify.dart';
 
 /// In-app notifications for the signed-in member.
 class NotificationEndpoint extends Endpoint {
@@ -33,6 +34,7 @@ class NotificationEndpoint extends Endpoint {
   /// Returns how many notifications the caller has not read yet.
   Future<int> unreadCount(Session session) async {
     final profile = await currentProfile(session);
+    await _remindExpiring(session, profile);
 
     return AppNotification.db.count(
       session,
@@ -68,5 +70,45 @@ class NotificationEndpoint extends Endpoint {
       columnValues: (t) => [t.readAt(DateTime.now().toUtc())],
       noReturn: true,
     );
+  }
+
+  /// Notifies the caller once about each open food listing of theirs that
+  /// expires within a day. Runs on the badge poll, so no scheduler is needed.
+  Future<void> _remindExpiring(Session session, MemberProfile profile) async {
+    final now = DateTime.now().toUtc();
+    final expiring = await Listing.db.find(
+      session,
+      where: (t) =>
+          t.ownerId.equals(profile.id!) &
+          t.category.equals(Category.food) &
+          (t.status.equals(ListingStatus.available) |
+              t.status.equals(ListingStatus.reserved)) &
+          (t.expiresAt > now) &
+          (t.expiresAt <= now.add(const Duration(days: 1))),
+    );
+    if (expiring.isEmpty) return;
+
+    final reminded = await AppNotification.db.find(
+      session,
+      where: (t) =>
+          t.userId.equals(profile.id!) &
+          t.kind.equals(NotificationKind.listingExpiring) &
+          t.refId.inSet(expiring.map((l) => l.id!).toSet()),
+    );
+    final remindedIds = reminded.map((n) => n.refId).toSet();
+
+    for (final listing in expiring) {
+      if (remindedIds.contains(listing.id)) continue;
+      await notify(
+        session,
+        userId: profile.id!,
+        kind: NotificationKind.listingExpiring,
+        title: 'Tu publicación vence pronto',
+        body:
+            '«${listing.title}» vence en menos de un día. Si sigue en buen '
+            'estado, actualiza la fecha.',
+        refId: listing.id,
+      );
+    }
   }
 }

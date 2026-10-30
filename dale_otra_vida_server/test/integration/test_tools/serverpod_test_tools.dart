@@ -39,8 +39,16 @@ import 'package:dale_otra_vida_server/src/generated/my_request_view.dart'
     as _ij0l268m;
 import 'package:dale_otra_vida_server/src/generated/photo_upload.dart'
     as _ih8to8xj;
+import 'package:dale_otra_vida_server/src/generated/public_profile_view.dart'
+    as _ixbdb37a;
+import 'package:dale_otra_vida_server/src/generated/report.dart' as _i3pis6sj;
+import 'package:dale_otra_vida_server/src/generated/report_reason.dart'
+    as _ib8wmkpc;
 import 'package:dale_otra_vida_server/src/generated/request_view.dart'
     as _ivx3bzvp;
+import 'package:dale_otra_vida_server/src/generated/review.dart' as _ishn7bzz;
+import 'package:dale_otra_vida_server/src/generated/review_view.dart'
+    as _iwzyt887;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
@@ -194,7 +202,11 @@ class TestEndpoints {
 
   late final _ProfileEndpoint profile;
 
+  late final _ReportEndpoint report;
+
   late final _RequestEndpoint request;
+
+  late final _ReviewEndpoint review;
 }
 
 class _InternalTestEndpoints extends TestEndpoints
@@ -236,7 +248,15 @@ class _InternalTestEndpoints extends TestEndpoints
       endpoints,
       serializationManager,
     );
+    report = _ReportEndpoint(
+      endpoints,
+      serializationManager,
+    );
     request = _RequestEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    review = _ReviewEndpoint(
       endpoints,
       serializationManager,
     );
@@ -1087,6 +1107,41 @@ class _ListingEndpoint {
     });
   }
 
+  _ida.Future<_ilhjw925.ListingView> update(
+    _ist.TestSessionBuilder sessionBuilder,
+    int id,
+    _ikgalg9n.Listing changes,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'update',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'update',
+          parameters: _ist.testObjectToJson({
+            'id': id,
+            'changes': changes,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ilhjw925.ListingView>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _ida.Future<List<_ilhjw925.ListingView>> feed(
     _ist.TestSessionBuilder sessionBuilder, {
     _ihn74j41.ListingType? type,
@@ -1477,6 +1532,87 @@ class _ProfileEndpoint {
       }
     });
   }
+
+  _ida.Future<_ixbdb37a.PublicProfileView> publicProfile(
+    _ist.TestSessionBuilder sessionBuilder,
+    int profileId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'profile',
+            method: 'publicProfile',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'profile',
+          methodName: 'publicProfile',
+          parameters: _ist.testObjectToJson({'profileId': profileId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ixbdb37a.PublicProfileView>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _ReportEndpoint {
+  _ReportEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _is.EndpointDispatch _endpointDispatch;
+
+  final _is.SerializationManager _serializationManager;
+
+  _ida.Future<_i3pis6sj.Report> create(
+    _ist.TestSessionBuilder sessionBuilder,
+    _ib8wmkpc.ReportReason reason, {
+    int? reportedUserId,
+    int? listingId,
+    String? details,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'report',
+            method: 'create',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'report',
+          methodName: 'create',
+          parameters: _ist.testObjectToJson({
+            'reason': reason,
+            'reportedUserId': reportedUserId,
+            'listingId': listingId,
+            'details': details,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i3pis6sj.Report>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
 }
 
 class _RequestEndpoint {
@@ -1671,6 +1807,91 @@ class _RequestEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<_iuqto8tr.ListingRequest>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _ReviewEndpoint {
+  _ReviewEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _is.EndpointDispatch _endpointDispatch;
+
+  final _is.SerializationManager _serializationManager;
+
+  _ida.Future<_ishn7bzz.Review> create(
+    _ist.TestSessionBuilder sessionBuilder,
+    int listingId,
+    int rating, {
+    String? comment,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'review',
+            method: 'create',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'review',
+          methodName: 'create',
+          parameters: _ist.testObjectToJson({
+            'listingId': listingId,
+            'rating': rating,
+            'comment': comment,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ishn7bzz.Review>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_iwzyt887.ReviewView>> forMember(
+    _ist.TestSessionBuilder sessionBuilder,
+    int profileId, {
+    int? limit,
+    int? offset,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'review',
+            method: 'forMember',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'review',
+          methodName: 'forMember',
+          parameters: _ist.testObjectToJson({
+            'profileId': profileId,
+            'limit': limit,
+            'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_iwzyt887.ReviewView>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

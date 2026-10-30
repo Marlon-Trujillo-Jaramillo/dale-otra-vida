@@ -10,3 +10,5 @@ fields:
   unreadCount: int, default=0
   ### The requester's request on the listing.
   request: ListingRequest?
+  ### True after delivery while the caller has not reviewed the other side.
+  canReview: bool, default=false

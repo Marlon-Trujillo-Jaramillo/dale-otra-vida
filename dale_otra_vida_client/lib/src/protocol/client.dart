@@ -37,8 +37,16 @@ import 'package:dale_otra_vida_client/src/protocol/my_request_view.dart'
     as _ikulhwb6;
 import 'package:dale_otra_vida_client/src/protocol/photo_upload.dart'
     as _ihcne4ez;
+import 'package:dale_otra_vida_client/src/protocol/public_profile_view.dart'
+    as _i25iho9e;
+import 'package:dale_otra_vida_client/src/protocol/report.dart' as _is9y7yz2;
+import 'package:dale_otra_vida_client/src/protocol/report_reason.dart'
+    as _i72va9fa;
 import 'package:dale_otra_vida_client/src/protocol/request_view.dart'
     as _isipxjtl;
+import 'package:dale_otra_vida_client/src/protocol/review.dart' as _iczk13vq;
+import 'package:dale_otra_vida_client/src/protocol/review_view.dart'
+    as _iv0fqw25;
 import 'package:http/http.dart' as _i85jenna;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
@@ -476,6 +484,20 @@ class EndpointListing extends _isc.EndpointRef {
         {'listing': listing},
       );
 
+  /// Edits the text, dates and price of one of the caller's open listings.
+  /// Type, category, photos and status stay as they are.
+  _ida.Future<_ijh8j4ei.ListingView> update(
+    int id,
+    _iz1p8yt7.Listing changes,
+  ) => caller.callServerEndpoint<_ijh8j4ei.ListingView>(
+    'listing',
+    'update',
+    {
+      'id': id,
+      'changes': changes,
+    },
+  );
+
   /// Returns available listings, optionally filtered.
   _ida.Future<List<_ijh8j4ei.ListingView>> feed({
     _is804cud.ListingType? type,
@@ -624,6 +646,42 @@ class EndpointProfile extends _isc.EndpointRef {
         'byId',
         {'profileId': profileId},
       );
+
+  /// Profile screen data for any member: stats, open listings, delivery
+  /// history and the newest reviews.
+  _ida.Future<_i25iho9e.PublicProfileView> publicProfile(int profileId) =>
+      caller.callServerEndpoint<_i25iho9e.PublicProfileView>(
+        'profile',
+        'publicProfile',
+        {'profileId': profileId},
+      );
+}
+
+/// Reports of members or listings for moderation.
+/// {@category Endpoint}
+class EndpointReport extends _isc.EndpointRef {
+  EndpointReport(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'report';
+
+  /// Reports a member, a listing or both. Repeating the same report within
+  /// a day returns the existing one.
+  _ida.Future<_is9y7yz2.Report> create(
+    _i72va9fa.ReportReason reason, {
+    int? reportedUserId,
+    int? listingId,
+    String? details,
+  }) => caller.callServerEndpoint<_is9y7yz2.Report>(
+    'report',
+    'create',
+    {
+      'reason': reason,
+      'reportedUserId': reportedUserId,
+      'listingId': listingId,
+      'details': details,
+    },
+  );
 }
 
 /// "Lo quiero" requests on listings.
@@ -705,6 +763,45 @@ class EndpointRequest extends _isc.EndpointRef {
       );
 }
 
+/// Ratings that the owner and the receiver leave each other after a delivery.
+/// {@category Endpoint}
+class EndpointReview extends _isc.EndpointRef {
+  EndpointReview(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'review';
+
+  /// Rates the other side of a delivered listing, once per listing.
+  _ida.Future<_iczk13vq.Review> create(
+    int listingId,
+    int rating, {
+    String? comment,
+  }) => caller.callServerEndpoint<_iczk13vq.Review>(
+    'review',
+    'create',
+    {
+      'listingId': listingId,
+      'rating': rating,
+      'comment': comment,
+    },
+  );
+
+  /// Newest reviews received by a member.
+  _ida.Future<List<_iv0fqw25.ReviewView>> forMember(
+    int profileId, {
+    int? limit,
+    int? offset,
+  }) => caller.callServerEndpoint<List<_iv0fqw25.ReviewView>>(
+    'review',
+    'forMember',
+    {
+      'profileId': profileId,
+      'limit': limit,
+      'offset': offset,
+    },
+  );
+}
+
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _iaic.Caller(client);
@@ -751,7 +848,9 @@ class Client extends _isc.ServerpodClientShared {
     listing = EndpointListing(this);
     notification = EndpointNotification(this);
     profile = EndpointProfile(this);
+    report = EndpointReport(this);
     request = EndpointRequest(this);
+    review = EndpointReview(this);
     modules = Modules(this);
   }
 
@@ -771,7 +870,11 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointProfile profile;
 
+  late final EndpointReport report;
+
   late final EndpointRequest request;
+
+  late final EndpointReview review;
 
   late final Modules modules;
 
@@ -785,7 +888,9 @@ class Client extends _isc.ServerpodClientShared {
     'listing': listing,
     'notification': notification,
     'profile': profile,
+    'report': report,
     'request': request,
+    'review': review,
   };
 
   @override

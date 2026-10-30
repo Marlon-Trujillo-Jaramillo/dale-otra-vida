@@ -27,7 +27,9 @@ abstract class ConversationView
     required this.isOwner,
     int? unreadCount,
     this.request,
-  }) : unreadCount = unreadCount ?? 0;
+    bool? canReview,
+  }) : unreadCount = unreadCount ?? 0,
+       canReview = canReview ?? false;
 
   factory ConversationView({
     required _ineda879.Conversation conversation,
@@ -36,6 +38,7 @@ abstract class ConversationView
     required bool isOwner,
     int? unreadCount,
     _i0jjpqa3.ListingRequest? request,
+    bool? canReview,
   }) = _ConversationViewImpl;
 
   factory ConversationView.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -56,6 +59,9 @@ abstract class ConversationView
           : _ilolbpul.Protocol().deserialize<_i0jjpqa3.ListingRequest>(
               jsonSerialization['request'],
             ),
+      canReview: jsonSerialization['canReview'] == null
+          ? null
+          : _isc.BoolJsonExtension.fromJson(jsonSerialization['canReview']),
     );
   }
 
@@ -74,6 +80,9 @@ abstract class ConversationView
   /// The requester's request on the listing.
   _i0jjpqa3.ListingRequest? request;
 
+  /// True after delivery while the caller has not reviewed the other side.
+  bool canReview;
+
   /// Returns a shallow copy of this [ConversationView]
   /// with some or all fields replaced by the given arguments.
   @_isc.useResult
@@ -84,6 +93,7 @@ abstract class ConversationView
     bool? isOwner,
     int? unreadCount,
     _i0jjpqa3.ListingRequest? request,
+    bool? canReview,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -95,6 +105,7 @@ abstract class ConversationView
       'isOwner': isOwner,
       'unreadCount': unreadCount,
       if (request != null) 'request': request?.toJson(),
+      'canReview': canReview,
     };
   }
 
@@ -108,6 +119,7 @@ abstract class ConversationView
       'isOwner': isOwner,
       'unreadCount': unreadCount,
       if (request != null) 'request': request?.toJsonForProtocol(),
+      'canReview': canReview,
     };
   }
 
@@ -127,6 +139,7 @@ class _ConversationViewImpl extends ConversationView {
     required bool isOwner,
     int? unreadCount,
     _i0jjpqa3.ListingRequest? request,
+    bool? canReview,
   }) : super._(
          conversation: conversation,
          listing: listing,
@@ -134,6 +147,7 @@ class _ConversationViewImpl extends ConversationView {
          isOwner: isOwner,
          unreadCount: unreadCount,
          request: request,
+         canReview: canReview,
        );
 
   /// Returns a shallow copy of this [ConversationView]
@@ -147,6 +161,7 @@ class _ConversationViewImpl extends ConversationView {
     bool? isOwner,
     int? unreadCount,
     Object? request = _Undefined,
+    bool? canReview,
   }) {
     return ConversationView(
       conversation: conversation ?? this.conversation.copyWith(),
@@ -157,6 +172,7 @@ class _ConversationViewImpl extends ConversationView {
       request: request is _i0jjpqa3.ListingRequest?
           ? request
           : this.request?.copyWith(),
+      canReview: canReview ?? this.canReview,
     );
   }
 }

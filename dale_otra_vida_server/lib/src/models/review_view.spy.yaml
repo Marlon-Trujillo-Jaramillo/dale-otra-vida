@@ -1,0 +1,5 @@
+### A review with the reviewer's public profile.
+class: ReviewView
+fields:
+  review: Review
+  reviewer: MemberProfile

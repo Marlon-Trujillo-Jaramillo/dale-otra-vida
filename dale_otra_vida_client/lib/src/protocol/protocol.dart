@@ -23,6 +23,8 @@ import 'package:dale_otra_vida_client/src/protocol/my_request_view.dart'
     as _ikulhwb6;
 import 'package:dale_otra_vida_client/src/protocol/request_view.dart'
     as _isipxjtl;
+import 'package:dale_otra_vida_client/src/protocol/review_view.dart'
+    as _iv0fqw25;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
@@ -47,11 +49,13 @@ import 'not_allowed_exception.dart' as _icn336wo;
 import 'notification_kind.dart' as _ipnxo26v;
 import 'photo_upload.dart' as _ihl17tin;
 import 'profile_required_exception.dart' as _iarivcoc;
+import 'public_profile_view.dart' as _io3x196o;
 import 'report.dart' as _i2t8i3ij;
 import 'report_reason.dart' as _ijgj7dn0;
 import 'request_status.dart' as _iq8zsng0;
 import 'request_view.dart' as _iv1530zw;
 import 'review.dart' as _itqm5y01;
+import 'review_view.dart' as _io58qecx;
 export 'app_notification.dart';
 export 'category.dart';
 export 'chat_message.dart';
@@ -71,11 +75,13 @@ export 'not_allowed_exception.dart';
 export 'notification_kind.dart';
 export 'photo_upload.dart';
 export 'profile_required_exception.dart';
+export 'public_profile_view.dart';
 export 'report.dart';
 export 'report_reason.dart';
 export 'request_status.dart';
 export 'request_view.dart';
 export 'review.dart';
+export 'review_view.dart';
 export 'client.dart';
 
 class Protocol extends _isc.SerializationManager {
@@ -169,6 +175,9 @@ class Protocol extends _isc.SerializationManager {
     if (t == _iarivcoc.ProfileRequiredException) {
       return _iarivcoc.ProfileRequiredException.fromJson(data) as T;
     }
+    if (t == _io3x196o.PublicProfileView) {
+      return _io3x196o.PublicProfileView.fromJson(data) as T;
+    }
     if (t == _i2t8i3ij.Report) {
       return _i2t8i3ij.Report.fromJson(data) as T;
     }
@@ -183,6 +192,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _itqm5y01.Review) {
       return _itqm5y01.Review.fromJson(data) as T;
+    }
+    if (t == _io58qecx.ReviewView) {
+      return _io58qecx.ReviewView.fromJson(data) as T;
     }
     if (t == _isc.getType<_ip1vhxmg.AppNotification?>()) {
       return (data != null ? _ip1vhxmg.AppNotification.fromJson(data) : null)
@@ -255,6 +267,10 @@ class Protocol extends _isc.SerializationManager {
               : null)
           as T;
     }
+    if (t == _isc.getType<_io3x196o.PublicProfileView?>()) {
+      return (data != null ? _io3x196o.PublicProfileView.fromJson(data) : null)
+          as T;
+    }
     if (t == _isc.getType<_i2t8i3ij.Report?>()) {
       return (data != null ? _i2t8i3ij.Report.fromJson(data) : null) as T;
     }
@@ -271,8 +287,23 @@ class Protocol extends _isc.SerializationManager {
     if (t == _isc.getType<_itqm5y01.Review?>()) {
       return (data != null ? _itqm5y01.Review.fromJson(data) : null) as T;
     }
+    if (t == _isc.getType<_io58qecx.ReviewView?>()) {
+      return (data != null ? _io58qecx.ReviewView.fromJson(data) : null) as T;
+    }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
+    }
+    if (t == List<_ijuym7ok.ListingView>) {
+      return (data as List)
+              .map((e) => deserialize<_ijuym7ok.ListingView>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_io58qecx.ReviewView>) {
+      return (data as List)
+              .map((e) => deserialize<_io58qecx.ReviewView>(e))
+              .toList()
+          as T;
     }
     if (t == List<_ixj8t0ja.ConversationView>) {
       return (data as List)
@@ -310,6 +341,12 @@ class Protocol extends _isc.SerializationManager {
               .toList()
           as T;
     }
+    if (t == List<_iv0fqw25.ReviewView>) {
+      return (data as List)
+              .map((e) => deserialize<_iv0fqw25.ReviewView>(e))
+              .toList()
+          as T;
+    }
     try {
       return _iaic.Protocol().deserialize<T>(data, t);
     } on _isc.DeserializationTypeNotFoundException catch (_) {}
@@ -340,11 +377,13 @@ class Protocol extends _isc.SerializationManager {
       _ipnxo26v.NotificationKind => 'NotificationKind',
       _ihl17tin.PhotoUpload => 'PhotoUpload',
       _iarivcoc.ProfileRequiredException => 'ProfileRequiredException',
+      _io3x196o.PublicProfileView => 'PublicProfileView',
       _i2t8i3ij.Report => 'Report',
       _ijgj7dn0.ReportReason => 'ReportReason',
       _iq8zsng0.RequestStatus => 'RequestStatus',
       _iv1530zw.RequestView => 'RequestView',
       _itqm5y01.Review => 'Review',
+      _io58qecx.ReviewView => 'ReviewView',
       _ => null,
     };
   }
@@ -400,6 +439,8 @@ class Protocol extends _isc.SerializationManager {
         return 'PhotoUpload';
       case _iarivcoc.ProfileRequiredException():
         return 'ProfileRequiredException';
+      case _io3x196o.PublicProfileView():
+        return 'PublicProfileView';
       case _i2t8i3ij.Report():
         return 'Report';
       case _ijgj7dn0.ReportReason():
@@ -410,6 +451,8 @@ class Protocol extends _isc.SerializationManager {
         return 'RequestView';
       case _itqm5y01.Review():
         return 'Review';
+      case _io58qecx.ReviewView():
+        return 'ReviewView';
     }
     className = _iaic.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -489,6 +532,9 @@ class Protocol extends _isc.SerializationManager {
     if (dataClassName == 'ProfileRequiredException') {
       return deserialize<_iarivcoc.ProfileRequiredException>(data['data']);
     }
+    if (dataClassName == 'PublicProfileView') {
+      return deserialize<_io3x196o.PublicProfileView>(data['data']);
+    }
     if (dataClassName == 'Report') {
       return deserialize<_i2t8i3ij.Report>(data['data']);
     }
@@ -503,6 +549,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'Review') {
       return deserialize<_itqm5y01.Review>(data['data']);
+    }
+    if (dataClassName == 'ReviewView') {
+      return deserialize<_io58qecx.ReviewView>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
