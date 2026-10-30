@@ -99,16 +99,35 @@ class NotificationEndpoint extends Endpoint {
 
     for (final listing in expiring) {
       if (remindedIds.contains(listing.id)) continue;
-      await notify(
-        session,
-        userId: profile.id!,
-        kind: NotificationKind.listingExpiring,
-        title: 'Tu publicación vence pronto',
-        body:
-            '«${listing.title}» vence en menos de un día. Si sigue en buen '
-            'estado, actualiza la fecha.',
-        refId: listing.id,
-      );
+      // Overlapping polls (two devices) re-check under the listing lock.
+      await session.db.transaction((transaction) async {
+        await Listing.db.findById(
+          session,
+          listing.id!,
+          transaction: transaction,
+          lockMode: LockMode.forUpdate,
+        );
+        final existing = await AppNotification.db.findFirstRow(
+          session,
+          where: (t) =>
+              t.userId.equals(profile.id!) &
+              t.kind.equals(NotificationKind.listingExpiring) &
+              t.refId.equals(listing.id),
+          transaction: transaction,
+        );
+        if (existing != null) return;
+        await notify(
+          session,
+          userId: profile.id!,
+          kind: NotificationKind.listingExpiring,
+          title: 'Tu publicación vence pronto',
+          body:
+              '«${listing.title}» vence en menos de un día. Si sigue en buen '
+              'estado, actualiza la fecha.',
+          refId: listing.id,
+          transaction: transaction,
+        );
+      });
     }
   }
 }

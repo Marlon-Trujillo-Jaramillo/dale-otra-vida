@@ -309,30 +309,42 @@ void main() {
         expect(userOnly.id, isNot(first.id));
       });
 
-      test('rejects empty targets, yourself and your own listing', () async {
-        final denied = throwsA(isA<NotAllowedException>());
-        final view = await createListing();
-        await expectLater(
-          endpoints.report.create(requester, ReportReason.other),
-          denied,
-        );
-        await expectLater(
-          endpoints.report.create(
-            requester,
-            ReportReason.other,
-            reportedUserId: requesterProfile.id,
-          ),
-          denied,
-        );
-        await expectLater(
-          endpoints.report.create(
-            owner,
-            ReportReason.other,
-            listingId: view.listing.id,
-          ),
-          denied,
-        );
-      });
+      test(
+        'rejects empty targets, yourself, your own listing and mismatches',
+        () async {
+          final denied = throwsA(isA<NotAllowedException>());
+          final view = await createListing();
+          await expectLater(
+            endpoints.report.create(requester, ReportReason.other),
+            denied,
+          );
+          await expectLater(
+            endpoints.report.create(
+              requester,
+              ReportReason.other,
+              reportedUserId: requesterProfile.id,
+            ),
+            denied,
+          );
+          await expectLater(
+            endpoints.report.create(
+              owner,
+              ReportReason.other,
+              listingId: view.listing.id,
+            ),
+            denied,
+          );
+          await expectLater(
+            endpoints.report.create(
+              requester,
+              ReportReason.other,
+              reportedUserId: strangerProfile.id,
+              listingId: view.listing.id,
+            ),
+            denied,
+          );
+        },
+      );
     });
 
     test('publicProfile splits listings, history and reviews', () async {

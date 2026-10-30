@@ -120,7 +120,7 @@ class ListingEndpoint extends Endpoint {
       );
 
       // A new expiry date earns a new "vence pronto" reminder.
-      if (saved.expiresAt != listing.expiresAt) {
+      if (!_sameSecond(saved.expiresAt, listing.expiresAt)) {
         await AppNotification.db.deleteWhere(
           session,
           where: (t) =>
@@ -311,17 +311,22 @@ class ListingEndpoint extends Endpoint {
       offset: byDistance ? 0 : offset,
     );
 
-    final views = await toViews(
-      session,
-      rows,
-      profile,
-      latitude: lat,
-      longitude: lng,
-    );
-    if (!byDistance) return views;
+    var page = rows;
+    if (byDistance) {
+      // Rounded locations tie often, so the id keeps pages stable.
+      final distanceById = {
+        for (final row in rows)
+          row.id!: haversineKm(lat, lng, row.latitude, row.longitude),
+      };
+      final sorted = [...rows]
+        ..sort((a, b) {
+          final byKm = distanceById[a.id]!.compareTo(distanceById[b.id]!);
+          return byKm != 0 ? byKm : a.id!.compareTo(b.id!);
+        });
+      page = sorted.skip(offset).take(limit).toList();
+    }
 
-    views.sort((a, b) => a.distanceKm!.compareTo(b.distanceKm!));
-    return views.skip(offset).take(limit).toList();
+    return toViews(session, page, profile, latitude: lat, longitude: lng);
   }
 
   /// Available listings inside a map area, at most 200, newest first.
@@ -485,6 +490,7 @@ class ListingEndpoint extends Endpoint {
           session,
           profile.id!,
           transaction: transaction,
+          lockMode: LockMode.forUpdate,
         );
         if (ownerProfile != null) {
           await MemberProfile.db.updateRow(
@@ -593,6 +599,12 @@ class ListingEndpoint extends Endpoint {
       await publishChatMessage(session, conversation, message);
     }
     return result;
+  }
+
+  /// Dates round-trip through clients with less precision than Postgres.
+  bool _sameSecond(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return a == b;
+    return a.millisecondsSinceEpoch ~/ 1000 == b.millisecondsSinceEpoch ~/ 1000;
   }
 
   bool _isValidStatusTransition(ListingStatus from, ListingStatus to) {

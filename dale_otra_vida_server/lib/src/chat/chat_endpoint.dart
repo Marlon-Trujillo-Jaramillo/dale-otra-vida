@@ -55,7 +55,8 @@ class ChatEndpoint extends Endpoint {
       where: (t) => beforeId == null
           ? t.conversationId.equals(conversationId)
           : t.conversationId.equals(conversationId) & (t.id < beforeId),
-      orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
+      // Ids grow with insertion order, so they are a stable page cursor.
+      orderByList: (t) => [t.id.desc()],
       limit: (limit ?? 50).clamp(1, 100),
     );
   }
@@ -102,32 +103,36 @@ class ChatEndpoint extends Endpoint {
         text: trimmed,
         transaction: transaction,
       );
+
+      // One unread "new message" notification per conversation at a time.
+      // The conversation lock makes concurrent sends check one by one.
+      final recipientId = conversation.ownerId == profile.id
+          ? conversation.requesterId
+          : conversation.ownerId;
+      final alreadyNotified = await AppNotification.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.userId.equals(recipientId) &
+            t.kind.equals(NotificationKind.newMessage) &
+            t.refId.equals(conversationId) &
+            t.readAt.equals(null),
+        transaction: transaction,
+      );
+      if (alreadyNotified == null) {
+        await notify(
+          session,
+          userId: recipientId,
+          kind: NotificationKind.newMessage,
+          title: 'Nuevo mensaje de ${profile.displayName}',
+          body: messagePreview(messageKind, trimmed),
+          refId: conversationId,
+          transaction: transaction,
+        );
+      }
       return (conversation, message);
     });
 
     await publishChatMessage(session, conversation, message);
-
-    final recipientId = conversation.ownerId == profile.id
-        ? conversation.requesterId
-        : conversation.ownerId;
-    final alreadyNotified = await AppNotification.db.findFirstRow(
-      session,
-      where: (t) =>
-          t.userId.equals(recipientId) &
-          t.kind.equals(NotificationKind.newMessage) &
-          t.refId.equals(conversationId) &
-          t.readAt.equals(null),
-    );
-    if (alreadyNotified == null) {
-      await notify(
-        session,
-        userId: recipientId,
-        kind: NotificationKind.newMessage,
-        title: 'Nuevo mensaje de ${profile.displayName}',
-        body: messagePreview(messageKind, trimmed),
-        refId: conversationId,
-      );
-    }
 
     return message;
   }
@@ -162,20 +167,7 @@ class ChatEndpoint extends Endpoint {
   /// Total unread messages across the caller's conversations.
   Future<int> unreadTotal(Session session) async {
     final profile = await currentProfile(session);
-    final conversations = await Conversation.db.find(
-      session,
-      where: (t) =>
-          t.ownerId.equals(profile.id!) | t.requesterId.equals(profile.id!),
-    );
-    if (conversations.isEmpty) return 0;
-    return ChatMessage.db.count(
-      session,
-      where: (t) =>
-          t.conversationId.inSet(conversations.map((c) => c.id!).toSet()) &
-          t.senderId.notEquals(profile.id!) &
-          t.senderId.notEquals(null) &
-          t.readAt.equals(null),
-    );
+    return unreadTotalFor(session, profile.id!);
   }
 
   /// Streams new messages of one conversation.
@@ -271,19 +263,11 @@ class ChatEndpoint extends Endpoint {
         other.id!: other.copyWith(latitude: null, longitude: null),
     };
 
-    final unread = await ChatMessage.db.find(
+    final unreadByConversationId = await unreadCounts(
       session,
-      where: (t) =>
-          t.conversationId.inSet(conversations.map((c) => c.id!).toSet()) &
-          t.senderId.notEquals(profile.id!) &
-          t.senderId.notEquals(null) &
-          t.readAt.equals(null),
+      profile.id!,
+      conversations.map((c) => c.id!).toSet(),
     );
-    final unreadByConversationId = <int, int>{};
-    for (final message in unread) {
-      unreadByConversationId[message.conversationId] =
-          (unreadByConversationId[message.conversationId] ?? 0) + 1;
-    }
 
     final requesterIds = conversations.map((c) => c.requesterId).toSet();
     final requests = await ListingRequest.db.find(

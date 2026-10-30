@@ -43,6 +43,11 @@ class ReportEndpoint extends Endpoint {
           message: 'No puedes reportar tu propia publicación.',
         );
       }
+      if (reportedUserId != null && reportedUserId != listing.ownerId) {
+        throw NotAllowedException(
+          message: 'La publicación no pertenece a ese usuario.',
+        );
+      }
     }
     if (reportedUserId != null &&
         await MemberProfile.db.findById(session, reportedUserId) == null) {
