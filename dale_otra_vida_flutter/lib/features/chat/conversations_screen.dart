@@ -185,7 +185,11 @@ class ConversationsScreenState extends State<ConversationsScreen> {
                   ],
                 ),
               ),
-              const VerticalDivider(width: 1, thickness: 1),
+              const VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: AppColors.border,
+              ),
               Expanded(
                 child: selectedId == null
                     ? const EmptyState(

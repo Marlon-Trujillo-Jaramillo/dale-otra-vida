@@ -22,9 +22,12 @@ import '../../core/widgets/app_text_field.dart';
 import 'listing_draft.dart';
 
 class PublishScreen extends StatefulWidget {
-  const PublishScreen({super.key, required this.profile});
+  const PublishScreen({super.key, required this.profile, this.editing});
 
   final MemberProfile profile;
+
+  /// The listing to edit. Its type, category and photos stay fixed.
+  final Listing? editing;
 
   @override
   State<PublishScreen> createState() => _PublishScreenState();
@@ -42,11 +45,26 @@ class _PublishScreenState extends State<PublishScreen> {
   final List<_PhotoUpload> _photos = [];
   bool _gettingLocation = false;
   bool _submitting = false;
+  bool _saved = false;
+
+  bool get _isEditing => widget.editing != null;
 
   @override
   void initState() {
     super.initState();
-    _draft = ListingDraft(neighborhood: widget.profile.neighborhood ?? '');
+    final editing = widget.editing;
+    if (editing != null) {
+      _draft = ListingDraft.fromListing(editing);
+      _titleController.text = editing.title;
+      _descriptionController.text = editing.description;
+      _priceController.text = editing.price == null
+          ? ''
+          : CopInputFormatter.format(editing.price!);
+      _wantedController.text = editing.wantedInExchange ?? '';
+      _meetingPointController.text = editing.safeMeetingPoint ?? '';
+    } else {
+      _draft = ListingDraft(neighborhood: widget.profile.neighborhood ?? '');
+    }
     _neighborhoodController.text = _draft.neighborhood;
     _titleController.addListener(_syncTitle);
     _descriptionController.addListener(_syncDescription);
@@ -54,7 +72,7 @@ class _PublishScreenState extends State<PublishScreen> {
     _wantedController.addListener(_syncWanted);
     _neighborhoodController.addListener(_syncNeighborhood);
     _meetingPointController.addListener(_syncMeetingPoint);
-    _getLocation();
+    if (!_isEditing) _getLocation();
   }
 
   @override
@@ -108,6 +126,20 @@ class _PublishScreenState extends State<PublishScreen> {
   }
 
   bool get _hasUnsavedChanges {
+    final editing = widget.editing;
+    if (editing != null) {
+      if (_saved) return false;
+      final initial = ListingDraft.fromListing(editing);
+      return _draft.title.trim() != initial.title ||
+          _draft.description.trim() != initial.description ||
+          _draft.condition != initial.condition ||
+          _draft.expiresAt != initial.expiresAt ||
+          _draft.price != initial.price ||
+          _draft.returnDate != initial.returnDate ||
+          _draft.wantedInExchange.trim() != initial.wantedInExchange ||
+          _draft.neighborhood.trim() != initial.neighborhood ||
+          _draft.safeMeetingPoint.trim() != initial.safeMeetingPoint;
+    }
     return _photos.isNotEmpty ||
         _draft.type != null ||
         _draft.category != null ||
@@ -311,8 +343,14 @@ class _PublishScreenState extends State<PublishScreen> {
     setState(() => _submitting = true);
     try {
       final listing = _draft.toListing(ownerId: widget.profile.id!);
-      await client.listing.create(listing);
+      final editing = widget.editing;
+      if (editing != null) {
+        await client.listing.update(editing.id!, listing);
+      } else {
+        await client.listing.create(listing);
+      }
       if (!mounted) return;
+      setState(() => _saved = true);
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -349,7 +387,10 @@ class _PublishScreenState extends State<PublishScreen> {
             icon: const Icon(Icons.close),
             onPressed: _onClose,
           ),
-          title: Text('Publicar algo', style: AppTypography.title),
+          title: Text(
+            _isEditing ? 'Editar publicación' : 'Publicar algo',
+            style: AppTypography.title,
+          ),
           centerTitle: true,
         ),
         body: SafeArea(
@@ -364,11 +405,15 @@ class _PublishScreenState extends State<PublishScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildPhotosSection(),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildTypeSection(),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildCategorySection(),
+                      if (_isEditing)
+                        _buildEditingNote()
+                      else ...[
+                        _buildPhotosSection(),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildTypeSection(),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildCategorySection(),
+                      ],
                       const SizedBox(height: AppSpacing.xl),
                       AppTextField(
                         label: 'Título',
@@ -678,6 +723,29 @@ class _PublishScreenState extends State<PublishScreen> {
     );
   }
 
+  Widget _buildEditingNote() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: AppColors.categoryCircle,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: AppColors.textSecondary),
+          const SizedBox(width: AppSpacing.s),
+          Expanded(
+            child: Text(
+              'Las fotos, el tipo y la categoría no se pueden cambiar. Si '
+              'necesitas cambiarlos, retira esta publicación y crea una nueva.',
+              style: AppTypography.caption,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLocationWarning() {
     if (_gettingLocation) {
       return const Row(
@@ -775,7 +843,7 @@ class _PublishScreenState extends State<PublishScreen> {
             const SizedBox(height: AppSpacing.s),
           ],
           AppPrimaryButton(
-            label: 'Publicar',
+            label: _isEditing ? 'Guardar cambios' : 'Publicar',
             isLoading: _submitting,
             onPressed: canSubmit ? _submit : null,
           ),
@@ -891,6 +959,10 @@ class _AddPhotoTile extends StatelessWidget {
 }
 
 class CopInputFormatter extends TextInputFormatter {
+  /// "20.000" for 20000, as the field shows it.
+  static String format(int value) =>
+      NumberFormat('#,##0', 'es_CO').format(value);
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,

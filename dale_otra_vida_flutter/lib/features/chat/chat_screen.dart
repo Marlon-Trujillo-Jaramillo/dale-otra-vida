@@ -11,6 +11,9 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
 import '../listing/listing_detail_screen.dart';
+import '../profile/public_profile_screen.dart';
+import '../reports/report_sheet.dart';
+import '../reviews/review_dialog.dart';
 import 'chat_logic.dart';
 
 const _pageSize = 50;
@@ -245,6 +248,8 @@ class _ChatScreenState extends State<ChatScreen> {
         _send('¿Sigue disponible?');
       case QuickReply.markDelivered:
         _markDelivered();
+      case QuickReply.review:
+        _review();
     }
   }
 
@@ -299,6 +304,29 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _review() async {
+    final view = _view;
+    if (view == null) return;
+    final saved = await showReviewDialog(
+      context,
+      listingId: view.listing.listing.id!,
+      memberName: view.other.displayName,
+    );
+    if (!saved) return;
+    _showSnackBar('¡Gracias! Tu reseña ya es visible en su perfil.');
+    await _reloadView();
+  }
+
+  void _openProfile() {
+    final view = _view;
+    if (view == null) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => PublicProfileScreen(profileId: view.other.id!),
+      ),
+    );
+  }
+
   Future<void> _openListing() async {
     final view = _view;
     if (view == null) return;
@@ -329,13 +357,20 @@ class _ChatScreenState extends State<ChatScreen> {
         surfaceTintColor: Colors.transparent,
         titleSpacing: widget.embedded ? AppSpacing.l : 0,
         shape: const Border(bottom: BorderSide(color: AppColors.border)),
-        title: view == null ? null : _Header(member: view.other),
+        title: view == null
+            ? null
+            : _Header(member: view.other, onTap: _openProfile),
         actions: [
           if (view != null)
             IconButton(
               tooltip: 'Reportar',
               icon: const Icon(Icons.flag_outlined),
-              onPressed: () => _showSnackBar('Disponible muy pronto'),
+              onPressed: () => showReportSheet(
+                context,
+                title: 'Reportar a ${view.other.displayName}',
+                reportedUserId: view.other.id,
+                listingId: view.isOwner ? null : view.listing.listing.id,
+              ),
             ),
         ],
       ),
@@ -431,45 +466,51 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.member});
+  const _Header({required this.member, required this.onTap});
 
   final MemberProfile member;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        AppAvatar(initials: initialsFor(member.displayName), size: 40),
-        const SizedBox(width: AppSpacing.m),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                member.displayName,
-                style: AppTypography.bodyStrong,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text.rich(
-                TextSpan(
-                  text: 'Calificación ${formatRating(member.ratingAvg)} · ',
-                  children: [
-                    TextSpan(
-                      text: 'Ver perfil',
-                      style: AppTypography.caption.copyWith(
-                        color: AppColors.link,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+    return InkWell(
+      onTap: onTap,
+      mouseCursor: SystemMouseCursors.click,
+      borderRadius: BorderRadius.circular(12),
+      child: Row(
+        children: [
+          AppAvatar(initials: initialsFor(member.displayName), size: 40),
+          const SizedBox(width: AppSpacing.m),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  member.displayName,
+                  style: AppTypography.bodyStrong,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                style: AppTypography.caption,
-              ),
-            ],
+                Text.rich(
+                  TextSpan(
+                    text: 'Calificación ${formatRating(member.ratingAvg)} · ',
+                    children: [
+                      TextSpan(
+                        text: 'Ver perfil',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.link,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  style: AppTypography.caption,
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -751,6 +792,7 @@ class _QuickReplies extends StatelessWidget {
                 QuickReply.proposeSafePoint => Icons.place_outlined,
                 QuickReply.stillAvailable => Icons.help_outline,
                 QuickReply.markDelivered => Icons.check_circle_outline,
+                QuickReply.review => Icons.star_outline_rounded,
               }, size: 16),
               label: Text(quickReplyLabel(reply)),
               labelStyle: AppTypography.caption.copyWith(

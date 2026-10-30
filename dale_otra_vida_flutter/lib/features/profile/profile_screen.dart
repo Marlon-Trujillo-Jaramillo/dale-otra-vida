@@ -4,16 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import '../../client.dart';
-import '../../core/format.dart';
-import '../../core/layout/breakpoints.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
-import '../../core/widgets/app_avatar.dart';
-import '../../core/widgets/app_secondary_button.dart';
+import '../../core/widgets/widgets.dart';
 import '../../screens/design_gallery_screen.dart';
 import '../requests/my_requests_screen.dart';
-import 'my_listings_screen.dart';
+import '../listing/listing_detail_screen.dart';
+import 'profile_body.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, required this.profile});
@@ -25,37 +23,41 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  PublicProfileView? _view;
+  bool _failed = false;
+  ProfileTab _tab = ProfileTab.listings;
   int? _requestCount;
-  bool _loadingRequests = false;
 
   @override
   void initState() {
     super.initState();
-    _loadRequestCount();
+    _load();
   }
 
-  Future<void> _loadRequestCount() async {
-    setState(() => _loadingRequests = true);
+  Future<void> _load() async {
+    setState(() => _failed = false);
     try {
-      final result = await client.request.mine();
+      final results = await Future.wait([
+        client.profile.publicProfile(widget.profile.id!),
+        client.request.mine(),
+      ]);
       if (!mounted) return;
-      setState(() => _requestCount = result.length);
+      setState(() {
+        _view = results[0] as PublicProfileView;
+        _requestCount = (results[1] as List<MyRequestView>).length;
+      });
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _requestCount = null);
-    } finally {
-      if (mounted) {
-        setState(() => _loadingRequests = false);
-      }
+      if (mounted) setState(() => _failed = _view == null);
     }
   }
 
-  void _openMyListings(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const MyListingsScreen(),
+  Future<void> _openListing(ListingView listing) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (context) => ListingDetailScreen(view: listing),
       ),
     );
+    _load();
   }
 
   void _openMyRequests(BuildContext context) {
@@ -65,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             builder: (context) => const MyRequestsScreen(),
           ),
         )
-        .then((_) => _loadRequestCount());
+        .then((_) => _load());
   }
 
   Future<void> _signOut() async {
@@ -74,98 +76,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = ScreenSize.of(context);
-
+    final view = _view;
     return Scaffold(
-      appBar: size == ScreenSize.compact
-          ? null
-          : AppBar(
-              title: Text('Perfil', style: AppTypography.title),
-              centerTitle: true,
-            ),
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.screenHorizontal).copyWith(
-            top: AppSpacing.l,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: AppSpacing.xl),
-              _ProfileTile(
-                icon: Icons.list_alt,
-                title: 'Mis publicaciones',
-                subtitle: 'Tus publicaciones activas',
-                onTap: () => _openMyListings(context),
-              ),
-              const SizedBox(height: AppSpacing.s),
-              _ProfileTile(
-                icon: Icons.favorite_border,
-                title: 'Mis solicitudes',
-                subtitle: 'Lo que has pedido',
-                trailing: _loadingRequests
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : _requestCount != null && _requestCount! > 0
-                    ? _CountBadge(count: _requestCount!)
-                    : null,
-                onTap: () => _openMyRequests(context),
-              ),
-              const SizedBox(height: AppSpacing.l),
-              AppSecondaryButton(
-                label: 'Cerrar sesión',
-                onPressed: _signOut,
-              ),
-              if (kDebugMode) ...[
-                const SizedBox(height: AppSpacing.m),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (context) => const DesignGalleryScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text('Design Gallery'),
+        child: view == null
+            ? _failed
+                  ? EmptyState(
+                      icon: Icons.wifi_off_rounded,
+                      title: 'No pudimos cargar tu perfil',
+                      message: 'Revisa tu conexión e inténtalo de nuevo.',
+                      actionLabel: 'Reintentar',
+                      onAction: _load,
+                    )
+                  : const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ProfileBody(
+                  view: view,
+                  tab: _tab,
+                  onTabChanged: (tab) => setState(() => _tab = tab),
+                  onOpenListing: _openListing,
+                  actions: _buildActions(context),
                 ),
-              ],
-            ],
-          ),
-        ),
+              ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Row(
-      children: [
-        AppAvatar(
-          size: 72,
-          initials: initialsFor(widget.profile.displayName),
-        ),
-        const SizedBox(width: AppSpacing.m),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.profile.displayName,
-                style: AppTypography.headline,
-              ),
-              if (widget.profile.neighborhood != null &&
-                  widget.profile.neighborhood!.isNotEmpty)
-                Text(
-                  widget.profile.neighborhood!,
-                  style: AppTypography.body,
-                ),
-            ],
+  Widget _buildActions(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ProfileTile(
+            icon: Icons.favorite_border,
+            title: 'Mis solicitudes',
+            subtitle: 'Lo que has pedido',
+            trailing: _requestCount != null && _requestCount! > 0
+                ? _CountBadge(count: _requestCount!)
+                : null,
+            onTap: () => _openMyRequests(context),
           ),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.m),
+          AppSecondaryButton(label: 'Cerrar sesión', onPressed: _signOut),
+          if (kDebugMode)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => const DesignGalleryScreen(),
+                  ),
+                );
+              },
+              child: const Text('Design Gallery'),
+            ),
+        ],
+      ),
     );
   }
 }

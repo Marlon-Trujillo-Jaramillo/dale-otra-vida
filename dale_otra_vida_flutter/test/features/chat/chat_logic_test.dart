@@ -39,6 +39,7 @@ void main() {
     bool isOwner = false,
     ListingStatus status = ListingStatus.available,
     RequestStatus? requestStatus = RequestStatus.pending,
+    bool canReview = false,
   }) => ConversationView(
     conversation: Conversation(
       id: 7,
@@ -53,6 +54,7 @@ void main() {
     ),
     other: member(isOwner ? 'Luis' : 'Ana'),
     isOwner: isOwner,
+    canReview: canReview,
     request: requestStatus == null
         ? null
         : ListingRequest(listingId: 1, requesterId: 2, status: requestStatus),
@@ -135,6 +137,19 @@ void main() {
           view(isOwner: true, status: ListingStatus.reserved),
         ),
         [QuickReply.proposeSafePoint],
+      );
+    });
+
+    test('a delivered listing offers the review once', () {
+      expect(
+        quickRepliesFor(
+          view(
+            status: ListingStatus.delivered,
+            requestStatus: RequestStatus.accepted,
+            canReview: true,
+          ),
+        ),
+        [QuickReply.review],
       );
     });
 

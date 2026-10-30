@@ -19,9 +19,14 @@ class ListingGridCard extends StatefulWidget {
     required this.distance,
     this.imageUrl,
     this.onTap,
+    this.statusLabel,
   });
 
-  factory ListingGridCard.fromView(ListingView view, {VoidCallback? onTap}) {
+  factory ListingGridCard.fromView(
+    ListingView view, {
+    VoidCallback? onTap,
+    String? statusLabel,
+  }) {
     final listing = view.listing;
     final typeUi = ListingTypeUi.fromServer(listing.type);
 
@@ -33,6 +38,7 @@ class ListingGridCard extends StatefulWidget {
       distance: view.distanceKm != null ? formatDistance(view.distanceKm!) : '',
       imageUrl: listing.photoUrls.isNotEmpty ? listing.photoUrls.first : null,
       onTap: onTap,
+      statusLabel: statusLabel,
     );
   }
 
@@ -43,6 +49,9 @@ class ListingGridCard extends StatefulWidget {
   final String distance;
   final String? imageUrl;
   final VoidCallback? onTap;
+
+  /// Optional pill over the photo, e.g. "Vencida" or "Reservado".
+  final String? statusLabel;
 
   @override
   State<ListingGridCard> createState() => _ListingGridCardState();
@@ -85,9 +94,35 @@ class _ListingGridCardState extends State<ListingGridCard> {
           children: [
             AspectRatio(
               aspectRatio: 4 / 3,
-              child: ClipRRect(
-                borderRadius: borderRadius,
-                child: _buildImage(widget.imageUrl),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: borderRadius,
+                    child: _buildImage(widget.imageUrl),
+                  ),
+                  if (widget.statusLabel != null)
+                    Positioned(
+                      top: AppSpacing.s,
+                      left: AppSpacing.s,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          widget.statusLabel!,
+                          style: AppTypography.badge.copyWith(
+                            color: AppColors.onPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             Padding(

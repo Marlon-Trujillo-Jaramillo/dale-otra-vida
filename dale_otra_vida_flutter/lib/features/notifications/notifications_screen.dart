@@ -10,6 +10,8 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/empty_state.dart';
 import '../chat/chat_screen.dart';
 import '../listing/listing_detail_screen.dart';
+import '../profile/profile_body.dart';
+import '../profile/public_profile_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -127,10 +129,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         kind == NotificationKind.requestAccepted ||
         kind == NotificationKind.requestRejected ||
         kind == NotificationKind.requestCancelled ||
+        kind == NotificationKind.deliveryCompleted ||
         kind == NotificationKind.listingExpiring;
 
     if (isListingKind && refId != null) {
       _openListing(refId);
+      return;
+    }
+
+    if (kind == NotificationKind.newReview) {
+      _openMyReviews();
       return;
     }
 
@@ -144,6 +152,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     _showSnackBar('Disponible muy pronto');
+  }
+
+  Future<void> _openMyReviews() async {
+    try {
+      final me = await client.profile.me();
+      if (!mounted || me == null) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => PublicProfileScreen(
+            profileId: me.id!,
+            initialTab: ProfileTab.reviews,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (mounted) _showSnackBar('No pudimos abrir tus reseñas.');
+    }
   }
 
   Future<void> _openListing(int listingId) async {
@@ -178,9 +203,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       NotificationKind.requestAccepted => Icons.check_circle_outlined,
       NotificationKind.requestRejected => Icons.info_outline,
       NotificationKind.newMessage => Icons.chat_bubble_outline,
-      NotificationKind.newReview => Icons.info_outline,
+      NotificationKind.newReview => Icons.star_outline_rounded,
       NotificationKind.listingExpiring => Icons.info_outline,
       NotificationKind.requestCancelled => Icons.info_outline,
+      NotificationKind.deliveryCompleted => Icons.volunteer_activism_outlined,
     };
   }
 

@@ -12,6 +12,9 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
 import '../chat/chat_screen.dart';
+import '../profile/public_profile_screen.dart';
+import '../publish/publish_screen.dart';
+import '../reports/report_sheet.dart';
 import 'listing_detail_logic.dart';
 
 class ListingDetailScreen extends StatefulWidget {
@@ -382,6 +385,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           style: AppTypography.caption,
                         ),
                         const SizedBox(height: AppSpacing.l),
+                        ..._buildExpiredNotice(listing),
                         _buildInfoCards(listing),
                         const SizedBox(height: AppSpacing.l),
                         _buildDescription(listing),
@@ -389,6 +393,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         _buildMeetingPoint(listing),
                         const SizedBox(height: AppSpacing.l),
                         _buildOwnerCard(owner),
+                        ..._buildReportLink(),
                         if (_view.isMine) ...[
                           const SizedBox(height: AppSpacing.l),
                           _buildRequestsSection(context),
@@ -455,6 +460,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             style: AppTypography.caption,
                           ),
                           const SizedBox(height: AppSpacing.l),
+                          ..._buildExpiredNotice(listing),
                           _buildInfoCards(listing),
                           const SizedBox(height: AppSpacing.l),
                           _buildDescription(listing),
@@ -462,6 +468,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           _buildMeetingPoint(listing),
                           const SizedBox(height: AppSpacing.l),
                           _buildOwnerCard(owner),
+                          ..._buildReportLink(),
                           const SizedBox(height: AppSpacing.l),
                           _buildWideActions(),
                           if (_view.isMine) ...[
@@ -810,9 +817,121 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  List<Widget> _buildExpiredNotice(Listing listing) {
+    if (!isExpired(listing) || listing.status != ListingStatus.available) {
+      return const [];
+    }
+    final mine = _view.isMine;
+    return [
+      Container(
+        padding: const EdgeInsets.all(AppSpacing.m),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6E3CF),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.event_busy, color: AppColors.link, size: 20),
+            const SizedBox(width: AppSpacing.s),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Venció el ${formatDate(listing.expiresAt!)}',
+                    style: AppTypography.bodyStrong.copyWith(
+                      color: AppColors.link,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    mine
+                        ? 'Ya no aparece en el inicio. Si sigue en buen '
+                              'estado, actualiza la fecha.'
+                        : 'Este alimento ya pasó su fecha de vencimiento.',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.link,
+                    ),
+                  ),
+                  if (mine)
+                    TextButton(
+                      onPressed: _edit,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 36),
+                      ),
+                      child: const Text('Actualizar fecha'),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: AppSpacing.l),
+    ];
+  }
+
+  List<Widget> _buildReportLink() {
+    if (_view.isMine) return const [];
+    return [
+      const SizedBox(height: AppSpacing.s),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => showReportSheet(
+            context,
+            title: 'Reportar publicación',
+            listingId: _view.listing.id,
+            reportedUserId: _view.owner.id,
+          ),
+          icon: const Icon(
+            Icons.flag_outlined,
+            size: 18,
+            color: AppColors.danger,
+          ),
+          label: Text(
+            'Reportar publicación',
+            style: AppTypography.bodyStrong.copyWith(color: AppColors.danger),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  bool get _canEdit =>
+      _view.isMine &&
+      (_view.listing.status == ListingStatus.available ||
+          _view.listing.status == ListingStatus.reserved);
+
+  Future<void> _edit() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        fullscreenDialog: true,
+        builder: (context) =>
+            PublishScreen(profile: _view.owner, editing: _view.listing),
+      ),
+    );
+    if (saved == true) {
+      await _refreshView();
+      _showSnackBar('Cambios guardados.');
+    }
+  }
+
+  void _openOwnerProfile() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => PublicProfileScreen(profileId: _view.owner.id!),
+      ),
+    );
+  }
+
   Widget _buildOwnerCard(MemberProfile owner) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
+    return InkWell(
+      onTap: _openOwnerProfile,
+      mouseCursor: SystemMouseCursors.click,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.m),
         decoration: BoxDecoration(
@@ -961,6 +1080,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 ),
               const SizedBox(height: AppSpacing.s),
             ],
+            if (_canEdit)
+              TextButton.icon(
+                onPressed: _updating ? null : _edit,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Editar publicación'),
+              ),
             if (actions.contains(OwnerAction.withdraw))
               TextButton(
                 onPressed: _updating ? null : _withdraw,
@@ -1042,6 +1167,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 ),
               const SizedBox(height: AppSpacing.s),
             ],
+            if (_canEdit)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _updating ? null : _edit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Editar publicación'),
+                ),
+              ),
             if (actions.contains(OwnerAction.withdraw))
               Align(
                 alignment: Alignment.centerLeft,

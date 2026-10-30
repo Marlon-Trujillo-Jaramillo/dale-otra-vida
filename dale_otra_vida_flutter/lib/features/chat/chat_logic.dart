@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/format.dart';
 import '../../core/models/listing_type_ui.dart';
 
-enum QuickReply { proposeSafePoint, stillAvailable, markDelivered }
+enum QuickReply { proposeSafePoint, stillAvailable, markDelivered, review }
 
 /// Merges [incoming] into [current] without duplicates, oldest first.
 List<ChatMessage> mergeMessages(
@@ -33,6 +33,7 @@ List<QuickReply> quickRepliesFor(ConversationView view) {
   if (isConversationClosed(view)) return [];
   final status = view.listing.listing.status;
   return [
+    if (view.canReview) QuickReply.review,
     if (status != ListingStatus.delivered) QuickReply.proposeSafePoint,
     if (!view.isOwner && status == ListingStatus.available)
       QuickReply.stillAvailable,
@@ -48,6 +49,7 @@ String quickReplyLabel(QuickReply reply) {
     QuickReply.proposeSafePoint => 'Proponer punto seguro',
     QuickReply.stillAvailable => '¿Sigue disponible?',
     QuickReply.markDelivered => 'Marcar como entregado',
+    QuickReply.review => 'Calificar',
   };
 }
 

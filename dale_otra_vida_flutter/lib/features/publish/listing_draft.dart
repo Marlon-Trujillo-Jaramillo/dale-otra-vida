@@ -24,6 +24,24 @@ class ListingDraft {
     this.longitude,
   });
 
+  /// Prefills a draft from an existing listing for editing.
+  factory ListingDraft.fromListing(Listing listing) => ListingDraft(
+    photos: listing.photoUrls,
+    type: listing.type,
+    category: listing.category,
+    title: listing.title,
+    description: listing.description,
+    condition: listing.condition,
+    expiresAt: listing.expiresAt?.toLocal(),
+    price: listing.price,
+    returnDate: listing.returnDate?.toLocal(),
+    wantedInExchange: listing.wantedInExchange ?? '',
+    neighborhood: listing.neighborhood,
+    safeMeetingPoint: listing.safeMeetingPoint ?? '',
+    latitude: listing.latitude,
+    longitude: listing.longitude,
+  );
+
   final List<String> photos;
   final ListingType? type;
   final Category? category;

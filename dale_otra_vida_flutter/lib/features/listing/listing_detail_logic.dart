@@ -31,3 +31,21 @@ RequesterActionState requesterActionState(ListingView view) {
 
   return RequesterActionState.unavailable;
 }
+
+/// Food past its expiry date is hidden from the feed.
+bool isExpired(Listing listing, {DateTime? now}) {
+  final expiresAt = listing.expiresAt;
+  if (listing.category != Category.food || expiresAt == null) return false;
+  return !expiresAt.isAfter(now ?? DateTime.now());
+}
+
+/// Pill shown on the owner's own listing cards, or null when it is visible
+/// in the feed as usual.
+String? ownListingLabel(Listing listing, {DateTime? now}) {
+  return switch (listing.status) {
+    ListingStatus.reserved => 'Reservado',
+    ListingStatus.delivered => 'Entregado',
+    ListingStatus.withdrawn => 'Retirado',
+    ListingStatus.available => isExpired(listing, now: now) ? 'Vencida' : null,
+  };
+}
