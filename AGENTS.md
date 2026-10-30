@@ -47,4 +47,28 @@ If the user asks you to test the app:
 
 The app is launched from `dale_otra_vida_flutter/lib/driver.dart`, which starts the Flutter driver extension with text entry emulation turned off so the app stays usable by hand. To let the driver type, set `enableTextEntryEmulation: true` there and `hot_restart` the app.
 
-IMPORTANT: After building the first version of the app, update this AGENTS.md file with information about the app we're building. KEEP the info about the MCP server and the checklist. Remove this paragraph.
+## About the app
+
+Dale Otra Vida is a community app for donating, exchanging, selling or lending food, clothes and
+objects between neighbors (Spanish UI, Medellín). See `README.md` for the features and
+`docs/design-system.md` for the UI tokens. Specs for each feature live in `docs/tasks/`.
+
+Server endpoints (`dale_otra_vida_server/lib/src/`):
+
+- `profile`
+- `listings`: feed, map area, create/update, status
+- `requests`: "Lo quiero", accept/reject/cancel
+- `chat`: conversations, messages, streams
+- `reviews`
+- `reports`
+- `notifications`
+
+App features live in `dale_otra_vida_flutter/lib/features/`. Shared widgets, theme and
+breakpoints live in `lib/core/`.
+
+Rules worth keeping:
+
+- Locations are rounded to about 100 m, and other members' coordinates are never sent.
+- Mutations on a listing lock the listing row first.
+- Chat messages are published to the `chat-<id>` and `inbox-<profileId>` channels only after
+  the transaction commits.
