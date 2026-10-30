@@ -681,6 +681,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<double?>(),
               nullable: true,
             ),
+            'nearest': _is.ParameterDescription(
+              name: 'nearest',
+              type: _is.getType<bool?>(),
+              nullable: true,
+            ),
             'limit': _is.ParameterDescription(
               name: 'limit',
               type: _is.getType<int>(),
@@ -704,8 +709,70 @@ class Endpoints extends _is.EndpointDispatch {
                     query: params['query'],
                     latitude: params['latitude'],
                     longitude: params['longitude'],
+                    nearest: params['nearest'],
                     limit: params['limit'],
                     offset: params['offset'],
+                  ),
+        ),
+        'inArea': _is.MethodConnector(
+          name: 'inArea',
+          params: {
+            'south': _is.ParameterDescription(
+              name: 'south',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'west': _is.ParameterDescription(
+              name: 'west',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'north': _is.ParameterDescription(
+              name: 'north',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'east': _is.ParameterDescription(
+              name: 'east',
+              type: _is.getType<double>(),
+              nullable: false,
+            ),
+            'type': _is.ParameterDescription(
+              name: 'type',
+              type: _is.getType<_ihn74j41.ListingType?>(),
+              nullable: true,
+            ),
+            'category': _is.ParameterDescription(
+              name: 'category',
+              type: _is.getType<_ibils2fp.Category?>(),
+              nullable: true,
+            ),
+            'latitude': _is.ParameterDescription(
+              name: 'latitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+            'longitude': _is.ParameterDescription(
+              name: 'longitude',
+              type: _is.getType<double?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['listing'] as _i9qx1xff.ListingEndpoint).inArea(
+                    session,
+                    south: params['south'],
+                    west: params['west'],
+                    north: params['north'],
+                    east: params['east'],
+                    type: params['type'],
+                    category: params['category'],
+                    latitude: params['latitude'],
+                    longitude: params['longitude'],
                   ),
         ),
         'byId': _is.MethodConnector(

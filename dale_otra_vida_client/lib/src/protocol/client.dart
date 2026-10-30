@@ -499,12 +499,16 @@ class EndpointListing extends _isc.EndpointRef {
   );
 
   /// Returns available listings, optionally filtered.
+  ///
+  /// With [nearest] and valid coordinates the closest listings come first
+  /// (among the newest 300 matches); otherwise the newest come first.
   _ida.Future<List<_ijh8j4ei.ListingView>> feed({
     _is804cud.ListingType? type,
     _i0m5ztok.Category? category,
     String? query,
     double? latitude,
     double? longitude,
+    bool? nearest,
     required int limit,
     required int offset,
   }) => caller.callServerEndpoint<List<_ijh8j4ei.ListingView>>(
@@ -516,8 +520,34 @@ class EndpointListing extends _isc.EndpointRef {
       'query': query,
       'latitude': latitude,
       'longitude': longitude,
+      'nearest': nearest,
       'limit': limit,
       'offset': offset,
+    },
+  );
+
+  /// Available listings inside a map area, at most 200, newest first.
+  _ida.Future<List<_ijh8j4ei.ListingView>> inArea({
+    required double south,
+    required double west,
+    required double north,
+    required double east,
+    _is804cud.ListingType? type,
+    _i0m5ztok.Category? category,
+    double? latitude,
+    double? longitude,
+  }) => caller.callServerEndpoint<List<_ijh8j4ei.ListingView>>(
+    'listing',
+    'inArea',
+    {
+      'south': south,
+      'west': west,
+      'north': north,
+      'east': east,
+      'type': type,
+      'category': category,
+      'latitude': latitude,
+      'longitude': longitude,
     },
   );
 

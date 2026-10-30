@@ -30,6 +30,7 @@ listing:
   - create:
   - update:
   - feed:
+  - inArea:
   - byId:
   - mine:
   - updateStatus:

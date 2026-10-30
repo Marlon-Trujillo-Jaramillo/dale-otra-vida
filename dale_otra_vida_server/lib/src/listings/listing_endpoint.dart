@@ -271,6 +271,9 @@ class ListingEndpoint extends Endpoint {
   }
 
   /// Returns available listings, optionally filtered.
+  ///
+  /// With [nearest] and valid coordinates the closest listings come first
+  /// (among the newest 300 matches); otherwise the newest come first.
   Future<List<ListingView>> feed(
     Session session, {
     ListingType? type,
@@ -278,6 +281,7 @@ class ListingEndpoint extends Endpoint {
     String? query,
     double? latitude,
     double? longitude,
+    bool? nearest,
     int limit = 20,
     int offset = 0,
   }) async {
@@ -286,7 +290,6 @@ class ListingEndpoint extends Endpoint {
     limit = limit.clamp(1, 50);
     offset = math.max(0, offset);
 
-    final now = DateTime.now().toUtc();
     var q = query?.trim();
     if (q != null && q.length > 80) {
       q = q.substring(0, 80);
@@ -298,38 +301,101 @@ class ListingEndpoint extends Endpoint {
         isValidCoordinate(latitude, longitude);
     final lat = hasValidCoords ? latitude : null;
     final lng = hasValidCoords ? longitude : null;
+    final byDistance = nearest == true && lat != null && lng != null;
 
     final rows = await Listing.db.find(
       session,
-      where: (t) {
-        var expr = t.status.equals(ListingStatus.available);
-
-        if (type != null) expr = expr & t.type.equals(type);
-        if (category != null) expr = expr & t.category.equals(category);
-        if (q != null && q.isNotEmpty) {
-          final escaped = _escapeLikePattern(q);
-          expr =
-              expr &
-              (t.title.ilike('%$escaped%') | t.description.ilike('%$escaped%'));
-        }
-
-        expr =
-            expr & (t.category.notEquals(Category.food) | (t.expiresAt > now));
-
-        return expr;
-      },
+      where: (t) => _visibleWhere(t, type: type, category: category, query: q),
       orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
-      limit: limit,
-      offset: offset,
+      limit: byDistance ? 300 : limit,
+      offset: byDistance ? 0 : offset,
     );
 
-    return toViews(
+    final views = await toViews(
       session,
       rows,
       profile,
       latitude: lat,
       longitude: lng,
     );
+    if (!byDistance) return views;
+
+    views.sort((a, b) => a.distanceKm!.compareTo(b.distanceKm!));
+    return views.skip(offset).take(limit).toList();
+  }
+
+  /// Available listings inside a map area, at most 200, newest first.
+  Future<List<ListingView>> inArea(
+    Session session, {
+    required double south,
+    required double west,
+    required double north,
+    required double east,
+    ListingType? type,
+    Category? category,
+    double? latitude,
+    double? longitude,
+  }) async {
+    final profile = await currentProfile(session);
+
+    if (!isValidCoordinate(south, west) ||
+        !isValidCoordinate(north, east) ||
+        south >= north ||
+        west >= east) {
+      throw ArgumentError('Área inválida.');
+    }
+    if (north - south > 2 || east - west > 2) {
+      throw NotAllowedException(
+        message: 'Acerca el mapa para ver las publicaciones.',
+      );
+    }
+
+    final rows = await Listing.db.find(
+      session,
+      where: (t) =>
+          _visibleWhere(t, type: type, category: category) &
+          (t.latitude >= south) &
+          (t.latitude <= north) &
+          (t.longitude >= west) &
+          (t.longitude <= east),
+      orderByList: (t) => [t.createdAt.desc(), t.id.desc()],
+      limit: 200,
+    );
+
+    final hasValidCoords =
+        latitude != null &&
+        longitude != null &&
+        isValidCoordinate(latitude, longitude);
+    return toViews(
+      session,
+      rows,
+      profile,
+      latitude: hasValidCoords ? latitude : null,
+      longitude: hasValidCoords ? longitude : null,
+    );
+  }
+
+  /// Listings the feed and the map show: available and, for food, not
+  /// expired.
+  Expression _visibleWhere(
+    ListingTable t, {
+    ListingType? type,
+    Category? category,
+    String? query,
+  }) {
+    final now = DateTime.now().toUtc();
+    var expr = t.status.equals(ListingStatus.available);
+
+    if (type != null) expr = expr & t.type.equals(type);
+    if (category != null) expr = expr & t.category.equals(category);
+    if (query != null && query.isNotEmpty) {
+      final escaped = _escapeLikePattern(query);
+      expr =
+          expr &
+          (t.title.ilike('%$escaped%') | t.description.ilike('%$escaped%'));
+    }
+
+    return expr & (t.category.notEquals(Category.food) | (t.expiresAt > now));
   }
 
   /// Returns a single listing by id, regardless of status.

@@ -1149,6 +1149,7 @@ class _ListingEndpoint {
     String? query,
     double? latitude,
     double? longitude,
+    bool? nearest,
     required int limit,
     required int offset,
   }) async {
@@ -1169,8 +1170,56 @@ class _ListingEndpoint {
             'query': query,
             'latitude': latitude,
             'longitude': longitude,
+            'nearest': nearest,
             'limit': limit,
             'offset': offset,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_ilhjw925.ListingView>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_ilhjw925.ListingView>> inArea(
+    _ist.TestSessionBuilder sessionBuilder, {
+    required double south,
+    required double west,
+    required double north,
+    required double east,
+    _ihn74j41.ListingType? type,
+    _ibils2fp.Category? category,
+    double? latitude,
+    double? longitude,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'listing',
+            method: 'inArea',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'listing',
+          methodName: 'inArea',
+          parameters: _ist.testObjectToJson({
+            'south': south,
+            'west': west,
+            'north': north,
+            'east': east,
+            'type': type,
+            'category': category,
+            'latitude': latitude,
+            'longitude': longitude,
           }),
           serializationManager: _serializationManager,
         );
