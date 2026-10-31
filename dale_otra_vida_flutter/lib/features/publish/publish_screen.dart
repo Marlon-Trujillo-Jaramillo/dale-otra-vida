@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -249,6 +250,12 @@ class _PublishScreenState extends State<PublishScreen> {
   }
 
   void _showPhotoSourceSheet() {
+    // On the web the browser's own file dialog already offers the camera
+    // where there is one, and it must open straight from the click.
+    if (kIsWeb) {
+      _pickPhoto(ImageSource.gallery);
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       builder: (context) => SafeArea(
