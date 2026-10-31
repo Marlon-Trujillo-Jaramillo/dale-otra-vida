@@ -23,28 +23,40 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 56, color: AppColors.textHint),
-          const SizedBox(height: AppSpacing.l),
-          Text(title, style: AppTypography.title, textAlign: TextAlign.center),
-          const SizedBox(height: AppSpacing.s),
-          Text(
-            message,
-            style: AppTypography.body,
-            textAlign: TextAlign.center,
+    // Centered on its own and capped in width, so it reads as one block on
+    // wide screens instead of hugging the left edge.
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 56, color: AppColors.textHint),
+              const SizedBox(height: AppSpacing.l),
+              Text(
+                title,
+                style: AppTypography.title,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.s),
+              Text(
+                message,
+                style: AppTypography.body,
+                textAlign: TextAlign.center,
+              ),
+              if (actionLabel != null) ...[
+                const SizedBox(height: AppSpacing.xl),
+                AppPrimaryButton(
+                  label: actionLabel!,
+                  onPressed: onAction,
+                ),
+              ],
+            ],
           ),
-          if (actionLabel != null) ...[
-            const SizedBox(height: AppSpacing.xl),
-            AppPrimaryButton(
-              label: actionLabel!,
-              onPressed: onAction,
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

@@ -465,13 +465,17 @@ class _PublishScreenState extends State<PublishScreen> {
       children: [
         Text('¿Qué quieres hacer?', style: AppTypography.sectionLabel),
         const SizedBox(height: AppSpacing.m),
-        GridView.count(
-          crossAxisCount: 2,
+        GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: AppSpacing.m,
-          crossAxisSpacing: AppSpacing.m,
-          childAspectRatio: 1.4,
+          // Fixed card height: a ratio made the cards huge in the wide
+          // dialog. Two columns on phones, all four in one row when wide.
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: MediaQuery.sizeOf(context).width >= 600 ? 4 : 2,
+            mainAxisSpacing: AppSpacing.m,
+            crossAxisSpacing: AppSpacing.m,
+            mainAxisExtent: 104,
+          ),
           children: ListingTypeUi.values.map((type) {
             final selected = _draft.type == type.toServer;
             return InkWell(
