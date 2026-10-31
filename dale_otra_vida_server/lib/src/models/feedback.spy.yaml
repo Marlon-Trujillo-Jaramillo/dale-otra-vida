@@ -1,0 +1,16 @@
+### Opinion a tester sends from the app.
+class: AppFeedback
+table: app_feedback
+fields:
+  profileId: int, relation(parent=member_profile, onDelete=Cascade)
+  ### 1 (very bad) to 5 (very good), optional.
+  rating: int?
+  message: String
+  ### Where the tester was, e.g. "perfil" or "chat".
+  screen: String?
+  ### "web", "android" or "ios".
+  platform: String?
+  createdAt: DateTime, default=now
+indexes:
+  app_feedback_created_idx:
+    fields: createdAt

@@ -11,6 +11,7 @@ import '../../core/widgets/widgets.dart';
 import '../../screens/design_gallery_screen.dart';
 import '../requests/my_requests_screen.dart';
 import '../listing/listing_detail_screen.dart';
+import '../feedback/feedback_sheet.dart';
 import 'edit_profile_screen.dart';
 import 'profile_body.dart';
 
@@ -150,6 +151,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? _CountBadge(count: _requestCount!)
                 : null,
             onTap: () => _openMyRequests(context),
+          ),
+          const SizedBox(height: AppSpacing.s),
+          _ProfileTile(
+            icon: Icons.rate_review_outlined,
+            title: 'Danos tu opinión',
+            subtitle: 'Cuéntanos qué te gustó o qué mejorarías',
+            onTap: () => showFeedbackSheet(context, screen: 'perfil'),
           ),
           const SizedBox(height: AppSpacing.m),
           AppSecondaryButton(label: 'Cerrar sesión', onPressed: _signOut),

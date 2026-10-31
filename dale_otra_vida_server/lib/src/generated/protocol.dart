@@ -38,6 +38,7 @@ import 'chat_message.dart' as _ivuncx2e;
 import 'community_impact.dart' as _iukzfy8n;
 import 'conversation.dart' as _ineda879;
 import 'conversation_view.dart' as _iz4kexi3;
+import 'feedback.dart' as _iut2va9k;
 import 'greetings/greeting.dart' as _izw8z7ou;
 import 'item_condition.dart' as _ittj06x2;
 import 'listing.dart' as _ir9e9w84;
@@ -66,6 +67,7 @@ export 'chat_message.dart';
 export 'community_impact.dart';
 export 'conversation.dart';
 export 'conversation_view.dart';
+export 'feedback.dart';
 export 'greetings/greeting.dart';
 export 'item_condition.dart';
 export 'listing.dart';
@@ -96,6 +98,86 @@ class Protocol extends _is.DatabaseSerializationManager {
   static final Protocol _instance = Protocol._().._registerHostProtocols();
 
   static List<_isp.TableDefinition> get targetTableDefinitions => [
+    _isp.TableDefinition(
+      name: 'app_feedback',
+      dartName: 'AppFeedback',
+      schema: 'public',
+      module: 'dale_otra_vida',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'profileId',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'rating',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'message',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'screen',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'platform',
+          columnType: _isp.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _isp.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+      ],
+      foreignKeys: [
+        _isp.ForeignKeyDefinition(
+          constraintName: 'app_feedback_fk_0',
+          columns: ['profileId'],
+          referenceTable: 'member_profile',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'app_feedback_created_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'createdAt',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
     _isp.TableDefinition(
       name: 'app_notification',
       dartName: 'AppNotification',
@@ -1055,6 +1137,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _iz4kexi3.ConversationView) {
       return _iz4kexi3.ConversationView.fromJson(data) as T;
     }
+    if (t == _iut2va9k.AppFeedback) {
+      return _iut2va9k.AppFeedback.fromJson(data) as T;
+    }
     if (t == _izw8z7ou.Greeting) {
       return _izw8z7ou.Greeting.fromJson(data) as T;
     }
@@ -1141,6 +1226,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _is.getType<_iz4kexi3.ConversationView?>()) {
       return (data != null ? _iz4kexi3.ConversationView.fromJson(data) : null)
           as T;
+    }
+    if (t == _is.getType<_iut2va9k.AppFeedback?>()) {
+      return (data != null ? _iut2va9k.AppFeedback.fromJson(data) : null) as T;
     }
     if (t == _is.getType<_izw8z7ou.Greeting?>()) {
       return (data != null ? _izw8z7ou.Greeting.fromJson(data) : null) as T;
@@ -1297,6 +1385,7 @@ class Protocol extends _is.DatabaseSerializationManager {
       _iukzfy8n.CommunityImpact => 'CommunityImpact',
       _ineda879.Conversation => 'Conversation',
       _iz4kexi3.ConversationView => 'ConversationView',
+      _iut2va9k.AppFeedback => 'AppFeedback',
       _izw8z7ou.Greeting => 'Greeting',
       _ittj06x2.ItemCondition => 'ItemCondition',
       _ir9e9w84.Listing => 'Listing',
@@ -1349,6 +1438,8 @@ class Protocol extends _is.DatabaseSerializationManager {
         return 'Conversation';
       case _iz4kexi3.ConversationView():
         return 'ConversationView';
+      case _iut2va9k.AppFeedback():
+        return 'AppFeedback';
       case _izw8z7ou.Greeting():
         return 'Greeting';
       case _ittj06x2.ItemCondition():
@@ -1437,6 +1528,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (dataClassName == 'ConversationView') {
       return deserialize<_iz4kexi3.ConversationView>(data['data']);
+    }
+    if (dataClassName == 'AppFeedback') {
+      return deserialize<_iut2va9k.AppFeedback>(data['data']);
     }
     if (dataClassName == 'Greeting') {
       return deserialize<_izw8z7ou.Greeting>(data['data']);
@@ -1548,6 +1642,8 @@ class Protocol extends _is.DatabaseSerializationManager {
         return _ivuncx2e.ChatMessage.t;
       case _ineda879.Conversation:
         return _ineda879.Conversation.t;
+      case _iut2va9k.AppFeedback:
+        return _iut2va9k.AppFeedback.t;
       case _ir9e9w84.Listing:
         return _ir9e9w84.Listing.t;
       case _i0jjpqa3.ListingRequest:

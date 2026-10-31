@@ -22,6 +22,8 @@ chat:
   - unreadTotal:
   - subscribe:
   - inbox:
+feedback:
+  - send:
 greeting:
   - hello:
 listing:

@@ -437,6 +437,31 @@ class EndpointChat extends _isc.EndpointRef {
       );
 }
 
+/// Opinions from testers, read later from the database.
+/// {@category Endpoint}
+class EndpointFeedback extends _isc.EndpointRef {
+  EndpointFeedback(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'feedback';
+
+  _ida.Future<void> send(
+    String message, {
+    int? rating,
+    String? screen,
+    String? platform,
+  }) => caller.callServerEndpoint<void>(
+    'feedback',
+    'send',
+    {
+      'message': message,
+      'rating': rating,
+      'screen': screen,
+      'platform': platform,
+    },
+  );
+}
+
 /// This is an example endpoint that returns a greeting message through
 /// its [hello] method.
 /// {@category Endpoint}
@@ -930,6 +955,7 @@ class Client extends _isc.ServerpodClientShared {
     googleIdp = EndpointGoogleIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
     chat = EndpointChat(this);
+    feedback = EndpointFeedback(this);
     greeting = EndpointGreeting(this);
     listing = EndpointListing(this);
     notification = EndpointNotification(this);
@@ -948,6 +974,8 @@ class Client extends _isc.ServerpodClientShared {
   late final EndpointJwtRefresh jwtRefresh;
 
   late final EndpointChat chat;
+
+  late final EndpointFeedback feedback;
 
   late final EndpointGreeting greeting;
 
@@ -973,6 +1001,7 @@ class Client extends _isc.ServerpodClientShared {
     'googleIdp': googleIdp,
     'jwtRefresh': jwtRefresh,
     'chat': chat,
+    'feedback': feedback,
     'greeting': greeting,
     'listing': listing,
     'notification': notification,

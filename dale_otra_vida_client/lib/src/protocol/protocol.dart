@@ -37,6 +37,7 @@ import 'chat_message.dart' as _ivuncx2e;
 import 'community_impact.dart' as _iukzfy8n;
 import 'conversation.dart' as _ineda879;
 import 'conversation_view.dart' as _iz4kexi3;
+import 'feedback.dart' as _iut2va9k;
 import 'greetings/greeting.dart' as _izw8z7ou;
 import 'item_condition.dart' as _ittj06x2;
 import 'listing.dart' as _ir9e9w84;
@@ -65,6 +66,7 @@ export 'chat_message.dart';
 export 'community_impact.dart';
 export 'conversation.dart';
 export 'conversation_view.dart';
+export 'feedback.dart';
 export 'greetings/greeting.dart';
 export 'item_condition.dart';
 export 'listing.dart';
@@ -142,6 +144,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (t == _iz4kexi3.ConversationView) {
       return _iz4kexi3.ConversationView.fromJson(data) as T;
+    }
+    if (t == _iut2va9k.AppFeedback) {
+      return _iut2va9k.AppFeedback.fromJson(data) as T;
     }
     if (t == _izw8z7ou.Greeting) {
       return _izw8z7ou.Greeting.fromJson(data) as T;
@@ -229,6 +234,9 @@ class Protocol extends _isc.SerializationManager {
     if (t == _isc.getType<_iz4kexi3.ConversationView?>()) {
       return (data != null ? _iz4kexi3.ConversationView.fromJson(data) : null)
           as T;
+    }
+    if (t == _isc.getType<_iut2va9k.AppFeedback?>()) {
+      return (data != null ? _iut2va9k.AppFeedback.fromJson(data) : null) as T;
     }
     if (t == _isc.getType<_izw8z7ou.Greeting?>()) {
       return (data != null ? _izw8z7ou.Greeting.fromJson(data) : null) as T;
@@ -382,6 +390,7 @@ class Protocol extends _isc.SerializationManager {
       _iukzfy8n.CommunityImpact => 'CommunityImpact',
       _ineda879.Conversation => 'Conversation',
       _iz4kexi3.ConversationView => 'ConversationView',
+      _iut2va9k.AppFeedback => 'AppFeedback',
       _izw8z7ou.Greeting => 'Greeting',
       _ittj06x2.ItemCondition => 'ItemCondition',
       _ir9e9w84.Listing => 'Listing',
@@ -434,6 +443,8 @@ class Protocol extends _isc.SerializationManager {
         return 'Conversation';
       case _iz4kexi3.ConversationView():
         return 'ConversationView';
+      case _iut2va9k.AppFeedback():
+        return 'AppFeedback';
       case _izw8z7ou.Greeting():
         return 'Greeting';
       case _ittj06x2.ItemCondition():
@@ -518,6 +529,9 @@ class Protocol extends _isc.SerializationManager {
     }
     if (dataClassName == 'ConversationView') {
       return deserialize<_iz4kexi3.ConversationView>(data['data']);
+    }
+    if (dataClassName == 'AppFeedback') {
+      return deserialize<_iut2va9k.AppFeedback>(data['data']);
     }
     if (dataClassName == 'Greeting') {
       return deserialize<_izw8z7ou.Greeting>(data['data']);

@@ -198,6 +198,8 @@ class TestEndpoints {
 
   late final _ChatEndpoint chat;
 
+  late final _FeedbackEndpoint feedback;
+
   late final _GreetingEndpoint greeting;
 
   late final _ListingEndpoint listing;
@@ -235,6 +237,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     chat = _ChatEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    feedback = _FeedbackEndpoint(
       endpoints,
       serializationManager,
     );
@@ -969,6 +975,56 @@ class _ChatEndpoint {
       _localTestStreamManager.outputStreamController,
     );
     return _localTestStreamManager.outputStreamController.stream;
+  }
+}
+
+class _FeedbackEndpoint {
+  _FeedbackEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _is.EndpointDispatch _endpointDispatch;
+
+  final _is.SerializationManager _serializationManager;
+
+  _ida.Future<void> send(
+    _ist.TestSessionBuilder sessionBuilder,
+    String message, {
+    int? rating,
+    String? screen,
+    String? platform,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'feedback',
+            method: 'send',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'feedback',
+          methodName: 'send',
+          parameters: _ist.testObjectToJson({
+            'message': message,
+            'rating': rating,
+            'screen': screen,
+            'platform': platform,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
   }
 }
 

@@ -31,6 +31,7 @@ import '../auth/email_idp_endpoint.dart' as _iuc1hd5t;
 import '../auth/google_idp_endpoint.dart' as _i71axiz0;
 import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
 import '../chat/chat_endpoint.dart' as _i3w57des;
+import '../feedback/feedback_endpoint.dart' as _i3n4p88h;
 import '../greetings/greeting_endpoint.dart' as _il624ik7;
 import '../listings/listing_endpoint.dart' as _i9qx1xff;
 import '../notifications/notification_endpoint.dart' as _ibyw8x7k;
@@ -66,6 +67,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'chat',
+          null,
+        ),
+      'feedback': _i3n4p88h.FeedbackEndpoint()
+        ..initialize(
+          server,
+          'feedback',
           null,
         ),
       'greeting': _il624ik7.GreetingEndpoint()
@@ -548,6 +555,49 @@ class Endpoints extends _is.EndpointDispatch {
                 Map<String, dynamic> params,
                 Map<String, Stream> streamParams,
               ) => (endpoints['chat'] as _i3w57des.ChatEndpoint).inbox(session),
+        ),
+      },
+    );
+    connectors['feedback'] = _is.EndpointConnector(
+      name: 'feedback',
+      endpoint: endpoints['feedback']!,
+      methodConnectors: {
+        'send': _is.MethodConnector(
+          name: 'send',
+          params: {
+            'message': _is.ParameterDescription(
+              name: 'message',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'rating': _is.ParameterDescription(
+              name: 'rating',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+            'screen': _is.ParameterDescription(
+              name: 'screen',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'platform': _is.ParameterDescription(
+              name: 'platform',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['feedback'] as _i3n4p88h.FeedbackEndpoint).send(
+                    session,
+                    params['message'],
+                    rating: params['rating'],
+                    screen: params['screen'],
+                    platform: params['platform'],
+                  ),
         ),
       },
     );
