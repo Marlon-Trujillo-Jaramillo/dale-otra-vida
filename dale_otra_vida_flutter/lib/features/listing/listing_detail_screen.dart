@@ -795,9 +795,11 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             children: [
               const Icon(Icons.location_on, color: AppColors.primary, size: 18),
               const SizedBox(width: AppSpacing.s),
-              Text(
-                'Punto de encuentro seguro',
-                style: AppTypography.bodyStrong,
+              Flexible(
+                child: Text(
+                  'Punto de encuentro seguro',
+                  style: AppTypography.bodyStrong,
+                ),
               ),
             ],
           ),

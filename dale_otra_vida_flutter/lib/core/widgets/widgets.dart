@@ -8,5 +8,6 @@ export 'empty_state.dart';
 export 'filter_chip_row.dart';
 export 'listing_card.dart';
 export 'listing_grid_card.dart';
+export 'listing_grid_delegate.dart';
 export 'section_header.dart';
 export 'type_badge.dart';

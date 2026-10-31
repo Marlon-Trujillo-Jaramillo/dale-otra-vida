@@ -10,19 +10,23 @@ class FilterChipRow extends StatelessWidget {
     required this.options,
     required this.selected,
     required this.onSelected,
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: AppSpacing.screenHorizontal,
+    ),
   });
 
   final List<String> options;
   final String? selected;
   final ValueChanged<String> onSelected;
 
+  /// Inset of the scrolling row; wide layouts already pad their content.
+  final EdgeInsetsGeometry padding;
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-      ),
+      padding: padding,
       child: Row(
         children: options.map((option) {
           final isSelected = option == selected;

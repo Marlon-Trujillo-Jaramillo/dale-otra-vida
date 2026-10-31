@@ -276,48 +276,24 @@ class _ListingGrid extends StatelessWidget {
       );
     }
 
-    final size = ScreenSize.of(context);
-    final padding = switch (size) {
-      ScreenSize.compact => 20.0,
-      ScreenSize.medium => 32.0,
-      ScreenSize.expanded => 48.0,
-    };
-    const spacing = AppSpacing.l;
-
-    return SliverLayoutBuilder(
-      builder: (context, constraints) {
-        final width = (constraints.crossAxisExtent - padding * 2).clamp(
-          0.0,
-          960.0 - padding * 2,
-        );
-        final columns = (width / 260).ceil().clamp(2, 4);
-        final tileWidth = (width - spacing * (columns - 1)) / columns;
-        final sidePadding = (constraints.crossAxisExtent - width) / 2;
-
-        return SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: sidePadding),
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: spacing,
-              mainAxisSpacing: spacing,
-              // Photo (4:3) plus the text block of ListingGridCard.
-              mainAxisExtent: tileWidth * 3 / 4 + 150,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final view = listings[index];
-                return ListingGridCard.fromView(
-                  view,
-                  statusLabel: labelFor(view.listing),
-                  onTap: () => onOpen(view),
-                );
-              },
-              childCount: listings.length,
-            ),
-          ),
-        );
-      },
+    return SliverToBoxAdapter(
+      child: ContentWidth(
+        maxWidth: 960,
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: listingGridDelegate(maxTileWidth: 260, minColumns: 2),
+          itemCount: listings.length,
+          itemBuilder: (context, index) {
+            final view = listings[index];
+            return ListingGridCard.fromView(
+              view,
+              statusLabel: labelFor(view.listing),
+              onTap: () => onOpen(view),
+            );
+          },
+        ),
+      ),
     );
   }
 }

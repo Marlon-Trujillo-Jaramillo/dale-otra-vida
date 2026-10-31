@@ -47,9 +47,20 @@ class ZoneMap extends StatelessWidget {
                 ),
               ],
             ),
-            const SimpleAttributionWidget(
-              source: Text(osmAttribution, style: TextStyle(fontSize: 10)),
-              backgroundColor: Color(0xCCFBF9F5),
+            // A one-line credit that shrinks with the map, unlike the
+            // package widget, which overflows on narrow cards.
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Container(
+                color: const Color(0xCCFBF9F5),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                child: const Text(
+                  '© $osmAttribution',
+                  style: TextStyle(fontSize: 9),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ],
         ),

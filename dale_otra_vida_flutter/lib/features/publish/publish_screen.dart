@@ -756,7 +756,7 @@ class _PublishScreenState extends State<PublishScreen> {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           SizedBox(width: AppSpacing.s),
-          Text('Obteniendo ubicación aproximada...'),
+          Flexible(child: Text('Obteniendo ubicación aproximada...')),
         ],
       );
     }

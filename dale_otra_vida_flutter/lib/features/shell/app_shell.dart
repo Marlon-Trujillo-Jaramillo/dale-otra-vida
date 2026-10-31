@@ -271,8 +271,10 @@ class _AppShellState extends State<AppShell> {
               onDestinationSelected: _onTabSelected,
               extended: false,
               labelType: NavigationRailLabelType.all,
+              // The selected pill is accent so the icon stays readable.
+              indicatorColor: AppColors.accent,
               selectedIconTheme: const IconThemeData(
-                color: AppColors.onPrimary,
+                color: AppColors.primary,
               ),
               selectedLabelTextStyle: AppTypography.caption.copyWith(
                 color: AppColors.onPrimary,

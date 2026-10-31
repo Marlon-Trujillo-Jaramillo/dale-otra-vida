@@ -10,17 +10,19 @@ class CategoryTile extends StatelessWidget {
     super.key,
     required this.category,
     this.onTap,
+    this.width = 72,
   });
 
   final CategoryUi category;
   final VoidCallback? onTap;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 72,
+        width: width,
         padding: const EdgeInsets.all(AppSpacing.s),
         decoration: BoxDecoration(
           color: AppColors.surface,

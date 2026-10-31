@@ -14,6 +14,7 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/filter_chip_row.dart';
 import '../../core/widgets/listing_card.dart';
 import '../../core/widgets/listing_grid_card.dart';
+import '../../core/widgets/listing_grid_delegate.dart';
 import '../../core/widgets/section_header.dart';
 import '../listing/listing_detail_screen.dart';
 import '../map/map_screen.dart';
@@ -326,10 +327,13 @@ class HomeScreenState extends State<HomeScreen> {
           final selected = _controller.selectedType == type;
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.s),
-            child: _SidebarTypeRow(
-              type: type,
-              selected: selected,
-              onTap: () => _controller.setType(selected ? null : type),
+            child: SizedBox(
+              width: double.infinity,
+              child: _SidebarTypeRow(
+                type: type,
+                selected: selected,
+                onTap: () => _controller.setType(selected ? null : type),
+              ),
             ),
           );
         }),
@@ -431,6 +435,9 @@ class HomeScreenState extends State<HomeScreen> {
     const options = ['Todos', 'Donar', 'Intercambiar', 'Vender', 'Prestar'];
     final selected = _controller.selectedType?.label ?? 'Todos';
     return FilterChipRow(
+      padding: ScreenSize.of(context).isCompact
+          ? const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal)
+          : EdgeInsets.zero,
       options: options,
       selected: selected,
       onSelected: (label) {
@@ -450,13 +457,17 @@ class HomeScreenState extends State<HomeScreen> {
         children: [
           Text('Categorías', style: AppTypography.sectionLabel),
           const SizedBox(height: AppSpacing.m),
-          GridView.count(
-            crossAxisCount: 4,
+          GridView(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSpacing.m,
-            crossAxisSpacing: AppSpacing.s,
-            childAspectRatio: 0.85,
+            // Fixed row height (what 0.85 gave on a 390 px phone), so tiles
+            // never clip on narrower screens.
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: AppSpacing.m,
+              crossAxisSpacing: AppSpacing.s,
+              mainAxisExtent: 96,
+            ),
             children: categories.map((category) {
               final selected = _controller.selectedCategory == category;
               return MouseRegion(
@@ -487,29 +498,29 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWideCategories(BuildContext context) {
-    final categories = CategoryUi.values.take(8).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: AppSpacing.l),
         Text('Categorías', style: AppTypography.sectionLabel),
         const SizedBox(height: AppSpacing.m),
         SizedBox(
-          height: 100,
-          child: GridView.count(
-            crossAxisCount: 8,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSpacing.m,
-            crossAxisSpacing: AppSpacing.s,
-            childAspectRatio: 0.8,
-            children: categories.map((category) {
+          height: 96,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: CategoryUi.values.length,
+            separatorBuilder: (context, index) =>
+                const SizedBox(width: AppSpacing.s),
+            itemBuilder: (context, index) {
+              final category = CategoryUi.values[index];
               final selected = _controller.selectedCategory == category;
               return MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: InkWell(
                   onTap: () => _controller.setCategory(category),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
+                  borderRadius: BorderRadius.circular(18),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: selected
@@ -517,16 +528,16 @@ class HomeScreenState extends State<HomeScreen> {
                             : Colors.transparent,
                         width: 2,
                       ),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    child: CategoryTile(category: category),
+                    child: CategoryTile(category: category, width: 100),
                   ),
                 ),
               );
-            }).toList(),
+            },
           ),
         ),
-        const SizedBox(height: AppSpacing.l),
+        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }
@@ -534,11 +545,15 @@ class HomeScreenState extends State<HomeScreen> {
   // ---------------------------------------------------------------------------
   // Section header & results
   // ---------------------------------------------------------------------------
+  /// Compact screens pad each section; wide ones sit inside ContentWidth.
+  EdgeInsets _sectionPadding(BuildContext context) =>
+      ScreenSize.of(context).isCompact
+      ? const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal)
+      : EdgeInsets.zero;
+
   Widget _buildSectionHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-      ),
+      padding: _sectionPadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -589,16 +604,9 @@ class HomeScreenState extends State<HomeScreen> {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-      ),
+      padding: _sectionPadding(context),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 300,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 0.78,
-        ),
+        gridDelegate: listingGridDelegate(spacing: 20),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             if (index == _controller.listings.length) {
