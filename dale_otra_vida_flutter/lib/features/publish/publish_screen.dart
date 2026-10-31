@@ -1,17 +1,15 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:ui';
 
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../client.dart';
 import '../../core/format.dart';
 import '../../core/location.dart';
+import '../../core/photos.dart';
 import '../../core/models/category_ui.dart';
 import '../../core/models/listing_type_ui.dart';
 import '../../core/theme/app_colors.dart';
@@ -186,50 +184,22 @@ class _PublishScreenState extends State<PublishScreen> {
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: source);
-    if (!mounted) return;
-    if (file == null) return;
+    final Uint8List? bytes;
+    try {
+      bytes = await pickPhoto(source);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No pudimos abrir esa foto.')),
+        );
+      }
+      return;
+    }
+    if (!mounted || bytes == null) return;
 
-    final upload = _PhotoUpload(filePath: file.path);
+    final upload = _PhotoUpload(bytes: bytes);
     setState(() => _photos.add(upload));
     await _uploadPhoto(upload);
-    if (!mounted) return;
-  }
-
-  Future<Uint8List?> _compressPhoto(String filePath) async {
-    final file = File(filePath);
-    final bytes = await file.readAsBytes();
-    final codec = await instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    final image = frame.image;
-    final width = image.width;
-    final height = image.height;
-    final target = _targetDimensions(width, height, maxSide: 1600);
-    return FlutterImageCompress.compressWithList(
-      bytes,
-      minWidth: target.width,
-      minHeight: target.height,
-      quality: 80,
-      format: CompressFormat.jpeg,
-    );
-  }
-
-  ({int width, int height}) _targetDimensions(
-    int width,
-    int height, {
-    required int maxSide,
-  }) {
-    if (width <= maxSide && height <= maxSide) {
-      return (width: width, height: height);
-    }
-    if (width >= height) {
-      final targetHeight = (maxSide * height / width).round();
-      return (width: maxSide, height: targetHeight);
-    } else {
-      final targetWidth = (maxSide * width / height).round();
-      return (width: targetWidth, height: maxSide);
-    }
   }
 
   Future<void> _uploadPhoto(_PhotoUpload upload) async {
@@ -238,16 +208,9 @@ class _PublishScreenState extends State<PublishScreen> {
       upload.error = false;
     });
     try {
-      final bytes = await _compressPhoto(upload.filePath);
-      if (!mounted) return;
-      if (bytes == null) throw Exception('compression failed');
-
       final description = await client.listing.photoUploadDescription('jpg');
       if (!mounted) return;
-      final ok = await FileUploader(description.uploadDescription).upload(
-        Stream.fromIterable([bytes]),
-        bytes.length,
-      );
+      final ok = await uploadPhoto(description.uploadDescription, upload.bytes);
       if (!mounted) return;
       if (!ok) throw Exception('upload failed');
 
@@ -854,9 +817,9 @@ class _PublishScreenState extends State<PublishScreen> {
 }
 
 class _PhotoUpload {
-  _PhotoUpload({required this.filePath});
+  _PhotoUpload({required this.bytes});
 
-  final String filePath;
+  final Uint8List bytes;
   String? path;
   bool loading = false;
   bool error = false;
@@ -883,8 +846,8 @@ class _PhotoThumbnail extends StatelessWidget {
             width: 84,
             height: 84,
             color: AppColors.surfaceMuted,
-            child: Image.file(
-              File(upload.filePath),
+            child: Image.memory(
+              upload.bytes,
               fit: BoxFit.cover,
             ),
           ),

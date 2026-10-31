@@ -11,12 +11,20 @@ import '../../core/widgets/widgets.dart';
 import '../../screens/design_gallery_screen.dart';
 import '../requests/my_requests_screen.dart';
 import '../listing/listing_detail_screen.dart';
+import 'edit_profile_screen.dart';
 import 'profile_body.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, required this.profile});
+  const ProfileScreen({
+    super.key,
+    required this.profile,
+    this.onProfileChanged,
+  });
 
   final MemberProfile profile;
+
+  /// Lets the shell refresh the greeting and top-bar avatar after edits.
+  final ValueChanged<MemberProfile>? onProfileChanged;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -57,6 +65,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (context) => ListingDetailScreen(view: listing),
       ),
     );
+    _load();
+  }
+
+  Future<void> _editProfile() async {
+    final current = _view?.profile;
+    if (current == null) return;
+    // The public view hides coordinates; edits never touch them.
+    final saved = await Navigator.of(context).push<MemberProfile>(
+      MaterialPageRoute<MemberProfile>(
+        builder: (context) => EditProfileScreen(profile: current),
+      ),
+    );
+    if (saved == null || !mounted) return;
+    widget.onProfileChanged?.call(saved);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Perfil actualizado.')));
     _load();
   }
 
@@ -110,6 +135,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _ProfileTile(
+            icon: Icons.edit_outlined,
+            title: 'Editar perfil',
+            subtitle: 'Foto, nombre, barrio y tipo de cuenta',
+            onTap: _editProfile,
+          ),
+          const SizedBox(height: AppSpacing.s),
           _ProfileTile(
             icon: Icons.favorite_border,
             title: 'Mis solicitudes',

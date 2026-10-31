@@ -4,6 +4,8 @@ import 'package:dale_otra_vida_flutter/core/theme/app_theme.dart';
 import 'package:dale_otra_vida_flutter/features/auth/auth_screen.dart';
 import 'package:dale_otra_vida_flutter/features/chat/conversations_screen.dart';
 import 'package:dale_otra_vida_flutter/features/listing/listing_detail_screen.dart';
+import 'package:dale_otra_vida_flutter/features/onboarding/onboarding_screen.dart';
+import 'package:dale_otra_vida_flutter/features/profile/edit_profile_screen.dart';
 import 'package:dale_otra_vida_flutter/features/publish/publish_screen.dart';
 import 'package:dale_otra_vida_flutter/features/shell/app_shell.dart';
 import 'package:dale_otra_vida_flutter/features/profile/profile_body.dart';
@@ -176,6 +178,20 @@ void main() {
         width,
         AuthScreen(controller: EmailAuthController(client: client)),
       );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('edit profile fits at ${width.toInt()} px', (tester) async {
+      await pumpAt(
+        tester,
+        width,
+        EditProfileScreen(profile: member('Fundación Manos que Ayudan')),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('onboarding fits at ${width.toInt()} px', (tester) async {
+      await pumpAt(tester, width, OnboardingScreen(onCompleted: () {}));
       expect(tester.takeException(), isNull);
     });
   }

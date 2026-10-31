@@ -49,7 +49,7 @@ class ProfileBody extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: AppSpacing.xxl),
-                AppAvatar(initials: initialsFor(profile.displayName), size: 88),
+                memberAvatar(profile.displayName, profile.avatarUrl, size: 88),
                 const SizedBox(height: AppSpacing.m),
                 Text(
                   profile.displayName,
@@ -179,24 +179,41 @@ class _Subtitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final neighborhood = profile.neighborhood;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: AppSpacing.s,
+      runSpacing: AppSpacing.xs,
       children: [
-        if (profile.isVerified) ...[
-          const Icon(Icons.verified, size: 16, color: AppColors.verified),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            'Usuario verificado',
-            style: AppTypography.caption.copyWith(
-              color: AppColors.verified,
-              fontWeight: FontWeight.w700,
-            ),
+        AccountTypeBadge(type: profile.accountType),
+        if (profile.isVerified)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.verified, size: 16, color: AppColors.verified),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                'Usuario verificado',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.verified,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          if (neighborhood != null && neighborhood.isNotEmpty)
-            Text(' · ', style: AppTypography.caption),
-        ],
         if (neighborhood != null && neighborhood.isNotEmpty)
-          Text(neighborhood, style: AppTypography.caption),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 2),
+              Text(neighborhood, style: AppTypography.caption),
+            ],
+          ),
       ],
     );
   }
@@ -318,7 +335,11 @@ class _ReviewTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppAvatar(initials: initialsFor(view.reviewer.displayName), size: 40),
+          memberAvatar(
+            view.reviewer.displayName,
+            view.reviewer.avatarUrl,
+            size: 40,
+          ),
           const SizedBox(width: AppSpacing.m),
           Expanded(
             child: Column(

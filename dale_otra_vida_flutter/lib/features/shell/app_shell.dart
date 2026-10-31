@@ -1,6 +1,5 @@
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:dale_otra_vida_flutter/client.dart';
-import 'package:dale_otra_vida_flutter/core/format.dart';
 import 'package:dale_otra_vida_flutter/core/layout/breakpoints.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_colors.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_spacing.dart';
@@ -190,7 +189,10 @@ class _AppShellState extends State<AppShell> {
           _badgeController.refresh();
         },
       ),
-      ProfileScreen(profile: _profile!),
+      ProfileScreen(
+        profile: _profile!,
+        onProfileChanged: (profile) => setState(() => _profile = profile),
+      ),
     ];
 
     final size = ScreenSize.of(context);
@@ -442,9 +444,10 @@ class _AppShellState extends State<AppShell> {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.m),
-                  AppAvatar(
+                  memberAvatar(
+                    _profile!.displayName,
+                    _profile!.avatarUrl,
                     size: 32,
-                    initials: initialsFor(_profile!.displayName),
                   ),
                 ],
               ),

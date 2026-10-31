@@ -296,7 +296,7 @@ class _ConversationTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              AppAvatar(initials: initialsFor(view.other.displayName)),
+              memberAvatar(view.other.displayName, view.other.avatarUrl),
               const SizedBox(width: AppSpacing.l),
               Expanded(
                 child: Column(

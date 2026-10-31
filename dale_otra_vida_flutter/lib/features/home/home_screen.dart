@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../../client.dart';
 import '../../core/layout/breakpoints.dart';
 import '../../core/models/category_ui.dart';
 import '../../core/models/listing_type_ui.dart';
@@ -42,6 +43,7 @@ class HomeScreenState extends State<HomeScreen> {
   late final HomeController _controller;
   final _searchController = TextEditingController();
   Timer? _debounce;
+  CommunityImpact? _impact;
 
   @override
   void initState() {
@@ -51,6 +53,15 @@ class HomeScreenState extends State<HomeScreen> {
       fetchFeed: widget.fetchFeed,
     );
     _controller.init();
+    _loadImpact();
+  }
+
+  /// The banner is optional: on any failure it simply stays hidden.
+  Future<void> _loadImpact() async {
+    try {
+      final impact = await client.stats.community();
+      if (mounted) setState(() => _impact = impact);
+    } catch (_) {}
   }
 
   @override
@@ -61,7 +72,10 @@ class HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void refresh() => _controller.refresh();
+  void refresh() {
+    _controller.refresh();
+    _loadImpact();
+  }
 
   void _onSearchChanged(String value) {
     _debounce?.cancel();
@@ -557,6 +571,10 @@ class HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_impact != null) ...[
+            _ImpactBanner(impact: _impact!),
+            const SizedBox(height: AppSpacing.l),
+          ],
           SectionHeader(
             label: 'Cerca de ti',
             actionLabel: 'Ver mapa',
@@ -1100,6 +1118,82 @@ class _SortChip extends StatelessWidget {
         color: selected ? AppColors.primary : AppColors.border,
       ),
       shape: const StadiumBorder(),
+    );
+  }
+}
+
+/// Community impact: a reason to keep sharing (objective 3.2.3).
+class _ImpactBanner extends StatelessWidget {
+  const _ImpactBanner({required this.impact});
+
+  final CommunityImpact impact;
+
+  @override
+  Widget build(BuildContext context) {
+    final delivered = impact.deliveredCount;
+    final headline = delivered == 0
+        ? 'Sé de los primeros en darle otra vida a algo'
+        : delivered == 1
+        ? 'Entre todos ya le dimos otra vida a 1 cosa'
+        : 'Entre todos ya le dimos otra vida a $delivered cosas';
+
+    Widget stat(IconData icon, String text) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: AppColors.accent),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          text,
+          style: AppTypography.caption.copyWith(color: AppColors.onPrimary),
+        ),
+      ],
+    );
+
+    return Semantics(
+      container: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.l),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.eco_outlined, color: AppColors.accent),
+                const SizedBox(width: AppSpacing.s),
+                Expanded(
+                  child: Text(
+                    headline,
+                    style: AppTypography.bodyStrong.copyWith(
+                      color: AppColors.onPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.s),
+            Wrap(
+              spacing: AppSpacing.l,
+              runSpacing: AppSpacing.xs,
+              children: [
+                stat(
+                  Icons.restaurant_outlined,
+                  '${impact.foodSavedCount} alimentos salvados',
+                ),
+                stat(
+                  Icons.inventory_2_outlined,
+                  '${impact.activeCount} disponibles ahora',
+                ),
+                stat(Icons.groups_outlined, '${impact.memberCount} vecinos'),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

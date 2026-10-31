@@ -5,7 +5,6 @@ import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
 import '../../client.dart';
-import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
@@ -479,7 +478,7 @@ class _Header extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Row(
         children: [
-          AppAvatar(initials: initialsFor(member.displayName), size: 40),
+          memberAvatar(member.displayName, member.avatarUrl, size: 40),
           const SizedBox(width: AppSpacing.m),
           Expanded(
             child: Column(

@@ -1,3 +1,4 @@
+import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:dale_otra_vida_flutter/client.dart';
 import 'package:dale_otra_vida_flutter/core/layout/breakpoints.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_colors.dart';
@@ -5,6 +6,7 @@ import 'package:dale_otra_vida_flutter/core/theme/app_spacing.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_typography.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_primary_button.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_text_field.dart';
+import 'package:dale_otra_vida_flutter/features/profile/account_type_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -20,6 +22,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _displayNameController = TextEditingController();
   final _neighborhoodController = TextEditingController();
+  AccountType _accountType = AccountType.person;
   bool _isLoading = false;
   String? _displayNameError;
   String? _serverError;
@@ -56,12 +59,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         neighborhood: _neighborhoodController.text.trim().isEmpty
             ? null
             : _neighborhoodController.text.trim(),
+        accountType: _accountType,
       );
       widget.onCompleted();
-    } catch (e) {
-      setState(() => _serverError = 'No pudimos guardar tu perfil: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _serverError =
+              'No pudimos guardar tu perfil. Revisa tu conexión e inténtalo '
+              'de nuevo.',
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -134,7 +144,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           textCapitalization: TextCapitalization.sentences,
           onSubmitted: (_) => _continue(),
         ),
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: AppSpacing.l),
+        AccountTypeSelector(
+          value: _accountType,
+          onChanged: (type) => setState(() => _accountType = type),
+        ),
+        const SizedBox(height: AppSpacing.xl),
         AppPrimaryButton(
           label: 'Continuar',
           isLoading: _isLoading,

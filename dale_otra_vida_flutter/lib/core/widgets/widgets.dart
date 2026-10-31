@@ -1,3 +1,4 @@
+export 'account_type_badge.dart';
 export 'app_avatar.dart';
 export 'app_primary_button.dart';
 export 'app_secondary_button.dart';

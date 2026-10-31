@@ -951,7 +951,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         ),
         child: Row(
           children: [
-            AppAvatar(initials: initialsFor(owner.displayName)),
+            memberAvatar(owner.displayName, owner.avatarUrl),
             const SizedBox(width: AppSpacing.m),
             Expanded(
               child: Column(
@@ -967,6 +967,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (owner.accountType != AccountType.person) ...[
+                        const SizedBox(width: AppSpacing.s),
+                        AccountTypeBadge(type: owner.accountType),
+                      ],
                       if (owner.isVerified) ...[
                         const SizedBox(width: AppSpacing.xs),
                         const Icon(
@@ -1567,7 +1571,7 @@ class _RequestRow extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppAvatar(initials: initialsFor(requester.displayName)),
+              memberAvatar(requester.displayName, requester.avatarUrl),
               const SizedBox(width: AppSpacing.m),
               Expanded(
                 child: Column(
