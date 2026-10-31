@@ -11,11 +11,15 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
+import 'package:dale_otra_vida_client/src/protocol/account_type.dart'
+    as _icbr759c;
 import 'package:dale_otra_vida_client/src/protocol/app_notification.dart'
     as _irhv3nen;
 import 'package:dale_otra_vida_client/src/protocol/category.dart' as _i0m5ztok;
 import 'package:dale_otra_vida_client/src/protocol/chat_message.dart'
     as _ir83d1bh;
+import 'package:dale_otra_vida_client/src/protocol/community_impact.dart'
+    as _i3sxeq7l;
 import 'package:dale_otra_vida_client/src/protocol/conversation_view.dart'
     as _ixj8t0ja;
 import 'package:dale_otra_vida_client/src/protocol/greetings/greeting.dart'
@@ -658,6 +662,7 @@ class EndpointProfile extends _isc.EndpointRef {
     String? neighborhood,
     double? latitude,
     double? longitude,
+    _icbr759c.AccountType? accountType,
   }) => caller.callServerEndpoint<_ibcyrd05.MemberProfile>(
     'profile',
     'saveMe',
@@ -666,8 +671,43 @@ class EndpointProfile extends _isc.EndpointRef {
       'neighborhood': neighborhood,
       'latitude': latitude,
       'longitude': longitude,
+      'accountType': accountType,
     },
   );
+
+  /// Edits the caller's name, neighborhood and account type, keeping the
+  /// stored location and photo.
+  _ida.Future<_ibcyrd05.MemberProfile> updateMe({
+    required String displayName,
+    String? neighborhood,
+    _icbr759c.AccountType? accountType,
+  }) => caller.callServerEndpoint<_ibcyrd05.MemberProfile>(
+    'profile',
+    'updateMe',
+    {
+      'displayName': displayName,
+      'neighborhood': neighborhood,
+      'accountType': accountType,
+    },
+  );
+
+  /// Where the app uploads a new profile photo.
+  _ida.Future<_ihcne4ez.PhotoUpload> avatarUploadDescription(
+    String fileExtension,
+  ) => caller.callServerEndpoint<_ihcne4ez.PhotoUpload>(
+    'profile',
+    'avatarUploadDescription',
+    {'fileExtension': fileExtension},
+  );
+
+  /// Sets the uploaded photo at [path] as the caller's avatar, or removes
+  /// the avatar when [path] is null.
+  _ida.Future<_ibcyrd05.MemberProfile> setAvatar(String? path) =>
+      caller.callServerEndpoint<_ibcyrd05.MemberProfile>(
+        'profile',
+        'setAvatar',
+        {'path': path},
+      );
 
   /// Public profile of any member, used on listing detail and chat headers.
   _ida.Future<_ibcyrd05.MemberProfile?> byId(int profileId) =>
@@ -832,6 +872,22 @@ class EndpointReview extends _isc.EndpointRef {
   );
 }
 
+/// Community-wide impact numbers.
+/// {@category Endpoint}
+class EndpointStats extends _isc.EndpointRef {
+  EndpointStats(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'stats';
+
+  _ida.Future<_i3sxeq7l.CommunityImpact> community() =>
+      caller.callServerEndpoint<_i3sxeq7l.CommunityImpact>(
+        'stats',
+        'community',
+        {},
+      );
+}
+
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _iaic.Caller(client);
@@ -881,6 +937,7 @@ class Client extends _isc.ServerpodClientShared {
     report = EndpointReport(this);
     request = EndpointRequest(this);
     review = EndpointReview(this);
+    stats = EndpointStats(this);
     modules = Modules(this);
   }
 
@@ -906,6 +963,8 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointReview review;
 
+  late final EndpointStats stats;
+
   late final Modules modules;
 
   @override
@@ -921,6 +980,7 @@ class Client extends _isc.ServerpodClientShared {
     'report': report,
     'request': request,
     'review': review,
+    'stats': stats,
   };
 
   @override

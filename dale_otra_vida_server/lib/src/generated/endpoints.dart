@@ -10,6 +10,8 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:dale_otra_vida_server/src/generated/account_type.dart'
+    as _izng2pbk;
 import 'package:dale_otra_vida_server/src/generated/category.dart' as _ibils2fp;
 import 'package:dale_otra_vida_server/src/generated/listing.dart' as _ikgalg9n;
 import 'package:dale_otra_vida_server/src/generated/listing_status.dart'
@@ -36,6 +38,7 @@ import '../profile/profile_endpoint.dart' as _i6ky944g;
 import '../reports/report_endpoint.dart' as _iqte9uvc;
 import '../requests/request_endpoint.dart' as _ibwuu02n;
 import '../reviews/review_endpoint.dart' as _i1vkl601;
+import '../stats/stats_endpoint.dart' as _ibh8msu8;
 
 class Endpoints extends _is.EndpointDispatch {
   @override
@@ -105,6 +108,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'review',
+          null,
+        ),
+      'stats': _ibh8msu8.StatsEndpoint()
+        ..initialize(
+          server,
+          'stats',
           null,
         ),
     };
@@ -955,6 +964,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<double?>(),
               nullable: true,
             ),
+            'accountType': _is.ParameterDescription(
+              name: 'accountType',
+              type: _is.getType<_izng2pbk.AccountType?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -967,6 +981,76 @@ class Endpoints extends _is.EndpointDispatch {
                     neighborhood: params['neighborhood'],
                     latitude: params['latitude'],
                     longitude: params['longitude'],
+                    accountType: params['accountType'],
+                  ),
+        ),
+        'updateMe': _is.MethodConnector(
+          name: 'updateMe',
+          params: {
+            'displayName': _is.ParameterDescription(
+              name: 'displayName',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'neighborhood': _is.ParameterDescription(
+              name: 'neighborhood',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'accountType': _is.ParameterDescription(
+              name: 'accountType',
+              type: _is.getType<_izng2pbk.AccountType?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['profile'] as _i6ky944g.ProfileEndpoint).updateMe(
+                    session,
+                    displayName: params['displayName'],
+                    neighborhood: params['neighborhood'],
+                    accountType: params['accountType'],
+                  ),
+        ),
+        'avatarUploadDescription': _is.MethodConnector(
+          name: 'avatarUploadDescription',
+          params: {
+            'fileExtension': _is.ParameterDescription(
+              name: 'fileExtension',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['profile'] as _i6ky944g.ProfileEndpoint)
+                  .avatarUploadDescription(
+                    session,
+                    params['fileExtension'],
+                  ),
+        ),
+        'setAvatar': _is.MethodConnector(
+          name: 'setAvatar',
+          params: {
+            'path': _is.ParameterDescription(
+              name: 'path',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['profile'] as _i6ky944g.ProfileEndpoint).setAvatar(
+                    session,
+                    params['path'],
                   ),
         ),
         'byId': _is.MethodConnector(
@@ -1234,6 +1318,22 @@ class Endpoints extends _is.EndpointDispatch {
                     limit: params['limit'],
                     offset: params['offset'],
                   ),
+        ),
+      },
+    );
+    connectors['stats'] = _is.EndpointConnector(
+      name: 'stats',
+      endpoint: endpoints['stats']!,
+      methodConnectors: {
+        'community': _is.MethodConnector(
+          name: 'community',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['stats'] as _ibh8msu8.StatsEndpoint)
+                  .community(session),
         ),
       },
     );

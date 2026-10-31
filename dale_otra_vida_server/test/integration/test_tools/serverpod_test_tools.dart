@@ -13,11 +13,15 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
 import 'dart:io' as _idi;
+import 'package:dale_otra_vida_server/src/generated/account_type.dart'
+    as _izng2pbk;
 import 'package:dale_otra_vida_server/src/generated/app_notification.dart'
     as _i8mrzz0i;
 import 'package:dale_otra_vida_server/src/generated/category.dart' as _ibils2fp;
 import 'package:dale_otra_vida_server/src/generated/chat_message.dart'
     as _icgl1ktv;
+import 'package:dale_otra_vida_server/src/generated/community_impact.dart'
+    as _iglnhh7t;
 import 'package:dale_otra_vida_server/src/generated/conversation_view.dart'
     as _inonxfdt;
 import 'package:dale_otra_vida_server/src/generated/greetings/greeting.dart'
@@ -207,6 +211,8 @@ class TestEndpoints {
   late final _RequestEndpoint request;
 
   late final _ReviewEndpoint review;
+
+  late final _StatsEndpoint stats;
 }
 
 class _InternalTestEndpoints extends TestEndpoints
@@ -257,6 +263,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     review = _ReviewEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    stats = _StatsEndpoint(
       endpoints,
       serializationManager,
     );
@@ -1518,6 +1528,7 @@ class _ProfileEndpoint {
     String? neighborhood,
     double? latitude,
     double? longitude,
+    _izng2pbk.AccountType? accountType,
   }) async {
     return _ist.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1535,7 +1546,107 @@ class _ProfileEndpoint {
             'neighborhood': neighborhood,
             'latitude': latitude,
             'longitude': longitude,
+            'accountType': accountType,
           }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ivdene5f.MemberProfile>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_ivdene5f.MemberProfile> updateMe(
+    _ist.TestSessionBuilder sessionBuilder, {
+    required String displayName,
+    String? neighborhood,
+    _izng2pbk.AccountType? accountType,
+  }) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'profile',
+            method: 'updateMe',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'profile',
+          methodName: 'updateMe',
+          parameters: _ist.testObjectToJson({
+            'displayName': displayName,
+            'neighborhood': neighborhood,
+            'accountType': accountType,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ivdene5f.MemberProfile>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_ih8to8xj.PhotoUpload> avatarUploadDescription(
+    _ist.TestSessionBuilder sessionBuilder,
+    String fileExtension,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'profile',
+            method: 'avatarUploadDescription',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'profile',
+          methodName: 'avatarUploadDescription',
+          parameters: _ist.testObjectToJson({'fileExtension': fileExtension}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ih8to8xj.PhotoUpload>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_ivdene5f.MemberProfile> setAvatar(
+    _ist.TestSessionBuilder sessionBuilder,
+    String? path,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'profile',
+            method: 'setAvatar',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'profile',
+          methodName: 'setAvatar',
+          parameters: _ist.testObjectToJson({'path': path}),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -1941,6 +2052,47 @@ class _ReviewEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<List<_iwzyt887.ReviewView>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _StatsEndpoint {
+  _StatsEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _is.EndpointDispatch _endpointDispatch;
+
+  final _is.SerializationManager _serializationManager;
+
+  _ida.Future<_iglnhh7t.CommunityImpact> community(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'stats',
+            method: 'community',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'stats',
+          methodName: 'community',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_iglnhh7t.CommunityImpact>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

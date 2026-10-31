@@ -31,9 +31,11 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _iais;
+import 'account_type.dart' as _itrmkf8a;
 import 'app_notification.dart' as _ip1vhxmg;
 import 'category.dart' as _issw2w8j;
 import 'chat_message.dart' as _ivuncx2e;
+import 'community_impact.dart' as _iukzfy8n;
 import 'conversation.dart' as _ineda879;
 import 'conversation_view.dart' as _iz4kexi3;
 import 'greetings/greeting.dart' as _izw8z7ou;
@@ -57,9 +59,11 @@ import 'request_status.dart' as _iq8zsng0;
 import 'request_view.dart' as _iv1530zw;
 import 'review.dart' as _itqm5y01;
 import 'review_view.dart' as _io58qecx;
+export 'account_type.dart';
 export 'app_notification.dart';
 export 'category.dart';
 export 'chat_message.dart';
+export 'community_impact.dart';
 export 'conversation.dart';
 export 'conversation_view.dart';
 export 'greetings/greeting.dart';
@@ -752,6 +756,13 @@ class Protocol extends _is.DatabaseSerializationManager {
           columnDefault: '0',
         ),
         _isp.ColumnDefinition(
+          name: 'accountType',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:AccountType',
+          columnDefault: '\'person\'',
+        ),
+        _isp.ColumnDefinition(
           name: 'createdAt',
           columnType: _isp.ColumnType.timestampWithoutTimeZone,
           isNullable: false,
@@ -1023,6 +1034,9 @@ class Protocol extends _is.DatabaseSerializationManager {
       }
     }
 
+    if (t == _itrmkf8a.AccountType) {
+      return _itrmkf8a.AccountType.fromJson(data) as T;
+    }
     if (t == _ip1vhxmg.AppNotification) {
       return _ip1vhxmg.AppNotification.fromJson(data) as T;
     }
@@ -1031,6 +1045,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _ivuncx2e.ChatMessage) {
       return _ivuncx2e.ChatMessage.fromJson(data) as T;
+    }
+    if (t == _iukzfy8n.CommunityImpact) {
+      return _iukzfy8n.CommunityImpact.fromJson(data) as T;
     }
     if (t == _ineda879.Conversation) {
       return _ineda879.Conversation.fromJson(data) as T;
@@ -1101,6 +1118,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (t == _io58qecx.ReviewView) {
       return _io58qecx.ReviewView.fromJson(data) as T;
     }
+    if (t == _is.getType<_itrmkf8a.AccountType?>()) {
+      return (data != null ? _itrmkf8a.AccountType.fromJson(data) : null) as T;
+    }
     if (t == _is.getType<_ip1vhxmg.AppNotification?>()) {
       return (data != null ? _ip1vhxmg.AppNotification.fromJson(data) : null)
           as T;
@@ -1110,6 +1130,10 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (t == _is.getType<_ivuncx2e.ChatMessage?>()) {
       return (data != null ? _ivuncx2e.ChatMessage.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_iukzfy8n.CommunityImpact?>()) {
+      return (data != null ? _iukzfy8n.CommunityImpact.fromJson(data) : null)
+          as T;
     }
     if (t == _is.getType<_ineda879.Conversation?>()) {
       return (data != null ? _ineda879.Conversation.fromJson(data) : null) as T;
@@ -1266,9 +1290,11 @@ class Protocol extends _is.DatabaseSerializationManager {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
+      _itrmkf8a.AccountType => 'AccountType',
       _ip1vhxmg.AppNotification => 'AppNotification',
       _issw2w8j.Category => 'Category',
       _ivuncx2e.ChatMessage => 'ChatMessage',
+      _iukzfy8n.CommunityImpact => 'CommunityImpact',
       _ineda879.Conversation => 'Conversation',
       _iz4kexi3.ConversationView => 'ConversationView',
       _izw8z7ou.Greeting => 'Greeting',
@@ -1309,12 +1335,16 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
 
     switch (data) {
+      case _itrmkf8a.AccountType():
+        return 'AccountType';
       case _ip1vhxmg.AppNotification():
         return 'AppNotification';
       case _issw2w8j.Category():
         return 'Category';
       case _ivuncx2e.ChatMessage():
         return 'ChatMessage';
+      case _iukzfy8n.CommunityImpact():
+        return 'CommunityImpact';
       case _ineda879.Conversation():
         return 'Conversation';
       case _iz4kexi3.ConversationView():
@@ -1387,6 +1417,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'AccountType') {
+      return deserialize<_itrmkf8a.AccountType>(data['data']);
+    }
     if (dataClassName == 'AppNotification') {
       return deserialize<_ip1vhxmg.AppNotification>(data['data']);
     }
@@ -1395,6 +1428,9 @@ class Protocol extends _is.DatabaseSerializationManager {
     }
     if (dataClassName == 'ChatMessage') {
       return deserialize<_ivuncx2e.ChatMessage>(data['data']);
+    }
+    if (dataClassName == 'CommunityImpact') {
+      return deserialize<_iukzfy8n.CommunityImpact>(data['data']);
     }
     if (dataClassName == 'Conversation') {
       return deserialize<_ineda879.Conversation>(data['data']);

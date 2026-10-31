@@ -42,6 +42,9 @@ notification:
 profile:
   - me:
   - saveMe:
+  - updateMe:
+  - avatarUploadDescription:
+  - setAvatar:
   - byId:
   - publicProfile:
 report:
@@ -56,3 +59,5 @@ request:
 review:
   - create:
   - forMember:
+stats:
+  - community:

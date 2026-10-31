@@ -3,6 +3,7 @@ import 'package:serverpod_auth_idp_server/core.dart';
 
 import '../common/geo.dart';
 import '../common/current_profile.dart';
+import '../common/uuid.dart';
 import '../listings/listing_views.dart';
 import '../reviews/review_endpoint.dart';
 import '../generated/protocol.dart';
@@ -30,11 +31,9 @@ class ProfileEndpoint extends Endpoint {
     String? neighborhood,
     double? latitude,
     double? longitude,
+    AccountType? accountType,
   }) async {
-    final name = displayName.trim();
-    if (name.length < 2 || name.length > 60) {
-      throw ArgumentError.value(displayName, 'displayName');
-    }
+    final name = _validName(displayName);
 
     if (latitude != null || longitude != null) {
       if (latitude == null ||
@@ -70,11 +69,98 @@ class ProfileEndpoint extends Endpoint {
               neighborhood: neighborhoodTrimmed,
               latitude: roundCoordinate(latitude),
               longitude: roundCoordinate(longitude),
+              accountType: accountType,
             );
 
     return existing == null
         ? MemberProfile.db.insertRow(session, profile)
         : MemberProfile.db.updateRow(session, profile);
+  }
+
+  /// Edits the caller's name, neighborhood and account type, keeping the
+  /// stored location and photo.
+  Future<MemberProfile> updateMe(
+    Session session, {
+    required String displayName,
+    String? neighborhood,
+    AccountType? accountType,
+  }) async {
+    final profile = await currentProfile(session);
+    var hood = neighborhood?.trim();
+    if (hood != null && hood.length > 60) {
+      throw NotAllowedException(
+        message: 'El barrio no puede superar 60 caracteres.',
+      );
+    }
+    if (hood?.isEmpty ?? false) hood = null;
+
+    return MemberProfile.db.updateRow(
+      session,
+      profile.copyWith(
+        displayName: _validName(displayName),
+        neighborhood: hood,
+        accountType: accountType ?? profile.accountType,
+      ),
+      columns: (t) => [t.displayName, t.neighborhood, t.accountType],
+    );
+  }
+
+  /// Where the app uploads a new profile photo.
+  Future<PhotoUpload> avatarUploadDescription(
+    Session session,
+    String fileExtension,
+  ) async {
+    final ext = fileExtension.trim().toLowerCase();
+    if (!const {'jpg', 'jpeg', 'png', 'webp'}.contains(ext)) {
+      throw NotAllowedException(
+        message: 'Usa una imagen jpg, png o webp.',
+      );
+    }
+    final profile = await currentProfile(session);
+    final path = 'avatars/${profile.id}/${uuidV4()}.$ext';
+    final description = await session.storage.createUploadDescription(
+      storageId: 'public',
+      path: path,
+    );
+    return PhotoUpload(path: path, uploadDescription: description);
+  }
+
+  /// Sets the uploaded photo at [path] as the caller's avatar, or removes
+  /// the avatar when [path] is null.
+  Future<MemberProfile> setAvatar(Session session, String? path) async {
+    final profile = await currentProfile(session);
+    String? url;
+    if (path != null) {
+      final ownPath = RegExp(
+        '^avatars/${profile.id}/[0-9a-f-]{36}\\.(jpg|jpeg|png|webp)\$',
+      ).hasMatch(path);
+      if (!ownPath ||
+          !await session.storage.fileExists(
+            storageId: 'public',
+            path: path,
+          )) {
+        throw NotAllowedException(message: 'No encontramos la foto subida.');
+      }
+      url = (await session.storage.publicDownloadUrl(
+        storageId: 'public',
+        path: path,
+      )).toString();
+    }
+    return MemberProfile.db.updateRow(
+      session,
+      profile.copyWith(avatarUrl: url),
+      columns: (t) => [t.avatarUrl],
+    );
+  }
+
+  String _validName(String displayName) {
+    final name = displayName.trim();
+    if (name.length < 2 || name.length > 60) {
+      throw NotAllowedException(
+        message: 'El nombre debe tener entre 2 y 60 caracteres.',
+      );
+    }
+    return name;
   }
 
   /// Public profile of any member, used on listing detail and chat headers.

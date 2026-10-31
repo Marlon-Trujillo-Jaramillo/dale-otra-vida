@@ -5,6 +5,7 @@ import 'package:serverpod/serverpod.dart';
 import '../chat/chat_messages.dart';
 import '../common/current_profile.dart';
 import '../common/geo.dart';
+import '../common/uuid.dart';
 import '../generated/protocol.dart';
 import '../notifications/notify.dart';
 import 'listing_views.dart';
@@ -36,7 +37,7 @@ class ListingEndpoint extends Endpoint {
     }
 
     final profile = await currentProfile(session);
-    final path = 'listings/${profile.id!}/${_uuidV4()}.$ext';
+    final path = 'listings/${profile.id!}/${uuidV4()}.$ext';
     final uploadDescription = await session.storage.createUploadDescription(
       storageId: 'public',
       path: path,
@@ -628,14 +629,4 @@ class ListingEndpoint extends Endpoint {
       .replaceAll('\\', '\\\\')
       .replaceAll('%', '\\%')
       .replaceAll('_', '\\_');
-
-  String _uuidV4() {
-    final random = math.Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0F) | 0x40;
-    bytes[8] = (bytes[8] & 0x3F) | 0x80;
-    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
-        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
-  }
 }

@@ -13,6 +13,7 @@ fields:
   ratingAvg: double, default=0
   reviewCount: int, default=0
   deliveryCount: int, default=0
+  accountType: AccountType, default=person
   createdAt: DateTime, default=now
 indexes:
   member_profile_auth_user_idx:

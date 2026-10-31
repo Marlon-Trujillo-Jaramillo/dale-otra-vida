@@ -1,0 +1,10 @@
+### Community-wide numbers shown on the home screen.
+class: CommunityImpact
+fields:
+  ### Listings that reached someone else.
+  deliveredCount: int
+  ### Delivered food listings.
+  foodSavedCount: int
+  ### Listings available right now.
+  activeCount: int
+  memberCount: int

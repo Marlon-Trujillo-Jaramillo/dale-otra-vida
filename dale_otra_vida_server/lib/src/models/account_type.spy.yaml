@@ -1,0 +1,6 @@
+### Who is behind a profile; shown as a badge so people know who they deal with.
+enum: AccountType
+values:
+  - person
+  - business
+  - organization

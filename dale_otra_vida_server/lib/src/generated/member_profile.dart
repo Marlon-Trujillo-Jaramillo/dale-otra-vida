@@ -15,6 +15,7 @@ import 'package:dale_otra_vida_server/src/generated/protocol.dart' as _iy3gazpv;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
+import 'account_type.dart' as _itrmkf8a;
 
 /// Public profile of an app user, one per auth user.
 abstract class MemberProfile
@@ -32,11 +33,13 @@ abstract class MemberProfile
     double? ratingAvg,
     int? reviewCount,
     int? deliveryCount,
+    _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
   }) : isVerified = isVerified ?? false,
        ratingAvg = ratingAvg ?? 0.0,
        reviewCount = reviewCount ?? 0,
        deliveryCount = deliveryCount ?? 0,
+       accountType = accountType ?? _itrmkf8a.AccountType.person,
        createdAt = createdAt ?? DateTime.now();
 
   factory MemberProfile({
@@ -52,6 +55,7 @@ abstract class MemberProfile
     double? ratingAvg,
     int? reviewCount,
     int? deliveryCount,
+    _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
   }) = _MemberProfileImpl;
 
@@ -77,6 +81,11 @@ abstract class MemberProfile
       ratingAvg: (jsonSerialization['ratingAvg'] as num?)?.toDouble(),
       reviewCount: jsonSerialization['reviewCount'] as int?,
       deliveryCount: jsonSerialization['deliveryCount'] as int?,
+      accountType: jsonSerialization['accountType'] == null
+          ? null
+          : _itrmkf8a.AccountType.fromJson(
+              (jsonSerialization['accountType'] as String),
+            ),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -113,6 +122,8 @@ abstract class MemberProfile
 
   int deliveryCount;
 
+  _itrmkf8a.AccountType accountType;
+
   DateTime createdAt;
 
   @override
@@ -134,6 +145,7 @@ abstract class MemberProfile
     double? ratingAvg,
     int? reviewCount,
     int? deliveryCount,
+    _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
   });
   @override
@@ -152,6 +164,7 @@ abstract class MemberProfile
       'ratingAvg': ratingAvg,
       'reviewCount': reviewCount,
       'deliveryCount': deliveryCount,
+      'accountType': accountType.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -172,6 +185,7 @@ abstract class MemberProfile
       'ratingAvg': ratingAvg,
       'reviewCount': reviewCount,
       'deliveryCount': deliveryCount,
+      'accountType': accountType.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -220,6 +234,7 @@ class _MemberProfileImpl extends MemberProfile {
     double? ratingAvg,
     int? reviewCount,
     int? deliveryCount,
+    _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
   }) : super._(
          id: id,
@@ -234,6 +249,7 @@ class _MemberProfileImpl extends MemberProfile {
          ratingAvg: ratingAvg,
          reviewCount: reviewCount,
          deliveryCount: deliveryCount,
+         accountType: accountType,
          createdAt: createdAt,
        );
 
@@ -254,6 +270,7 @@ class _MemberProfileImpl extends MemberProfile {
     double? ratingAvg,
     int? reviewCount,
     int? deliveryCount,
+    _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
   }) {
     return MemberProfile(
@@ -271,6 +288,7 @@ class _MemberProfileImpl extends MemberProfile {
       ratingAvg: ratingAvg ?? this.ratingAvg,
       reviewCount: reviewCount ?? this.reviewCount,
       deliveryCount: deliveryCount ?? this.deliveryCount,
+      accountType: accountType ?? this.accountType,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -332,6 +350,13 @@ class MemberProfileUpdateTable extends _is.UpdateTable<MemberProfileTable> {
     value,
   );
 
+  _is.ColumnValue<_itrmkf8a.AccountType, _itrmkf8a.AccountType> accountType(
+    _itrmkf8a.AccountType value,
+  ) => _is.ColumnValue(
+    table.accountType,
+    value,
+  );
+
   _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _is.ColumnValue(
         table.createdAt,
@@ -387,6 +412,12 @@ class MemberProfileTable extends _is.Table<int?> {
       this,
       hasDefault: true,
     );
+    accountType = _is.ColumnEnum(
+      'accountType',
+      this,
+      _is.EnumSerialization.byName,
+      hasDefault: true,
+    );
     createdAt = _is.ColumnDateTime(
       'createdAt',
       this,
@@ -419,6 +450,8 @@ class MemberProfileTable extends _is.Table<int?> {
 
   late final _is.ColumnInt deliveryCount;
 
+  late final _is.ColumnEnum<_itrmkf8a.AccountType> accountType;
+
   late final _is.ColumnDateTime createdAt;
 
   _iacs.AuthUserTable get authUser {
@@ -447,6 +480,7 @@ class MemberProfileTable extends _is.Table<int?> {
     ratingAvg,
     reviewCount,
     deliveryCount,
+    accountType,
     createdAt,
   ];
 
