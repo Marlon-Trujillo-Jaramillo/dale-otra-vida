@@ -4,12 +4,13 @@
     {
       "label": "serverpod_start",
       "type": "shell",
-      "command": "serverpod",
-      "args": ["start"],
+      // Checks the CLI, free ports and the Mac's current IP before running
+      // `serverpod start` (see the script for details). The database
+      // password is read from config/passwords.yaml, never from this file.
+      "command": "${workspaceFolder}/dale_otra_vida_server/tool/dev_start.sh",
       "options": {
         "cwd": "${workspaceFolder}/dale_otra_vida_server",
         "env": {
-          "SERVERPOD_PASSWORD_database": "q1CSAqJKAgBZznQm_EUIAipqgvpOgcRN",
           // Marks a `serverpod start` launched from the IDE, which is the
           // only kind that honors the Flutter device picked in VS Code. A run
           // started from a plain terminal carries no marker, so a device file
@@ -43,6 +44,18 @@
           "endsPattern": "."
         }
       }
+    },
+    {
+      // Runs the app on a USB-connected phone against this Mac's current IP.
+      // Start the full stack first so the server is up.
+      "label": "Celular (USB)",
+      "type": "shell",
+      "command": "${workspaceFolder}/dale_otra_vida_server/tool/phone_run.sh",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
     }
   ]
 }
