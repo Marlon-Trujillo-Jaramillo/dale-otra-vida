@@ -27,3 +27,4 @@ odd/
 
 # Any Google OAuth client secret file
 client_secret_*.json
+/build/
