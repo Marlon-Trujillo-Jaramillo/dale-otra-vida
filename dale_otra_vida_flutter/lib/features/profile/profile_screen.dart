@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import '../../client.dart';
+import '../../core/install/install_app.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
@@ -12,6 +13,7 @@ import '../../screens/design_gallery_screen.dart';
 import '../requests/my_requests_screen.dart';
 import '../listing/listing_detail_screen.dart';
 import '../feedback/feedback_sheet.dart';
+import '../install/install_prompt.dart';
 import 'edit_profile_screen.dart';
 import 'profile_body.dart';
 
@@ -159,6 +161,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             subtitle: 'Cuéntanos qué te gustó o qué mejorarías',
             onTap: () => showFeedbackSheet(context, screen: 'perfil'),
           ),
+          if (installState() != InstallState.none) ...[
+            const SizedBox(height: AppSpacing.s),
+            _ProfileTile(
+              icon: Icons.install_mobile,
+              title: 'Instalar la app',
+              subtitle: 'Tenla en tu pantalla de inicio',
+              onTap: () => startInstall(context),
+            ),
+          ],
           const SizedBox(height: AppSpacing.m),
           AppSecondaryButton(label: 'Cerrar sesión', onPressed: _signOut),
           if (kDebugMode)

@@ -31,6 +31,54 @@
 
   <title>Dale Otra Vida</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- "Instalar app": keeps Chrome's install event so the app can offer it
+       later, and tells the app which install path the browser supports. -->
+  <script>
+    (function () {
+      var deferred = null;
+      window.addEventListener('beforeinstallprompt', function (event) {
+        deferred = event;
+      });
+      window.addEventListener('appinstalled', function () {
+        deferred = null;
+      });
+      function standalone() {
+        return window.matchMedia('(display-mode: standalone)').matches ||
+          window.navigator.standalone === true;
+      }
+      function ios() {
+        return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      }
+      window.dovInstall = {
+        // installed | prompt | ios | android | none
+        state: function () {
+          if (standalone()) return 'installed';
+          if (ios()) return 'ios';
+          if (deferred) return 'prompt';
+          if (/android/i.test(navigator.userAgent)) return 'android';
+          return 'none';
+        },
+        prompt: function () {
+          if (!deferred) return Promise.resolve(false);
+          var event = deferred;
+          deferred = null;
+          event.prompt();
+          return event.userChoice.then(function (choice) {
+            return choice.outcome === 'accepted';
+          });
+        },
+        dismissed: function () {
+          try { return localStorage.getItem('dovInstallDismissed') === '1'; }
+          catch (e) { return false; }
+        },
+        dismiss: function () {
+          try { localStorage.setItem('dovInstallDismissed', '1'); } catch (e) {}
+        }
+      };
+    })();
+  </script>
 </head>
 <body>
   <!--

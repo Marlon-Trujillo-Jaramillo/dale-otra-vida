@@ -218,10 +218,11 @@ class _AppShellState extends State<AppShell> {
           notchMargin: 6,
           child: SizedBox(
             height: 72,
+            // Both halves get the same width so the gap lines up with the
+            // centre-docked + button; uneven halves pushed Mensajes under it.
             child: Row(
               children: [
                 Expanded(
-                  flex: 2,
                   child: Row(
                     children: [
                       Expanded(
@@ -248,12 +249,30 @@ class _AppShellState extends State<AppShell> {
                 ),
                 const SizedBox(width: 72),
                 Expanded(
-                  child: _BottomTab(
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person,
-                    label: 'Perfil',
-                    selected: _currentIndex == 2,
-                    onTap: () => _onTabSelected(2),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        // Avisos opens the notifications page rather than
+                        // switching tab, like the bell on wider layouts.
+                        child: _BottomTab(
+                          badgeController: _badgeController,
+                          icon: Icons.notifications_none,
+                          activeIcon: Icons.notifications,
+                          label: 'Avisos',
+                          selected: false,
+                          onTap: _openNotifications,
+                        ),
+                      ),
+                      Expanded(
+                        child: _BottomTab(
+                          icon: Icons.person_outline,
+                          activeIcon: Icons.person,
+                          label: 'Perfil',
+                          selected: _currentIndex == 2,
+                          onTap: () => _onTabSelected(2),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

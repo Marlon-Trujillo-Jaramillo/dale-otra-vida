@@ -17,6 +17,7 @@ import '../../core/widgets/listing_card.dart';
 import '../../core/widgets/listing_grid_card.dart';
 import '../../core/widgets/listing_grid_delegate.dart';
 import '../../core/widgets/section_header.dart';
+import '../install/install_prompt.dart';
 import '../listing/listing_detail_screen.dart';
 import '../map/map_screen.dart';
 import '../notifications/notifications_badge_controller.dart';
@@ -150,6 +151,7 @@ class HomeScreenState extends State<HomeScreen> {
             child: CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(child: _buildHeader(context)),
+                const SliverToBoxAdapter(child: InstallBanner()),
                 SliverToBoxAdapter(child: _buildSearch(context)),
                 SliverToBoxAdapter(child: _buildFilterChips(context)),
                 SliverToBoxAdapter(child: _buildCategories(context)),
