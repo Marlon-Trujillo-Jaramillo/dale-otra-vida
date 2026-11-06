@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 
 import '../../client.dart';
 import '../../core/format.dart';
@@ -30,6 +31,7 @@ class ListingDetailScreen extends StatefulWidget {
 class _ListingDetailScreenState extends State<ListingDetailScreen> {
   late ListingView _view;
   int _currentPhoto = 0;
+  final _photoController = PageController();
   bool _updating = false;
   bool _galleryHover = false;
 
@@ -42,6 +44,24 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     _view = widget.view;
     if (_view.isMine) {
       _loadRequests();
+    }
+  }
+
+  @override
+  void dispose() {
+    _photoController.dispose();
+    super.dispose();
+  }
+
+  /// Moves the gallery to [index]; arrows and thumbnails go through here.
+  void _showPhoto(int index) {
+    setState(() => _currentPhoto = index);
+    if (_photoController.hasClients) {
+      _photoController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -502,6 +522,11 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                   child: Icon(Icons.image, size: 64, color: AppColors.textHint),
                 )
               : PageView.builder(
+                  controller: _photoController,
+                  // Lets a mouse swipe through the photos on the web too.
+                  scrollBehavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: PointerDeviceKind.values.toSet(),
+                  ),
                   itemCount: photos.length,
                   onPageChanged: (index) =>
                       setState(() => _currentPhoto = index),
@@ -593,6 +618,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         children: [
                           Positioned.fill(
                             child: PageView.builder(
+                              controller: _photoController,
+                              // Lets a mouse swipe through the photos on the web too.
+                              scrollBehavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: PointerDeviceKind.values
+                                        .toSet(),
+                                  ),
                               itemCount: photos.length,
                               onPageChanged: (index) => setState(
                                 () => _currentPhoto = index,
@@ -627,7 +659,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                 left: true,
                                 onTap: () {
                                   if (_currentPhoto > 0) {
-                                    setState(() => _currentPhoto--);
+                                    _showPhoto(_currentPhoto - 1);
                                   }
                                 },
                               ),
@@ -639,7 +671,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                 left: false,
                                 onTap: () {
                                   if (_currentPhoto < photos.length - 1) {
-                                    setState(() => _currentPhoto++);
+                                    _showPhoto(_currentPhoto + 1);
                                   }
                                 },
                               ),
@@ -665,7 +697,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 return MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
-                    onTap: () => setState(() => _currentPhoto = index),
+                    onTap: () => _showPhoto(index),
                     child: Container(
                       width: 72,
                       height: 56,

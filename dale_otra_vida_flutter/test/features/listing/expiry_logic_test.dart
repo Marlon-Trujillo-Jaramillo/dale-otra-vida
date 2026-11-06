@@ -90,14 +90,14 @@ void main() {
   });
 
   test('ListingDraft.fromListing keeps the editable fields', () {
-    final draft = ListingDraft.fromListing(
-      listing(expiresAt: DateTime.utc(2026, 11, 2)),
-    );
+    // Relative to today: validateListingDraft rejects past expiry dates.
+    final expiresAt = DateTime.now().toUtc().add(const Duration(days: 3));
+    final draft = ListingDraft.fromListing(listing(expiresAt: expiresAt));
     expect(draft.title, 'Cuate de mango');
     expect(draft.category, Category.food);
     expect(draft.photos, hasLength(1));
     expect(draft.safeMeetingPoint, 'Estación Floresta');
-    expect(draft.expiresAt, DateTime.utc(2026, 11, 2).toLocal());
+    expect(draft.expiresAt, expiresAt.toLocal());
     expect(validateListingDraft(draft), isNull);
   });
 
