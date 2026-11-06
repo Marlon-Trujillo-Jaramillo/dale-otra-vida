@@ -7,14 +7,21 @@
 # Configuration for the main API server.
 apiServer:
   port: 8080
-  publicHost: api.examplepod.com
+  publicHost: dale-otra-vida.api.serverpod.space
   publicPort: 443
   publicScheme: https
 
 # Configuration for the Insights server.
 insightsServer:
   port: 8081
-  publicHost: insights.examplepod.com
+  publicHost: dale-otra-vida.insights.serverpod.space
+  publicPort: 443
+  publicScheme: https
+
+# Serves the Flutter web app (see lib/server.dart).
+webServer:
+  port: 8082
+  publicHost: dale-otra-vida.serverpod.space
   publicPort: 443
   publicScheme: https
 

@@ -28,13 +28,13 @@ serverpod:
       windows: >-
         (if exist web\app rmdir /S /Q web\app)
         & cd /D ..\dale_otra_vida_flutter
-        & set ARGS=web --base-href /
+        & set ARGS=web --base-href / --dart-define=SERVER_URL=https://dale-otra-vida.api.serverpod.space/
         && (call flutter build %ARGS% || (flutter clean && call flutter build %ARGS%))
         && xcopy /E /I /Y build\web ..\dale_otra_vida_server\web\app
       posix: |
         rm -rf ../dale_otra_vida_server/web/app
         cd ../dale_otra_vida_flutter
-        set -- web --base-href / --output ../dale_otra_vida_server/web/app
+        set -- web --base-href / --output ../dale_otra_vida_server/web/app --dart-define=SERVER_URL=https://dale-otra-vida.api.serverpod.space/
         flutter build "$@" || { flutter clean && flutter build "$@"; }
 
   # Companion Flutter apps that `serverpod start` can launch (Ctrl+R), keyed

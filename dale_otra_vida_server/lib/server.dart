@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
 import 'package:serverpod_auth_idp_server/providers/google.dart';
@@ -29,8 +31,10 @@ void run(List<String> args) async {
       ServerpodCloudEmailIdpConfig(
         appDisplayName: 'Dale Otra Vida',
       ),
-      // Reads `googleClientSecret` from config/passwords.yaml.
-      GoogleIdpConfigFromPasswords(),
+      // Reads `googleClientSecret` from config/passwords.yaml. A missing or
+      // malformed secret turns Google sign-in off instead of crashing the
+      // server.
+      ?_googleIdpConfig(),
     ],
   );
 
@@ -49,6 +53,24 @@ void run(List<String> args) async {
     ),
   );
 
+  // Serve the Flutter web app that `serverpod run flutter_build` copies into
+  // web/app (done before each Serverpod Cloud deploy). The build is plain
+  // JS, so the WASM isolation headers are off; they would block the CDN
+  // renderer and map tiles.
+  final webApp = Directory('web/app');
+  if (webApp.existsSync()) {
+    pod.webServer.addRoute(FlutterRoute(webApp, enableWasmHeaders: false));
+  }
+
   // Start the server.
   await pod.start();
+}
+
+GoogleIdpConfig? _googleIdpConfig() {
+  try {
+    return GoogleIdpConfigFromPasswords();
+  } on Exception catch (e) {
+    stderr.writeln('Google sign-in disabled: $e');
+    return null;
+  }
 }
