@@ -208,6 +208,24 @@ void main() {
         expect(newMessages.single.refId, conversationId);
         expect(newMessages.single.title, 'Nuevo mensaje de Ana');
       });
+
+      test('reuses the read notification for the next message', () async {
+        await endpoints.chat.send(owner, conversationId, 'Uno');
+        await endpoints.chat.markRead(requester, conversationId);
+        await endpoints.chat.send(owner, conversationId, 'Dos');
+
+        final notifications = await endpoints.notification.list(
+          requester,
+          limit: 30,
+          offset: 0,
+        );
+        final newMessages = notifications
+            .where((n) => n.kind == NotificationKind.newMessage)
+            .toList();
+        expect(newMessages, hasLength(1));
+        expect(newMessages.single.body, 'Dos');
+        expect(newMessages.single.readAt, isNull);
+      });
     });
 
     test('messages pages newest first with beforeId', () async {

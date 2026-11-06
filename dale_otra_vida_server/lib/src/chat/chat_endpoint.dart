@@ -104,28 +104,43 @@ class ChatEndpoint extends Endpoint {
         transaction: transaction,
       );
 
-      // One unread "new message" notification per conversation at a time.
-      // The conversation lock makes concurrent sends check one by one.
+      // One "new message" notification per conversation: later messages
+      // refresh it (latest preview, unread again, back on top) instead of
+      // piling up. The conversation lock makes concurrent sends check one by
+      // one.
       final recipientId = conversation.ownerId == profile.id
           ? conversation.requesterId
           : conversation.ownerId;
-      final alreadyNotified = await AppNotification.db.findFirstRow(
+      final title = 'Nuevo mensaje de ${profile.displayName}';
+      final body = messagePreview(messageKind, trimmed);
+      final existing = await AppNotification.db.findFirstRow(
         session,
         where: (t) =>
             t.userId.equals(recipientId) &
             t.kind.equals(NotificationKind.newMessage) &
-            t.refId.equals(conversationId) &
-            t.readAt.equals(null),
+            t.refId.equals(conversationId),
+        orderByList: (t) => [t.id.desc()],
         transaction: transaction,
       );
-      if (alreadyNotified == null) {
+      if (existing == null) {
         await notify(
           session,
           userId: recipientId,
           kind: NotificationKind.newMessage,
-          title: 'Nuevo mensaje de ${profile.displayName}',
-          body: messagePreview(messageKind, trimmed),
+          title: title,
+          body: body,
           refId: conversationId,
+          transaction: transaction,
+        );
+      } else {
+        await AppNotification.db.updateRow(
+          session,
+          existing.copyWith(
+            title: title,
+            body: body,
+            readAt: null,
+            createdAt: DateTime.now().toUtc(),
+          ),
           transaction: transaction,
         );
       }
