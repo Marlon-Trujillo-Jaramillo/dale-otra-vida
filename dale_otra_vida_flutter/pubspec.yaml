@@ -47,6 +47,7 @@ dev_dependencies:
   # Used for agents to drive the app through the Dart MCP
   flutter_driver:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: '>=3.0.0 <7.0.0'
   flutter_test:
     sdk: flutter
@@ -99,3 +100,18 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+# App icon: `dart run flutter_launcher_icons` regenerates every platform's
+# icons from assets/icon/ (rendered from the logo tile: eco leaf on accent).
+flutter_launcher_icons:
+  image_path: assets/icon/icon_full.png
+  android: true
+  adaptive_icon_background: "#E8A35C"
+  adaptive_icon_foreground: assets/icon/icon_foreground.png
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: assets/icon/icon_rounded.png
+    background_color: "#1E3A2F"
+    theme_color: "#1E3A2F"
