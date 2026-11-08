@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
-import 'package:serverpod_auth_idp_server/providers/google.dart' show GoogleAccount;
+import 'package:serverpod_auth_idp_server/providers/google.dart'
+    show GoogleAccount;
 
 import '../generated/protocol.dart';
 

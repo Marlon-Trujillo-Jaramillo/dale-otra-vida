@@ -1,6 +1,4 @@
 import 'package:serverpod_auth_idp_server/core.dart';
-import 'package:serverpod_auth_idp_server/providers/google.dart'
-    show GoogleAccount;
 import 'package:test/test.dart';
 
 import 'package:dale_otra_vida_server/src/generated/protocol.dart';
