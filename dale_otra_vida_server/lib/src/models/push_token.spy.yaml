@@ -1,0 +1,16 @@
+### A device that accepted push notifications (Firebase Cloud Messaging).
+class: PushToken
+table: push_token
+fields:
+  profileId: int, relation(parent=member_profile, onDelete=Cascade)
+  ### The FCM registration token of the device.
+  token: String
+  ### "web", "android" or "ios".
+  platform: String
+  updatedAt: DateTime, default=now
+indexes:
+  push_token_token_idx:
+    fields: token
+    unique: true
+  push_token_profile_idx:
+    fields: profileId

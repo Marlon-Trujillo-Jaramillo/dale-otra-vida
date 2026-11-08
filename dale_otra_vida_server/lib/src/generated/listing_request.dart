@@ -22,6 +22,7 @@ abstract class ListingRequest
     required this.requesterId,
     this.message,
     _iq8zsng0.RequestStatus? status,
+    this.acceptedTermsAt,
     DateTime? createdAt,
   }) : status = status ?? _iq8zsng0.RequestStatus.pending,
        createdAt = createdAt ?? DateTime.now();
@@ -32,6 +33,7 @@ abstract class ListingRequest
     required int requesterId,
     String? message,
     _iq8zsng0.RequestStatus? status,
+    DateTime? acceptedTermsAt,
     DateTime? createdAt,
   }) = _ListingRequestImpl;
 
@@ -45,6 +47,11 @@ abstract class ListingRequest
           ? null
           : _iq8zsng0.RequestStatus.fromJson(
               (jsonSerialization['status'] as String),
+            ),
+      acceptedTermsAt: jsonSerialization['acceptedTermsAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['acceptedTermsAt'],
             ),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
@@ -67,6 +74,9 @@ abstract class ListingRequest
 
   _iq8zsng0.RequestStatus status;
 
+  /// Loans: when the requester accepted the owner's loan conditions.
+  DateTime? acceptedTermsAt;
+
   DateTime createdAt;
 
   @override
@@ -81,6 +91,7 @@ abstract class ListingRequest
     int? requesterId,
     String? message,
     _iq8zsng0.RequestStatus? status,
+    DateTime? acceptedTermsAt,
     DateTime? createdAt,
   });
   @override
@@ -92,6 +103,7 @@ abstract class ListingRequest
       'requesterId': requesterId,
       if (message != null) 'message': message,
       'status': status.toJson(),
+      if (acceptedTermsAt != null) 'acceptedTermsAt': acceptedTermsAt?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -105,6 +117,7 @@ abstract class ListingRequest
       'requesterId': requesterId,
       if (message != null) 'message': message,
       'status': status.toJson(),
+      if (acceptedTermsAt != null) 'acceptedTermsAt': acceptedTermsAt?.toJson(),
       'createdAt': createdAt.toJson(),
     };
   }
@@ -146,6 +159,7 @@ class _ListingRequestImpl extends ListingRequest {
     required int requesterId,
     String? message,
     _iq8zsng0.RequestStatus? status,
+    DateTime? acceptedTermsAt,
     DateTime? createdAt,
   }) : super._(
          id: id,
@@ -153,6 +167,7 @@ class _ListingRequestImpl extends ListingRequest {
          requesterId: requesterId,
          message: message,
          status: status,
+         acceptedTermsAt: acceptedTermsAt,
          createdAt: createdAt,
        );
 
@@ -166,6 +181,7 @@ class _ListingRequestImpl extends ListingRequest {
     int? requesterId,
     Object? message = _Undefined,
     _iq8zsng0.RequestStatus? status,
+    Object? acceptedTermsAt = _Undefined,
     DateTime? createdAt,
   }) {
     return ListingRequest(
@@ -174,6 +190,9 @@ class _ListingRequestImpl extends ListingRequest {
       requesterId: requesterId ?? this.requesterId,
       message: message is String? ? message : this.message,
       status: status ?? this.status,
+      acceptedTermsAt: acceptedTermsAt is DateTime?
+          ? acceptedTermsAt
+          : this.acceptedTermsAt,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -204,6 +223,12 @@ class ListingRequestUpdateTable extends _is.UpdateTable<ListingRequestTable> {
     value,
   );
 
+  _is.ColumnValue<DateTime, DateTime> acceptedTermsAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.acceptedTermsAt,
+        value,
+      );
+
   _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _is.ColumnValue(
         table.createdAt,
@@ -233,6 +258,10 @@ class ListingRequestTable extends _is.Table<int?> {
       _is.EnumSerialization.byName,
       hasDefault: true,
     );
+    acceptedTermsAt = _is.ColumnDateTime(
+      'acceptedTermsAt',
+      this,
+    );
     createdAt = _is.ColumnDateTime(
       'createdAt',
       this,
@@ -250,6 +279,9 @@ class ListingRequestTable extends _is.Table<int?> {
 
   late final _is.ColumnEnum<_iq8zsng0.RequestStatus> status;
 
+  /// Loans: when the requester accepted the owner's loan conditions.
+  late final _is.ColumnDateTime acceptedTermsAt;
+
   late final _is.ColumnDateTime createdAt;
 
   @override
@@ -259,6 +291,7 @@ class ListingRequestTable extends _is.Table<int?> {
     requesterId,
     message,
     status,
+    acceptedTermsAt,
     createdAt,
   ];
 }

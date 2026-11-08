@@ -1,0 +1,7 @@
+### What a member sees of their own identity check (no number, no photos).
+class: IdentityState
+fields:
+  ### Null when they never submitted one.
+  status: IdentityStatus?
+  rejectionReason: String?
+  submittedAt: DateTime?

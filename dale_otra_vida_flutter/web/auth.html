@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!-- Google sign-in on the web returns here and hands the result back to the
+     app window (flutter_web_auth_2). Registered as an authorized redirect URI
+     of the "Servidor Serverpod" OAuth client. -->
+<title>Dale Otra Vida</title>
+<p>Listo. Si esta ventana no se cierra sola, ciérrala y vuelve a la app.</p>
+<script>
+  function postAuthenticationMessage() {
+    const message = {
+      'flutter-web-auth-2': window.location.href
+    };
+
+    if (window.opener) {
+      window.opener.postMessage(message, window.location.origin);
+      window.close();
+    } else if (window.parent && window.parent !== window) {
+      window.parent.postMessage(message, window.location.origin);
+    } else {
+      localStorage.setItem('flutter-web-auth-2', window.location.href);
+      window.close();
+    }
+  }
+
+  postAuthenticationMessage();
+</script>

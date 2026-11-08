@@ -1,5 +1,6 @@
 import 'package:serverpod/serverpod.dart';
 
+import '../common/completion.dart';
 import '../common/current_profile.dart';
 import '../generated/protocol.dart';
 import '../notifications/notify.dart';
@@ -41,6 +42,11 @@ class ReviewEndpoint extends Endpoint {
       if (listing == null || listing.status != ListingStatus.delivered) {
         throw NotAllowedException(
           message: 'Solo puedes calificar entregas completadas.',
+        );
+      }
+      if (!isCompletedDelivery(listing)) {
+        throw NotAllowedException(
+          message: 'Podrás calificar cuando el préstamo se cierre.',
         );
       }
 
@@ -112,6 +118,91 @@ class ReviewEndpoint extends Endpoint {
 
       return review;
     });
+  }
+
+  /// Deliveries the caller hasn't rated yet, newest first. The app asks for
+  /// these ratings before anything else, so every delivery gets reviewed.
+  Future<List<PendingReview>> pending(Session session) async {
+    final profile = await currentProfile(session);
+    final me = profile.id!;
+
+    // As requester: my accepted requests on delivered listings.
+    final mine = await ListingRequest.db.find(
+      session,
+      where: (t) =>
+          t.requesterId.equals(me) & t.status.equals(RequestStatus.accepted),
+    );
+    // As owner: my delivered listings.
+    final owned = await Listing.db.find(
+      session,
+      where: (t) =>
+          t.ownerId.equals(me) & t.status.equals(ListingStatus.delivered),
+    );
+    final listings = [
+      ...owned,
+      if (mine.isNotEmpty)
+        ...await Listing.db.find(
+          session,
+          where: (t) =>
+              t.id.inSet(mine.map((r) => r.listingId).toSet()) &
+              t.status.equals(ListingStatus.delivered),
+        ),
+    ];
+    if (listings.isEmpty) return [];
+    final listingIds = listings.map((l) => l.id!).toSet();
+
+    final accepted = await ListingRequest.db.find(
+      session,
+      where: (t) =>
+          t.listingId.inSet(listingIds) &
+          t.status.equals(RequestStatus.accepted),
+    );
+    final requesterByListing = {
+      for (final request in accepted) request.listingId: request.requesterId,
+    };
+    final reviewed = await Review.db.find(
+      session,
+      where: (t) => t.listingId.inSet(listingIds) & t.reviewerId.equals(me),
+    );
+    final reviewedIds = reviewed.map((r) => r.listingId).toSet();
+
+    final targets = <Listing, int>{};
+    for (final listing in listings) {
+      if (!isCompletedDelivery(listing)) continue;
+      final requesterId = requesterByListing[listing.id];
+      if (requesterId == null || reviewedIds.contains(listing.id)) continue;
+      targets[listing] = listing.ownerId == me ? requesterId : listing.ownerId;
+    }
+    if (targets.isEmpty) return [];
+
+    final members = await MemberProfile.db.find(
+      session,
+      where: (t) => t.id.inSet(targets.values.toSet()),
+    );
+    final memberById = {
+      for (final member in members)
+        member.id!: member.copyWith(latitude: null, longitude: null),
+    };
+
+    final pending = [
+      for (final MapEntry(key: listing, value: memberId) in targets.entries)
+        if (memberById[memberId] case final member?)
+          (
+            listing,
+            PendingReview(
+              listingId: listing.id!,
+              listingTitle: listing.title,
+              photoUrl: listing.photoUrls.isEmpty
+                  ? null
+                  : (await session.storage.publicDownloadUrl(
+                      storageId: 'public',
+                      path: listing.photoUrls.first,
+                    )).toString(),
+              member: member,
+            ),
+          ),
+    ]..sort((a, b) => b.$1.updatedAt.compareTo(a.$1.updatedAt));
+    return [for (final (_, review) in pending) review];
   }
 
   /// Newest reviews received by a member.

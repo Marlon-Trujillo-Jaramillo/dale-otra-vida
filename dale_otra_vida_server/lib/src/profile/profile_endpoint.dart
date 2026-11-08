@@ -3,12 +3,17 @@ import 'package:serverpod_auth_idp_server/core.dart';
 
 import '../common/geo.dart';
 import '../common/current_profile.dart';
+import '../common/uploads.dart';
 import '../common/uuid.dart';
 import '../listings/listing_views.dart';
 import '../reviews/review_endpoint.dart';
 import '../generated/protocol.dart';
 
 /// Profile of the signed-in member. Created right after the first sign-in.
+/// Version of the data policy in web/privacidad.html. Raise it when the
+/// policy changes so every member accepts the new one.
+const currentPrivacyVersion = 1;
+
 class ProfileEndpoint extends Endpoint {
   @override
   bool get requireLogin => true;
@@ -77,6 +82,25 @@ class ProfileEndpoint extends Endpoint {
         : MemberProfile.db.updateRow(session, profile);
   }
 
+  /// Records that the caller accepted version [version] of the data policy
+  /// (web/privacidad.html). The app asks again when the version changes.
+  Future<MemberProfile> acceptPrivacy(Session session, int version) async {
+    if (version != currentPrivacyVersion) {
+      throw NotAllowedException(
+        message: 'Actualiza la app para aceptar la política vigente.',
+      );
+    }
+    final profile = await currentProfile(session);
+    return MemberProfile.db.updateRow(
+      session,
+      profile.copyWith(
+        privacyAcceptedVersion: version,
+        privacyAcceptedAt: DateTime.now().toUtc(),
+      ),
+      columns: (t) => [t.privacyAcceptedVersion, t.privacyAcceptedAt],
+    );
+  }
+
   /// Edits the caller's name, neighborhood and account type, keeping the
   /// stored location and photo.
   Future<MemberProfile> updateMe(
@@ -121,6 +145,7 @@ class ProfileEndpoint extends Endpoint {
     final description = await session.storage.createUploadDescription(
       storageId: 'public',
       path: path,
+      options: photoUploadOptions,
     );
     return PhotoUpload(path: path, uploadDescription: description);
   }

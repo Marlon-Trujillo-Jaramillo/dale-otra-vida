@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/layout/breakpoints.dart';
 import '../../core/models/category_ui.dart';
@@ -18,10 +19,7 @@ import '../../core/widgets/listing_grid_card.dart';
 import '../../core/widgets/listing_grid_delegate.dart';
 import '../../core/widgets/section_header.dart';
 import '../install/install_prompt.dart';
-import '../listing/listing_detail_screen.dart';
-import '../map/map_screen.dart';
 import '../notifications/notifications_badge_controller.dart';
-import '../notifications/notifications_screen.dart';
 import 'home_controller.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -85,37 +83,17 @@ class HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _openNotifications() {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (context) => const NotificationsScreen(),
-          ),
-        )
-        .then((_) {
-          if (mounted) {
-            widget.badgeController?.refresh();
-          }
-        });
+  Future<void> _openNotifications() async {
+    await openNotifications(context);
+    if (mounted) widget.badgeController?.refresh();
   }
 
-  void _openMap() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const MapScreen(),
-      ),
-    );
-  }
+  void _openMap() => openMap(context);
 
   Future<void> _openDetail(ListingView view) async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (context) => ListingDetailScreen(view: view),
-      ),
-    );
-    if (changed == true) {
-      _controller.refresh();
-    }
+    await openListing(context, view);
+    // The listing may have been reserved, edited or withdrawn meanwhile.
+    if (mounted) _controller.refresh();
   }
 
   @override

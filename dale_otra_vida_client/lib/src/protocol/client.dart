@@ -11,6 +11,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
+import 'dart:typed_data' as _idt;
 import 'package:dale_otra_vida_client/src/protocol/account_type.dart'
     as _icbr759c;
 import 'package:dale_otra_vida_client/src/protocol/app_notification.dart'
@@ -22,8 +23,10 @@ import 'package:dale_otra_vida_client/src/protocol/community_impact.dart'
     as _i3sxeq7l;
 import 'package:dale_otra_vida_client/src/protocol/conversation_view.dart'
     as _ixj8t0ja;
-import 'package:dale_otra_vida_client/src/protocol/greetings/greeting.dart'
-    as _iqtlzsy5;
+import 'package:dale_otra_vida_client/src/protocol/identity_review_item.dart'
+    as _i7uwfb16;
+import 'package:dale_otra_vida_client/src/protocol/identity_state.dart'
+    as _ibrmq52v;
 import 'package:dale_otra_vida_client/src/protocol/listing.dart' as _iz1p8yt7;
 import 'package:dale_otra_vida_client/src/protocol/listing_request.dart'
     as _iftx1you;
@@ -33,12 +36,16 @@ import 'package:dale_otra_vida_client/src/protocol/listing_type.dart'
     as _is804cud;
 import 'package:dale_otra_vida_client/src/protocol/listing_view.dart'
     as _ijh8j4ei;
+import 'package:dale_otra_vida_client/src/protocol/loan_outcome.dart'
+    as _io4pujmw;
 import 'package:dale_otra_vida_client/src/protocol/member_profile.dart'
     as _ibcyrd05;
 import 'package:dale_otra_vida_client/src/protocol/message_kind.dart'
     as _i711izxw;
 import 'package:dale_otra_vida_client/src/protocol/my_request_view.dart'
     as _ikulhwb6;
+import 'package:dale_otra_vida_client/src/protocol/pending_review.dart'
+    as _ibepkt8s;
 import 'package:dale_otra_vida_client/src/protocol/photo_upload.dart'
     as _ihcne4ez;
 import 'package:dale_otra_vida_client/src/protocol/public_profile_view.dart'
@@ -51,6 +58,8 @@ import 'package:dale_otra_vida_client/src/protocol/request_view.dart'
 import 'package:dale_otra_vida_client/src/protocol/review.dart' as _iczk13vq;
 import 'package:dale_otra_vida_client/src/protocol/review_view.dart'
     as _iv0fqw25;
+import 'package:dale_otra_vida_client/src/protocol/typing_event.dart'
+    as _imknzjf9;
 import 'package:http/http.dart' as _i85jenna;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _iacc;
@@ -68,6 +77,16 @@ class EndpointEmailIdp extends _iaic.EndpointEmailIdpBase {
 
   @override
   String get name => 'emailIdp';
+
+  /// Someone who already signs in with Google would otherwise get a second,
+  /// separate account here: point them to Google instead.
+  @override
+  _ida.Future<_isc.UuidValue> startRegistration({required String email}) =>
+      caller.callServerEndpoint<_isc.UuidValue>(
+        'emailIdp',
+        'startRegistration',
+        {'email': email},
+      );
 
   /// Logs in the user and returns a new session.
   ///
@@ -90,24 +109,6 @@ class EndpointEmailIdp extends _iaic.EndpointEmailIdpBase {
       'password': password,
     },
   );
-
-  /// Starts the registration for a new user account with an email-based login
-  /// associated to it.
-  ///
-  /// Upon successful completion of this method, an email will have been
-  /// sent to [email] with a verification link, which the user must open to
-  /// complete the registration.
-  ///
-  /// Always returns a account request ID, which can be used to complete the
-  /// registration. If the email is already registered, the returned ID will not
-  /// be valid.
-  @override
-  _ida.Future<_isc.UuidValue> startRegistration({required String email}) =>
-      caller.callServerEndpoint<_isc.UuidValue>(
-        'emailIdp',
-        'startRegistration',
-        {'email': email},
-      );
 
   /// Verifies an account request code and returns a token
   /// that can be used to complete the account creation.
@@ -244,6 +245,11 @@ class EndpointEmailIdp extends _iaic.EndpointEmailIdpBase {
 
 /// By extending [GoogleIdpBaseEndpoint], the Google identity provider endpoints
 /// are made available on the server and enable Google sign-in on the client.
+///
+/// Each sign-in method normally creates its own user. Here, the first Google
+/// sign-in of someone who already registered with the same email joins that
+/// account instead of creating a second one: Google verified the email, and
+/// an email account only exists after its code was confirmed.
 /// {@category Endpoint}
 class EndpointGoogleIdp extends _iaic.EndpointGoogleIdpBase {
   EndpointGoogleIdp(_isc.EndpointCaller caller) : super(caller);
@@ -251,10 +257,6 @@ class EndpointGoogleIdp extends _iaic.EndpointGoogleIdpBase {
   @override
   String get name => 'googleIdp';
 
-  /// Validates a Google ID token and either logs in the associated user or
-  /// creates a new user account if the Google account ID is not yet known.
-  ///
-  /// If a new user is created an associated [UserProfile] is also created.
   @override
   _ida.Future<_iacc.AuthSuccess> login({
     required String idToken,
@@ -268,13 +270,6 @@ class EndpointGoogleIdp extends _iaic.EndpointGoogleIdpBase {
     },
   );
 
-  /// Validates a Google authorization code from the web OAuth2 PKCE flow and
-  /// either logs in the associated user or creates a new account.
-  ///
-  /// This is the web counterpart of [login], which accepts an ID token directly
-  /// (used on native platforms via the `google_sign_in` package).
-  ///
-  /// If a new user is created an associated [UserProfile] is also created.
   @override
   _ida.Future<_iacc.AuthSuccess> loginWithCode({
     required String code,
@@ -424,6 +419,28 @@ class EndpointChat extends _isc.EndpointRef {
         {},
       );
 
+  /// Tells the other participant the caller is typing. The app calls it at
+  /// most every few seconds while the member types; nothing is stored.
+  _ida.Future<void> typing(int conversationId) =>
+      caller.callServerEndpoint<void>(
+        'chat',
+        'typing',
+        {'conversationId': conversationId},
+      );
+
+  /// Streams "typing" events of one conversation, the caller's own included
+  /// (the app ignores those).
+  _ida.Stream<_imknzjf9.TypingEvent> typingEvents(int conversationId) =>
+      caller.callStreamingServerEndpoint<
+        _ida.Stream<_imknzjf9.TypingEvent>,
+        _imknzjf9.TypingEvent
+      >(
+        'chat',
+        'typingEvents',
+        {'conversationId': conversationId},
+        {},
+      );
+
   /// Streams every new message in any of the caller's conversations.
   _ida.Stream<_ir83d1bh.ChatMessage> inbox() =>
       caller.callStreamingServerEndpoint<
@@ -462,22 +479,94 @@ class EndpointFeedback extends _isc.EndpointRef {
   );
 }
 
-/// This is an example endpoint that returns a greeting message through
-/// its [hello] method.
+/// Identity checks for loans: the member uploads a photo of the cédula and a
+/// selfie holding it, an administrator compares them by hand, and the photos
+/// are deleted right after. Approved members get `isVerified` and can ask
+/// for loans.
 /// {@category Endpoint}
-class EndpointGreeting extends _isc.EndpointRef {
-  EndpointGreeting(_isc.EndpointCaller caller) : super(caller);
+class EndpointIdentity extends _isc.EndpointRef {
+  EndpointIdentity(_isc.EndpointCaller caller) : super(caller);
 
   @override
-  String get name => 'greeting';
+  String get name => 'identity';
 
-  /// Returns a personalized greeting message: "Hello {name}".
-  _ida.Future<_iqtlzsy5.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_iqtlzsy5.Greeting>(
-        'greeting',
-        'hello',
-        {'name': name},
+  /// The caller's own check, without number or photos.
+  _ida.Future<_ibrmq52v.IdentityState> mine() =>
+      caller.callServerEndpoint<_ibrmq52v.IdentityState>(
+        'identity',
+        'mine',
+        {},
       );
+
+  /// Where to upload one photo (`front` or `selfie`) in private storage.
+  _ida.Future<_ihcne4ez.PhotoUpload> uploadDescription(String kind) =>
+      caller.callServerEndpoint<_ihcne4ez.PhotoUpload>(
+        'identity',
+        'uploadDescription',
+        {'kind': kind},
+      );
+
+  /// Sends the check for review. [consent] must be the member's express
+  /// authorization; it is stored with its date.
+  _ida.Future<_ibrmq52v.IdentityState> submit({
+    required String documentNumber,
+    required String frontPath,
+    required String selfiePath,
+    required bool consent,
+  }) => caller.callServerEndpoint<_ibrmq52v.IdentityState>(
+    'identity',
+    'submit',
+    {
+      'documentNumber': documentNumber,
+      'frontPath': frontPath,
+      'selfiePath': selfiePath,
+      'consent': consent,
+    },
+  );
+
+  /// Whether the caller reviews identity checks.
+  _ida.Future<bool> isAdmin() => caller.callServerEndpoint<bool>(
+    'identity',
+    'isAdmin',
+    {},
+  );
+
+  /// Pending checks, oldest first.
+  _ida.Future<List<_i7uwfb16.IdentityReviewItem>> pending() =>
+      caller.callServerEndpoint<List<_i7uwfb16.IdentityReviewItem>>(
+        'identity',
+        'pending',
+        {},
+      );
+
+  /// The bytes of one photo of a pending check (`front` or `selfie`), read
+  /// from private storage. Never exposed as a URL.
+  _ida.Future<_idt.ByteData> photo(
+    int verificationId,
+    String kind,
+  ) => caller.callServerEndpoint<_idt.ByteData>(
+    'identity',
+    'photo',
+    {
+      'verificationId': verificationId,
+      'kind': kind,
+    },
+  );
+
+  /// Approves or rejects a pending check and deletes its photos.
+  _ida.Future<void> review(
+    int verificationId, {
+    required bool approve,
+    String? reason,
+  }) => caller.callServerEndpoint<void>(
+    'identity',
+    'review',
+    {
+      'verificationId': verificationId,
+      'approve': approve,
+      'reason': reason,
+    },
+  );
 }
 
 /// Endpoints for creating and browsing listings.
@@ -604,6 +693,20 @@ class EndpointListing extends _isc.EndpointRef {
       );
 
   /// Updates the status of a listing owned by the caller.
+  /// Closes a delivered loan as [outcome]: back with the owner, or not
+  /// returned. Both sides can then rate each other.
+  _ida.Future<_ijh8j4ei.ListingView> closeLoan(
+    int id,
+    _io4pujmw.LoanOutcome outcome,
+  ) => caller.callServerEndpoint<_ijh8j4ei.ListingView>(
+    'listing',
+    'closeLoan',
+    {
+      'id': id,
+      'outcome': outcome,
+    },
+  );
+
   _ida.Future<_ijh8j4ei.ListingView> updateStatus(
     int id,
     _i9248wmd.ListingStatus status,
@@ -662,7 +765,6 @@ class EndpointNotification extends _isc.EndpointRef {
   );
 }
 
-/// Profile of the signed-in member. Created right after the first sign-in.
 /// {@category Endpoint}
 class EndpointProfile extends _isc.EndpointRef {
   EndpointProfile(_isc.EndpointCaller caller) : super(caller);
@@ -699,6 +801,15 @@ class EndpointProfile extends _isc.EndpointRef {
       'accountType': accountType,
     },
   );
+
+  /// Records that the caller accepted version [version] of the data policy
+  /// (web/privacidad.html). The app asks again when the version changes.
+  _ida.Future<_ibcyrd05.MemberProfile> acceptPrivacy(int version) =>
+      caller.callServerEndpoint<_ibcyrd05.MemberProfile>(
+        'profile',
+        'acceptPrivacy',
+        {'version': version},
+      );
 
   /// Edits the caller's name, neighborhood and account type, keeping the
   /// stored location and photo.
@@ -752,6 +863,43 @@ class EndpointProfile extends _isc.EndpointRef {
       );
 }
 
+/// Registers the devices that receive push notifications.
+/// {@category Endpoint}
+class EndpointPush extends _isc.EndpointRef {
+  EndpointPush(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'push';
+
+  /// Whether the server can send pushes (Firebase is configured).
+  _ida.Future<bool> enabled() => caller.callServerEndpoint<bool>(
+    'push',
+    'enabled',
+    {},
+  );
+
+  /// Saves [token] for the caller. A token that moved to another account on
+  /// the same device now belongs to the caller.
+  _ida.Future<void> register(
+    String token,
+    String platform,
+  ) => caller.callServerEndpoint<void>(
+    'push',
+    'register',
+    {
+      'token': token,
+      'platform': platform,
+    },
+  );
+
+  /// Forgets [token], e.g. on sign out. Only the caller's own tokens.
+  _ida.Future<void> unregister(String token) => caller.callServerEndpoint<void>(
+    'push',
+    'unregister',
+    {'token': token},
+  );
+}
+
 /// Reports of members or listings for moderation.
 /// {@category Endpoint}
 class EndpointReport extends _isc.EndpointRef {
@@ -797,12 +945,14 @@ class EndpointRequest extends _isc.EndpointRef {
   _ida.Future<_iftx1you.ListingRequest> create(
     int listingId, {
     String? message,
+    bool? acceptTerms,
   }) => caller.callServerEndpoint<_iftx1you.ListingRequest>(
     'request',
     'create',
     {
       'listingId': listingId,
       'message': message,
+      'acceptTerms': acceptTerms,
     },
   );
 
@@ -881,6 +1031,15 @@ class EndpointReview extends _isc.EndpointRef {
     },
   );
 
+  /// Deliveries the caller hasn't rated yet, newest first. The app asks for
+  /// these ratings before anything else, so every delivery gets reviewed.
+  _ida.Future<List<_ibepkt8s.PendingReview>> pending() =>
+      caller.callServerEndpoint<List<_ibepkt8s.PendingReview>>(
+        'review',
+        'pending',
+        {},
+      );
+
   /// Newest reviews received by a member.
   _ida.Future<List<_iv0fqw25.ReviewView>> forMember(
     int profileId, {
@@ -956,10 +1115,11 @@ class Client extends _isc.ServerpodClientShared {
     jwtRefresh = EndpointJwtRefresh(this);
     chat = EndpointChat(this);
     feedback = EndpointFeedback(this);
-    greeting = EndpointGreeting(this);
+    identity = EndpointIdentity(this);
     listing = EndpointListing(this);
     notification = EndpointNotification(this);
     profile = EndpointProfile(this);
+    push = EndpointPush(this);
     report = EndpointReport(this);
     request = EndpointRequest(this);
     review = EndpointReview(this);
@@ -977,13 +1137,15 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointFeedback feedback;
 
-  late final EndpointGreeting greeting;
+  late final EndpointIdentity identity;
 
   late final EndpointListing listing;
 
   late final EndpointNotification notification;
 
   late final EndpointProfile profile;
+
+  late final EndpointPush push;
 
   late final EndpointReport report;
 
@@ -1002,10 +1164,11 @@ class Client extends _isc.ServerpodClientShared {
     'jwtRefresh': jwtRefresh,
     'chat': chat,
     'feedback': feedback,
-    'greeting': greeting,
+    'identity': identity,
     'listing': listing,
     'notification': notification,
     'profile': profile,
+    'push': push,
     'report': report,
     'request': request,
     'review': review,

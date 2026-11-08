@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
+import '../push/push_card.dart';
 import 'chat_screen.dart';
 
 typedef ConversationsFetch = Future<List<ConversationView>> Function();
@@ -127,16 +129,10 @@ class ConversationsScreenState extends State<ConversationsScreen> {
       setState(() => _selectedId = view.conversation.id);
       return;
     }
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (context) => ChatScreen(
-          conversationId: view.conversation.id!,
-          initialView: view,
-          onChanged: _onChatChanged,
-        ),
-      ),
-    );
-    if (mounted) refresh();
+    await openChat(context, view.conversation.id!);
+    if (!mounted) return;
+    refresh();
+    widget.onUnreadChanged?.call();
   }
 
   @override
@@ -144,7 +140,19 @@ class ConversationsScreenState extends State<ConversationsScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final split = constraints.maxWidth >= _splitWidth;
-        final list = _buildList(split: split);
+        final list = Column(
+          children: [
+            const PushCard(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.s,
+                AppSpacing.xl,
+                AppSpacing.s,
+              ),
+            ),
+            Expanded(child: _buildList(split: split)),
+          ],
+        );
         if (!split) {
           return Scaffold(
             backgroundColor: AppColors.background,

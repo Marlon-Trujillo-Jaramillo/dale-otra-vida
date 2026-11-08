@@ -1,0 +1,27 @@
+### A member's identity check for loans: a photo of the cédula and a selfie
+### holding it, reviewed by hand by an administrator. Sensitive data (Ley 1581
+### de 2015): photos live in private storage and are deleted right after the
+### review; only an administrator ever reads this row.
+class: IdentityVerification
+table: identity_verification
+fields:
+  profileId: int, relation(parent=member_profile, onDelete=Cascade)
+  status: IdentityStatus, default=pending
+  ### Cédula number, digits only. Kept for a police report after a theft.
+  documentNumber: String
+  ### Private storage paths; cleared when the photos are deleted.
+  frontPath: String?
+  selfiePath: String?
+  ### When the member gave express consent to this processing.
+  consentAt: DateTime
+  submittedAt: DateTime, default=now
+  reviewedAt: DateTime?
+  ### Profile id of the administrator who reviewed it.
+  reviewedBy: int?
+  rejectionReason: String?
+indexes:
+  identity_verification_profile_idx:
+    fields: profileId
+    unique: true
+  identity_verification_status_idx:
+    fields: status, submittedAt

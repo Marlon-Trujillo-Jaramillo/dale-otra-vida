@@ -18,6 +18,8 @@ import 'package:dale_otra_vida_server/src/generated/listing_status.dart'
     as _icdnh3n6;
 import 'package:dale_otra_vida_server/src/generated/listing_type.dart'
     as _ihn74j41;
+import 'package:dale_otra_vida_server/src/generated/loan_outcome.dart'
+    as _iklnyynf;
 import 'package:dale_otra_vida_server/src/generated/message_kind.dart'
     as _in7kqln3;
 import 'package:dale_otra_vida_server/src/generated/report_reason.dart'
@@ -32,10 +34,11 @@ import '../auth/google_idp_endpoint.dart' as _i71axiz0;
 import '../auth/jwt_refresh_endpoint.dart' as _inwq3ztq;
 import '../chat/chat_endpoint.dart' as _i3w57des;
 import '../feedback/feedback_endpoint.dart' as _i3n4p88h;
-import '../greetings/greeting_endpoint.dart' as _il624ik7;
+import '../identity/identity_endpoint.dart' as _iyf8mysx;
 import '../listings/listing_endpoint.dart' as _i9qx1xff;
 import '../notifications/notification_endpoint.dart' as _ibyw8x7k;
 import '../profile/profile_endpoint.dart' as _i6ky944g;
+import '../push/push_endpoint.dart' as _ii21ahkp;
 import '../reports/report_endpoint.dart' as _iqte9uvc;
 import '../requests/request_endpoint.dart' as _ibwuu02n;
 import '../reviews/review_endpoint.dart' as _i1vkl601;
@@ -75,10 +78,10 @@ class Endpoints extends _is.EndpointDispatch {
           'feedback',
           null,
         ),
-      'greeting': _il624ik7.GreetingEndpoint()
+      'identity': _iyf8mysx.IdentityEndpoint()
         ..initialize(
           server,
-          'greeting',
+          'identity',
           null,
         ),
       'listing': _i9qx1xff.ListingEndpoint()
@@ -97,6 +100,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'profile',
+          null,
+        ),
+      'push': _ii21ahkp.PushEndpoint()
+        ..initialize(
+          server,
+          'push',
           null,
         ),
       'report': _iqte9uvc.ReportEndpoint()
@@ -128,6 +137,25 @@ class Endpoints extends _is.EndpointDispatch {
       name: 'emailIdp',
       endpoint: endpoints['emailIdp']!,
       methodConnectors: {
+        'startRegistration': _is.MethodConnector(
+          name: 'startRegistration',
+          params: {
+            'email': _is.ParameterDescription(
+              name: 'email',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
+                  .startRegistration(
+                    session,
+                    email: params['email'],
+                  ),
+        ),
         'login': _is.MethodConnector(
           name: 'login',
           params: {
@@ -151,25 +179,6 @@ class Endpoints extends _is.EndpointDispatch {
                     session,
                     email: params['email'],
                     password: params['password'],
-                  ),
-        ),
-        'startRegistration': _is.MethodConnector(
-          name: 'startRegistration',
-          params: {
-            'email': _is.ParameterDescription(
-              name: 'email',
-              type: _is.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _is.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _iuc1hd5t.EmailIdpEndpoint)
-                  .startRegistration(
-                    session,
-                    email: params['email'],
                   ),
         ),
         'verifyRegistrationCode': _is.MethodConnector(
@@ -523,6 +532,24 @@ class Endpoints extends _is.EndpointDispatch {
               ) async => (endpoints['chat'] as _i3w57des.ChatEndpoint)
                   .unreadTotal(session),
         ),
+        'typing': _is.MethodConnector(
+          name: 'typing',
+          params: {
+            'conversationId': _is.ParameterDescription(
+              name: 'conversationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i3w57des.ChatEndpoint).typing(
+                session,
+                params['conversationId'],
+              ),
+        ),
         'subscribe': _is.MethodStreamConnector(
           name: 'subscribe',
           params: {
@@ -540,6 +567,27 @@ class Endpoints extends _is.EndpointDispatch {
                 Map<String, dynamic> params,
                 Map<String, Stream> streamParams,
               ) => (endpoints['chat'] as _i3w57des.ChatEndpoint).subscribe(
+                session,
+                params['conversationId'],
+              ),
+        ),
+        'typingEvents': _is.MethodStreamConnector(
+          name: 'typingEvents',
+          params: {
+            'conversationId': _is.ParameterDescription(
+              name: 'conversationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          streamParams: {},
+          returnType: _is.MethodStreamReturnType.streamType,
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+                Map<String, Stream> streamParams,
+              ) => (endpoints['chat'] as _i3w57des.ChatEndpoint).typingEvents(
                 session,
                 params['conversationId'],
               ),
@@ -601,15 +649,106 @@ class Endpoints extends _is.EndpointDispatch {
         ),
       },
     );
-    connectors['greeting'] = _is.EndpointConnector(
-      name: 'greeting',
-      endpoint: endpoints['greeting']!,
+    connectors['identity'] = _is.EndpointConnector(
+      name: 'identity',
+      endpoint: endpoints['identity']!,
       methodConnectors: {
-        'hello': _is.MethodConnector(
-          name: 'hello',
+        'mine': _is.MethodConnector(
+          name: 'mine',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['identity'] as _iyf8mysx.IdentityEndpoint)
+                  .mine(session),
+        ),
+        'uploadDescription': _is.MethodConnector(
+          name: 'uploadDescription',
           params: {
-            'name': _is.ParameterDescription(
-              name: 'name',
+            'kind': _is.ParameterDescription(
+              name: 'kind',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['identity'] as _iyf8mysx.IdentityEndpoint)
+                  .uploadDescription(
+                    session,
+                    params['kind'],
+                  ),
+        ),
+        'submit': _is.MethodConnector(
+          name: 'submit',
+          params: {
+            'documentNumber': _is.ParameterDescription(
+              name: 'documentNumber',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'frontPath': _is.ParameterDescription(
+              name: 'frontPath',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'selfiePath': _is.ParameterDescription(
+              name: 'selfiePath',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'consent': _is.ParameterDescription(
+              name: 'consent',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['identity'] as _iyf8mysx.IdentityEndpoint).submit(
+                    session,
+                    documentNumber: params['documentNumber'],
+                    frontPath: params['frontPath'],
+                    selfiePath: params['selfiePath'],
+                    consent: params['consent'],
+                  ),
+        ),
+        'isAdmin': _is.MethodConnector(
+          name: 'isAdmin',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['identity'] as _iyf8mysx.IdentityEndpoint)
+                  .isAdmin(session),
+        ),
+        'pending': _is.MethodConnector(
+          name: 'pending',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['identity'] as _iyf8mysx.IdentityEndpoint)
+                  .pending(session),
+        ),
+        'photo': _is.MethodConnector(
+          name: 'photo',
+          params: {
+            'verificationId': _is.ParameterDescription(
+              name: 'verificationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'kind': _is.ParameterDescription(
+              name: 'kind',
               type: _is.getType<String>(),
               nullable: false,
             ),
@@ -619,9 +758,41 @@ class Endpoints extends _is.EndpointDispatch {
                 _is.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['greeting'] as _il624ik7.GreetingEndpoint).hello(
+                  (endpoints['identity'] as _iyf8mysx.IdentityEndpoint).photo(
                     session,
-                    params['name'],
+                    params['verificationId'],
+                    params['kind'],
+                  ),
+        ),
+        'review': _is.MethodConnector(
+          name: 'review',
+          params: {
+            'verificationId': _is.ParameterDescription(
+              name: 'verificationId',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'approve': _is.ParameterDescription(
+              name: 'approve',
+              type: _is.getType<bool>(),
+              nullable: false,
+            ),
+            'reason': _is.ParameterDescription(
+              name: 'reason',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['identity'] as _iyf8mysx.IdentityEndpoint).review(
+                    session,
+                    params['verificationId'],
+                    approve: params['approve'],
+                    reason: params['reason'],
                   ),
         ),
       },
@@ -875,6 +1046,31 @@ class Endpoints extends _is.EndpointDispatch {
               ) async => (endpoints['listing'] as _i9qx1xff.ListingEndpoint)
                   .mine(session),
         ),
+        'closeLoan': _is.MethodConnector(
+          name: 'closeLoan',
+          params: {
+            'id': _is.ParameterDescription(
+              name: 'id',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+            'outcome': _is.ParameterDescription(
+              name: 'outcome',
+              type: _is.getType<_iklnyynf.LoanOutcome>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['listing'] as _i9qx1xff.ListingEndpoint).closeLoan(
+                    session,
+                    params['id'],
+                    params['outcome'],
+                  ),
+        ),
         'updateStatus': _is.MethodConnector(
           name: 'updateStatus',
           params: {
@@ -1034,6 +1230,25 @@ class Endpoints extends _is.EndpointDispatch {
                     accountType: params['accountType'],
                   ),
         ),
+        'acceptPrivacy': _is.MethodConnector(
+          name: 'acceptPrivacy',
+          params: {
+            'version': _is.ParameterDescription(
+              name: 'version',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['profile'] as _i6ky944g.ProfileEndpoint)
+                  .acceptPrivacy(
+                    session,
+                    params['version'],
+                  ),
+        ),
         'updateMe': _is.MethodConnector(
           name: 'updateMe',
           params: {
@@ -1143,6 +1358,66 @@ class Endpoints extends _is.EndpointDispatch {
         ),
       },
     );
+    connectors['push'] = _is.EndpointConnector(
+      name: 'push',
+      endpoint: endpoints['push']!,
+      methodConnectors: {
+        'enabled': _is.MethodConnector(
+          name: 'enabled',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['push'] as _ii21ahkp.PushEndpoint).enabled(
+                session,
+              ),
+        ),
+        'register': _is.MethodConnector(
+          name: 'register',
+          params: {
+            'token': _is.ParameterDescription(
+              name: 'token',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'platform': _is.ParameterDescription(
+              name: 'platform',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['push'] as _ii21ahkp.PushEndpoint).register(
+                session,
+                params['token'],
+                params['platform'],
+              ),
+        ),
+        'unregister': _is.MethodConnector(
+          name: 'unregister',
+          params: {
+            'token': _is.ParameterDescription(
+              name: 'token',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['push'] as _ii21ahkp.PushEndpoint).unregister(
+                    session,
+                    params['token'],
+                  ),
+        ),
+      },
+    );
     connectors['report'] = _is.EndpointConnector(
       name: 'report',
       endpoint: endpoints['report']!,
@@ -1203,6 +1478,11 @@ class Endpoints extends _is.EndpointDispatch {
               type: _is.getType<String?>(),
               nullable: true,
             ),
+            'acceptTerms': _is.ParameterDescription(
+              name: 'acceptTerms',
+              type: _is.getType<bool?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -1213,6 +1493,7 @@ class Endpoints extends _is.EndpointDispatch {
                     session,
                     params['listingId'],
                     message: params['message'],
+                    acceptTerms: params['acceptTerms'],
                   ),
         ),
         'forListing': _is.MethodConnector(
@@ -1337,6 +1618,16 @@ class Endpoints extends _is.EndpointDispatch {
                     params['rating'],
                     comment: params['comment'],
                   ),
+        ),
+        'pending': _is.MethodConnector(
+          name: 'pending',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['review'] as _i1vkl601.ReviewEndpoint)
+                  .pending(session),
         ),
         'forMember': _is.MethodConnector(
           name: 'forMember',

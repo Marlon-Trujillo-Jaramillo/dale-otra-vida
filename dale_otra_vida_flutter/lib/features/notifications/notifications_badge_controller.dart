@@ -20,12 +20,30 @@ class NotificationsBadgeController extends ChangeNotifier {
 
   bool get hasUnread => _count > 0;
 
-  Future<void> refresh() async {
-    final fetch = _fetchUnreadCount;
-    if (fetch == null) return;
+  Future<void>? _inFlight;
+  bool _again = false;
 
+  /// Fetches the count. Calls that arrive while one is running share it and
+  /// trigger at most one more fetch afterwards, so bursts (several messages,
+  /// a chat being read, returning to a tab) don't duplicate requests.
+  Future<void> refresh() {
+    if (_fetchUnreadCount == null) return Future.value();
+    if (_inFlight != null) {
+      _again = true;
+      return _inFlight!;
+    }
+    return _inFlight = _fetch().whenComplete(() {
+      _inFlight = null;
+      if (_again) {
+        _again = false;
+        refresh();
+      }
+    });
+  }
+
+  Future<void> _fetch() async {
     try {
-      _count = await fetch();
+      _count = await _fetchUnreadCount!();
       notifyListeners();
     } catch (_) {
       // Keep the previous count on error.

@@ -88,21 +88,29 @@ Future<List<ListingView>> toViews(
         }),
       );
 
+      final isMine = listing.ownerId == caller.id;
+
       double? distanceKm;
       if (latitude != null && longitude != null) {
-        distanceKm = haversineKm(
+        final km = haversineKm(
           latitude,
           longitude,
           listing.latitude,
           listing.longitude,
         );
+        distanceKm = isMine ? km : roundDistanceKm(km);
       }
 
       return ListingView(
-        listing: listing.copyWith(photoUrls: photoUrls),
+        // Others only get the ~1 km zone; the owner keeps the real spot.
+        listing: listing.copyWith(
+          photoUrls: photoUrls,
+          latitude: isMine ? listing.latitude : zoneCenter(listing.latitude),
+          longitude: isMine ? listing.longitude : zoneCenter(listing.longitude),
+        ),
         owner: ownerById[listing.ownerId]!,
         distanceKm: distanceKm,
-        isMine: listing.ownerId == caller.id,
+        isMine: isMine,
         myRequest: myRequestByListingId[listing.id],
         pendingRequestCount: pendingCountByListingId[listing.id] ?? 0,
       );

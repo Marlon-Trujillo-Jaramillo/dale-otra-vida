@@ -11,3 +11,6 @@ fields:
 indexes:
   chat_message_conversation_idx:
     fields: conversationId, createdAt
+  ### Flood limit and unread counts: a sender's latest messages.
+  chat_message_sender_idx:
+    fields: senderId, createdAt

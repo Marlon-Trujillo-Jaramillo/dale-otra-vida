@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!-- Política de tratamiento de datos personales (Ley 1581 de 2012, Decreto
+     1377 de 2013). The app links here and records which version each member
+     accepted: when this text changes, raise "Versión" below and
+     currentPrivacyVersion in dale_otra_vida_server/lib/src/profile and
+     lib/core/legal.dart in the app. -->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Política de datos · Dale Otra Vida</title>
+  <style>
+    :root {
+      --primary: #1E3A2F;
+      --accent: #E8A35C;
+      --background: #F5F1EA;
+      --surface: #FBF9F5;
+      --text: #1E3A2F;
+      --muted: #5B6B63;
+      --border: #DCD5C8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font: 16px/1.6 -apple-system, "Segoe UI", Roboto, "Nunito Sans", sans-serif;
+    }
+    header {
+      background: var(--primary);
+      color: var(--background);
+      padding: 32px 16px;
+    }
+    header .wrap, main { max-width: 760px; margin: 0 auto; }
+    header h1 { font-family: Georgia, "Fraunces", serif; margin: 0 0 4px; font-size: 28px; }
+    header p { margin: 0; opacity: .85; }
+    main { padding: 24px 16px 64px; }
+    h2 { font-family: Georgia, "Fraunces", serif; font-size: 20px; margin: 32px 0 8px; }
+    section { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 4px 20px 12px; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; vertical-align: top; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 700; }
+    a { color: #8A3D10; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .back {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Política de tratamiento de datos personales</h1>
+      <p>Dale Otra Vida · Versión 1 · Vigente desde el 7 de noviembre de 2026</p>
+      <a class="back" href="./" onclick="return goBack()">← Volver a Dale Otra Vida</a>
+    </div>
+  </header>
+  <main>
+    <section>
+      <h2>1. Quién es el responsable</h2>
+      <p>Dale Otra Vida es un proyecto académico de la Institución Universitaria Pascual Bravo (Medellín, Colombia), desarrollado por Daniela Cardona, Nicolás Puerta y Marlon Trujillo Jaramillo, quienes son los responsables del tratamiento de tus datos.</p>
+      <p><strong>Contacto para todo lo relacionado con tus datos:</strong> <a href="mailto:tj.marlon0605@gmail.com">tj.marlon0605@gmail.com</a></p>
+    </section>
+
+    <section>
+      <h2>2. Qué datos recogemos y para qué</h2>
+      <table>
+        <tr><th>Dato</th><th>Para qué lo usamos</th></tr>
+        <tr><td>Nombre, correo y contraseña (cifrada), o tu cuenta de Google</td><td>Crear tu cuenta, iniciar sesión y enviarte códigos de verificación</td></tr>
+        <tr><td>Barrio, tipo de cuenta y foto de perfil</td><td>Mostrar tu perfil a otros vecinos</td></tr>
+        <tr><td>Ubicación aproximada (redondeada a unos 100 m)</td><td>Mostrarte lo que hay cerca. A los demás solo les llega la zona (unos 1 km) y nunca tu dirección</td></tr>
+        <tr><td>Publicaciones y sus fotos</td><td>Mostrarlas en la comunidad</td></tr>
+        <tr><td>Mensajes del chat, solicitudes, entregas y reseñas</td><td>Coordinar los intercambios y construir la reputación de cada miembro</td></tr>
+        <tr><td>Reportes y opiniones que envías</td><td>Atender problemas y mejorar la app</td></tr>
+        <tr><td>Identificador del dispositivo para notificaciones</td><td>Avisarte de mensajes nuevos, si lo activas</td></tr>
+        <tr><td><strong>Número de cédula, foto de la cédula y selfie</strong> (dato sensible), solo si pides préstamos</td><td>Verificar tu identidad antes de un préstamo y, si un préstamo no se devuelve, entregar tu nombre y número a las autoridades que lo soliciten</td></tr>
+      </table>
+      <p>No vendemos ni alquilamos tus datos, no los usamos para publicidad y no tomamos decisiones automáticas sobre ti.</p>
+    </section>
+
+    <section>
+      <h2>3. Datos sensibles</h2>
+      <p>La foto de tu rostro y tu cédula son datos sensibles. Darlos es <strong>opcional</strong>: sin ellos puedes usar toda la app excepto pedir préstamos. Solo los pedimos con tu autorización expresa, se guardan en un almacenamiento privado, solo un administrador los ve para compararlos, y <strong>las fotos se borran apenas termina la revisión</strong>. Conservamos únicamente el número de cédula.</p>
+    </section>
+
+    <section>
+      <h2>4. Con quién se comparten</h2>
+      <p>Para funcionar usamos estos proveedores, que tratan datos por cuenta nuestra:</p>
+      <ul>
+        <li><strong>Serverpod Cloud</strong>: servidores, base de datos, almacenamiento de fotos y envío de correos. Sus servidores pueden estar fuera de Colombia, lo que implica una transferencia internacional de datos que autorizas al aceptar esta política.</li>
+        <li><strong>Google</strong>: si inicias sesión con Google y, si activas las notificaciones, para enviarlas (Firebase).</li>
+        <li><strong>OpenStreetMap</strong>: muestra el mapa. Tu navegador le pide las imágenes del mapa; no le enviamos tus datos.</li>
+      </ul>
+      <p>Otros miembros ven tu perfil, tus publicaciones y tus reseñas, y la persona con la que chateas ve tus mensajes. Entregaremos datos a autoridades solo cuando lo pidan legalmente.</p>
+    </section>
+
+    <section>
+      <h2>5. Cómo los protegemos y cuánto tiempo los guardamos</h2>
+      <p>Toda la comunicación viaja cifrada (HTTPS). Las contraseñas se guardan cifradas. Las fotos de cédula se guardan en almacenamiento privado y se borran tras la revisión. Conservamos tus datos mientras tengas tu cuenta; cuando pidas borrarla, los eliminamos, salvo lo que la ley nos obligue a conservar.</p>
+    </section>
+
+    <section>
+      <h2>6. Tus derechos</h2>
+      <p>Según la Ley 1581 de 2012 puedes:</p>
+      <ul>
+        <li>Conocer, actualizar y rectificar tus datos.</li>
+        <li>Pedir prueba de la autorización que nos diste.</li>
+        <li>Saber cómo hemos usado tus datos.</li>
+        <li>Revocar tu autorización y pedir que borremos tus datos o tu cuenta.</li>
+        <li>Presentar quejas ante la Superintendencia de Industria y Comercio (<a href="https://www.sic.gov.co" rel="noopener">sic.gov.co</a>).</li>
+      </ul>
+      <p><strong>Cómo ejercerlos:</strong> escríbenos a <a href="mailto:tj.marlon0605@gmail.com">tj.marlon0605@gmail.com</a> desde el correo de tu cuenta, diciendo qué necesitas. Respondemos las consultas en máximo 10 días hábiles y los reclamos en máximo 15 días hábiles.</p>
+    </section>
+
+    <section>
+      <h2>7. Menores de edad</h2>
+      <p>Dale Otra Vida está pensada para mayores de 18 años. Si eres menor, usa la app solo con la autorización de tu madre, padre o acudiente.</p>
+    </section>
+
+    <section>
+      <h2>8. Cambios a esta política</h2>
+      <p>Si la cambiamos, te lo avisaremos en la app y te pediremos aceptarla de nuevo antes de seguir usándola.</p>
+      <p class="meta">Versión 1 · 7 de noviembre de 2026</p>
+    </section>
+    <a class="back" href="./" onclick="return goBack()">← Volver a Dale Otra Vida</a>
+  </main>
+  <script>
+    // Opened from the app in its own tab: close it to land back in the app.
+    // Opened directly (a shared link): follow the link to the app.
+    function goBack() {
+      if (window.opener) {
+        window.close();
+        return false;
+      }
+      if (history.length > 1 && document.referrer.startsWith(location.origin)) {
+        history.back();
+        return false;
+      }
+      return true;
+    }
+  </script>
+</body>
+</html>

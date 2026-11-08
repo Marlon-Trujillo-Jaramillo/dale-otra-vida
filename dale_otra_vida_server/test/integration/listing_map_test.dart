@@ -77,6 +77,26 @@ void main() {
       (viewer, _) = await member('Luis');
     });
 
+    test('others only see the ~1 km zone, the owner sees the spot', () async {
+      final created = await listingAt('Lámpara', 6.24438, -75.59012);
+      expect(created.listing.latitude, 6.244);
+      expect(created.listing.longitude, -75.59);
+
+      final seen = await endpoints.listing.byId(viewer, created.listing.id!);
+      expect(seen!.listing.latitude, 6.245);
+      expect(seen.listing.longitude, -75.585);
+
+      final feed = await endpoints.listing.feed(
+        viewer,
+        latitude: 6.244,
+        longitude: -75.59,
+        limit: 10,
+        offset: 0,
+      );
+      expect(feed.single.listing.latitude, 6.245);
+      expect(feed.single.distanceKm, 0.5);
+    });
+
     test('nearest sorts by distance instead of date', () async {
       await listingAt('Lejos', 6.30, -75.60);
       await listingAt('Cerca', 6.251, -75.561);

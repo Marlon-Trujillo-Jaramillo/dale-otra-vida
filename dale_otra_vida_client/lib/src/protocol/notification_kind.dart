@@ -20,7 +20,11 @@ enum NotificationKind implements _isc.SerializableModel {
   newReview,
   listingExpiring,
   requestCancelled,
-  deliveryCompleted;
+  deliveryCompleted,
+  loanDueSoon,
+  loanOverdue,
+  loanClosed,
+  identityReviewed;
 
   static NotificationKind fromJson(String name) {
     switch (name) {
@@ -40,6 +44,14 @@ enum NotificationKind implements _isc.SerializableModel {
         return NotificationKind.requestCancelled;
       case 'deliveryCompleted':
         return NotificationKind.deliveryCompleted;
+      case 'loanDueSoon':
+        return NotificationKind.loanDueSoon;
+      case 'loanOverdue':
+        return NotificationKind.loanOverdue;
+      case 'loanClosed':
+        return NotificationKind.loanClosed;
+      case 'identityReviewed':
+        return NotificationKind.identityReviewed;
       default:
         throw ArgumentError(
           'Value "$name" cannot be converted to "NotificationKind"',

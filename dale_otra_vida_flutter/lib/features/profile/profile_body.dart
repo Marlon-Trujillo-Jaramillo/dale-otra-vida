@@ -131,7 +131,8 @@ class ProfileBody extends StatelessWidget {
         return [
           _ListingGrid(
             listings: view.history,
-            labelFor: (_, {now}) => 'Entregado',
+            labelFor: (listing, {now}) =>
+                loanShortLabel(listing, now: now) ?? 'Entregado',
             emptyTitle: 'Sin entregas todavía',
             emptyMessage: 'Aquí aparecerá lo que ya encontró un nuevo hogar.',
             onOpen: onOpenListing,
@@ -293,24 +294,32 @@ class _ListingGrid extends StatelessWidget {
       );
     }
 
-    return SliverToBoxAdapter(
-      child: ContentWidth(
-        maxWidth: 960,
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: listingGridDelegate(maxTileWidth: 260, minColumns: 2),
-          itemCount: listings.length,
-          itemBuilder: (context, index) {
-            final view = listings[index];
-            return ListingGridCard.fromView(
-              view,
-              statusLabel: labelFor(view.listing),
-              onTap: () => onOpen(view),
-            );
-          },
-        ),
-      ),
+    // A sliver grid builds (and loads the photos of) only the cards on
+    // screen; the same centred 960 px column as ContentWidth.
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        final side = switch (ScreenSize.of(context)) {
+          ScreenSize.compact => 20.0,
+          ScreenSize.medium => 32.0,
+          ScreenSize.expanded => 48.0,
+        };
+        final extra = (constraints.crossAxisExtent - 960) / 2;
+        final horizontal = extra > 0 ? extra + side : side;
+        return SliverPadding(
+          padding: EdgeInsets.symmetric(horizontal: horizontal),
+          sliver: SliverGrid(
+            gridDelegate: listingGridDelegate(maxTileWidth: 260, minColumns: 2),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final view = listings[index];
+              return ListingGridCard.fromView(
+                view,
+                statusLabel: labelFor(view.listing),
+                onTap: () => onOpen(view),
+              );
+            }, childCount: listings.length),
+          ),
+        );
+      },
     );
   }
 }

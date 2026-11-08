@@ -4,6 +4,9 @@ enum RequesterActionState {
   canRequest,
   pending,
   accepted,
+
+  /// Accepted and then delivered: nothing left to cancel.
+  delivered,
   rejected,
   unavailable,
 }
@@ -18,7 +21,9 @@ RequesterActionState requesterActionState(ListingView view) {
     return RequesterActionState.pending;
   }
   if (status == RequestStatus.accepted) {
-    return RequesterActionState.accepted;
+    return listing.status == ListingStatus.delivered
+        ? RequesterActionState.delivered
+        : RequesterActionState.accepted;
   }
   if (status == RequestStatus.rejected) {
     return RequesterActionState.rejected;
@@ -41,10 +46,28 @@ bool isExpired(Listing listing, {DateTime? now}) {
 
 /// Pill shown on the owner's own listing cards, or null when it is visible
 /// in the feed as usual.
+/// Card label of a delivered loan: "Prestado", "Vencido", "Devuelto" or
+/// "No devuelto". Null for anything else.
+String? loanShortLabel(Listing listing, {DateTime? now}) {
+  if (listing.type != ListingType.lend ||
+      listing.status != ListingStatus.delivered) {
+    return null;
+  }
+  return switch (listing.loanOutcome) {
+    LoanOutcome.returned => 'Devuelto',
+    LoanOutcome.notReturned => 'No devuelto',
+    null =>
+      listing.returnDate != null &&
+              !listing.returnDate!.isAfter(now ?? DateTime.now())
+          ? 'Vencido'
+          : 'Prestado',
+  };
+}
+
 String? ownListingLabel(Listing listing, {DateTime? now}) {
   return switch (listing.status) {
     ListingStatus.reserved => 'Reservado',
-    ListingStatus.delivered => 'Entregado',
+    ListingStatus.delivered => loanShortLabel(listing, now: now) ?? 'Entregado',
     ListingStatus.withdrawn => 'Retirado',
     ListingStatus.available => isExpired(listing, now: now) ? 'Vencida' : null,
   };

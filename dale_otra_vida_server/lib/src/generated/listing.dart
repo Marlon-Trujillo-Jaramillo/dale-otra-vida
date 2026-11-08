@@ -16,6 +16,7 @@ import 'category.dart' as _issw2w8j;
 import 'item_condition.dart' as _ittj06x2;
 import 'listing_status.dart' as _igczfm3x;
 import 'listing_type.dart' as _i1ntjlwm;
+import 'loan_outcome.dart' as _izx6bz8r;
 
 /// Something a user offers to donate, exchange, sell or lend.
 abstract class Listing
@@ -33,6 +34,11 @@ abstract class Listing
     this.expiresAt,
     this.price,
     this.returnDate,
+    this.depositAmount,
+    this.lateFeePerDay,
+    this.loanConditions,
+    this.loanOutcome,
+    this.loanClosedAt,
     this.wantedInExchange,
     required this.neighborhood,
     required this.latitude,
@@ -57,6 +63,11 @@ abstract class Listing
     DateTime? expiresAt,
     int? price,
     DateTime? returnDate,
+    int? depositAmount,
+    int? lateFeePerDay,
+    String? loanConditions,
+    _izx6bz8r.LoanOutcome? loanOutcome,
+    DateTime? loanClosedAt,
     String? wantedInExchange,
     required String neighborhood,
     required double latitude,
@@ -96,6 +107,19 @@ abstract class Listing
       returnDate: jsonSerialization['returnDate'] == null
           ? null
           : _is.DateTimeJsonExtension.fromJson(jsonSerialization['returnDate']),
+      depositAmount: jsonSerialization['depositAmount'] as int?,
+      lateFeePerDay: jsonSerialization['lateFeePerDay'] as int?,
+      loanConditions: jsonSerialization['loanConditions'] as String?,
+      loanOutcome: jsonSerialization['loanOutcome'] == null
+          ? null
+          : _izx6bz8r.LoanOutcome.fromJson(
+              (jsonSerialization['loanOutcome'] as String),
+            ),
+      loanClosedAt: jsonSerialization['loanClosedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(
+              jsonSerialization['loanClosedAt'],
+            ),
       wantedInExchange: jsonSerialization['wantedInExchange'] as String?,
       neighborhood: jsonSerialization['neighborhood'] as String,
       latitude: (jsonSerialization['latitude'] as num).toDouble(),
@@ -139,8 +163,24 @@ abstract class Listing
   /// Price in COP, only for `sell`.
   int? price;
 
-  /// Only for `lend`.
+  /// Only for `lend`: when it must be back (at most 30 days ahead).
   DateTime? returnDate;
+
+  /// Only for `lend`: refundable guarantee in COP, handed over in person and
+  /// returned with the item. Optional.
+  int? depositAmount;
+
+  /// Only for `lend`: agreed charge in COP per day late, capped at the
+  /// deposit. Optional; the app shows it, it doesn't charge it.
+  int? lateFeePerDay;
+
+  /// Only for `lend`: the owner's conditions of use.
+  String? loanConditions;
+
+  /// Only for `lend`: set when the owner closes a delivered loan.
+  _izx6bz8r.LoanOutcome? loanOutcome;
+
+  DateTime? loanClosedAt;
 
   /// Only for `exchange`: what the owner wants in return.
   String? wantedInExchange;
@@ -177,6 +217,11 @@ abstract class Listing
     DateTime? expiresAt,
     int? price,
     DateTime? returnDate,
+    int? depositAmount,
+    int? lateFeePerDay,
+    String? loanConditions,
+    _izx6bz8r.LoanOutcome? loanOutcome,
+    DateTime? loanClosedAt,
     String? wantedInExchange,
     String? neighborhood,
     double? latitude,
@@ -201,6 +246,11 @@ abstract class Listing
       if (expiresAt != null) 'expiresAt': expiresAt?.toJson(),
       if (price != null) 'price': price,
       if (returnDate != null) 'returnDate': returnDate?.toJson(),
+      if (depositAmount != null) 'depositAmount': depositAmount,
+      if (lateFeePerDay != null) 'lateFeePerDay': lateFeePerDay,
+      if (loanConditions != null) 'loanConditions': loanConditions,
+      if (loanOutcome != null) 'loanOutcome': loanOutcome?.toJson(),
+      if (loanClosedAt != null) 'loanClosedAt': loanClosedAt?.toJson(),
       if (wantedInExchange != null) 'wantedInExchange': wantedInExchange,
       'neighborhood': neighborhood,
       'latitude': latitude,
@@ -227,6 +277,11 @@ abstract class Listing
       if (expiresAt != null) 'expiresAt': expiresAt?.toJson(),
       if (price != null) 'price': price,
       if (returnDate != null) 'returnDate': returnDate?.toJson(),
+      if (depositAmount != null) 'depositAmount': depositAmount,
+      if (lateFeePerDay != null) 'lateFeePerDay': lateFeePerDay,
+      if (loanConditions != null) 'loanConditions': loanConditions,
+      if (loanOutcome != null) 'loanOutcome': loanOutcome?.toJson(),
+      if (loanClosedAt != null) 'loanClosedAt': loanClosedAt?.toJson(),
       if (wantedInExchange != null) 'wantedInExchange': wantedInExchange,
       'neighborhood': neighborhood,
       'latitude': latitude,
@@ -281,6 +336,11 @@ class _ListingImpl extends Listing {
     DateTime? expiresAt,
     int? price,
     DateTime? returnDate,
+    int? depositAmount,
+    int? lateFeePerDay,
+    String? loanConditions,
+    _izx6bz8r.LoanOutcome? loanOutcome,
+    DateTime? loanClosedAt,
     String? wantedInExchange,
     required String neighborhood,
     required double latitude,
@@ -301,6 +361,11 @@ class _ListingImpl extends Listing {
          expiresAt: expiresAt,
          price: price,
          returnDate: returnDate,
+         depositAmount: depositAmount,
+         lateFeePerDay: lateFeePerDay,
+         loanConditions: loanConditions,
+         loanOutcome: loanOutcome,
+         loanClosedAt: loanClosedAt,
          wantedInExchange: wantedInExchange,
          neighborhood: neighborhood,
          latitude: latitude,
@@ -327,6 +392,11 @@ class _ListingImpl extends Listing {
     Object? expiresAt = _Undefined,
     Object? price = _Undefined,
     Object? returnDate = _Undefined,
+    Object? depositAmount = _Undefined,
+    Object? lateFeePerDay = _Undefined,
+    Object? loanConditions = _Undefined,
+    Object? loanOutcome = _Undefined,
+    Object? loanClosedAt = _Undefined,
     Object? wantedInExchange = _Undefined,
     String? neighborhood,
     double? latitude,
@@ -348,6 +418,17 @@ class _ListingImpl extends Listing {
       expiresAt: expiresAt is DateTime? ? expiresAt : this.expiresAt,
       price: price is int? ? price : this.price,
       returnDate: returnDate is DateTime? ? returnDate : this.returnDate,
+      depositAmount: depositAmount is int? ? depositAmount : this.depositAmount,
+      lateFeePerDay: lateFeePerDay is int? ? lateFeePerDay : this.lateFeePerDay,
+      loanConditions: loanConditions is String?
+          ? loanConditions
+          : this.loanConditions,
+      loanOutcome: loanOutcome is _izx6bz8r.LoanOutcome?
+          ? loanOutcome
+          : this.loanOutcome,
+      loanClosedAt: loanClosedAt is DateTime?
+          ? loanClosedAt
+          : this.loanClosedAt,
       wantedInExchange: wantedInExchange is String?
           ? wantedInExchange
           : this.wantedInExchange,
@@ -429,6 +510,35 @@ class ListingUpdateTable extends _is.UpdateTable<ListingTable> {
   _is.ColumnValue<DateTime, DateTime> returnDate(DateTime? value) =>
       _is.ColumnValue(
         table.returnDate,
+        value,
+      );
+
+  _is.ColumnValue<int, int> depositAmount(int? value) => _is.ColumnValue(
+    table.depositAmount,
+    value,
+  );
+
+  _is.ColumnValue<int, int> lateFeePerDay(int? value) => _is.ColumnValue(
+    table.lateFeePerDay,
+    value,
+  );
+
+  _is.ColumnValue<String, String> loanConditions(String? value) =>
+      _is.ColumnValue(
+        table.loanConditions,
+        value,
+      );
+
+  _is.ColumnValue<_izx6bz8r.LoanOutcome, _izx6bz8r.LoanOutcome> loanOutcome(
+    _izx6bz8r.LoanOutcome? value,
+  ) => _is.ColumnValue(
+    table.loanOutcome,
+    value,
+  );
+
+  _is.ColumnValue<DateTime, DateTime> loanClosedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.loanClosedAt,
         value,
       );
 
@@ -524,6 +634,27 @@ class ListingTable extends _is.Table<int?> {
       'returnDate',
       this,
     );
+    depositAmount = _is.ColumnInt(
+      'depositAmount',
+      this,
+    );
+    lateFeePerDay = _is.ColumnInt(
+      'lateFeePerDay',
+      this,
+    );
+    loanConditions = _is.ColumnString(
+      'loanConditions',
+      this,
+    );
+    loanOutcome = _is.ColumnEnum(
+      'loanOutcome',
+      this,
+      _is.EnumSerialization.byName,
+    );
+    loanClosedAt = _is.ColumnDateTime(
+      'loanClosedAt',
+      this,
+    );
     wantedInExchange = _is.ColumnString(
       'wantedInExchange',
       this,
@@ -580,8 +711,24 @@ class ListingTable extends _is.Table<int?> {
   /// Price in COP, only for `sell`.
   late final _is.ColumnInt price;
 
-  /// Only for `lend`.
+  /// Only for `lend`: when it must be back (at most 30 days ahead).
   late final _is.ColumnDateTime returnDate;
+
+  /// Only for `lend`: refundable guarantee in COP, handed over in person and
+  /// returned with the item. Optional.
+  late final _is.ColumnInt depositAmount;
+
+  /// Only for `lend`: agreed charge in COP per day late, capped at the
+  /// deposit. Optional; the app shows it, it doesn't charge it.
+  late final _is.ColumnInt lateFeePerDay;
+
+  /// Only for `lend`: the owner's conditions of use.
+  late final _is.ColumnString loanConditions;
+
+  /// Only for `lend`: set when the owner closes a delivered loan.
+  late final _is.ColumnEnum<_izx6bz8r.LoanOutcome> loanOutcome;
+
+  late final _is.ColumnDateTime loanClosedAt;
 
   /// Only for `exchange`: what the owner wants in return.
   late final _is.ColumnString wantedInExchange;
@@ -613,6 +760,11 @@ class ListingTable extends _is.Table<int?> {
     expiresAt,
     price,
     returnDate,
+    depositAmount,
+    lateFeePerDay,
+    loanConditions,
+    loanOutcome,
+    loanClosedAt,
     wantedInExchange,
     neighborhood,
     latitude,

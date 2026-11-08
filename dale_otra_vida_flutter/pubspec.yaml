@@ -24,10 +24,9 @@ environment:
 resolution: workspace
 
 dependencies:
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.5
   flutter:
+    sdk: flutter
+  flutter_web_plugins:
     sdk: flutter
   google_fonts: ^8.1.0
   dale_otra_vida_client:
@@ -42,6 +41,10 @@ dependencies:
   intl: ^0.20.2
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
+  firebase_core: ^5.1.0
+  firebase_messaging: ^17.0.1
+  url_launcher: ^6.3.3
+  go_router: ^18.1.3
 
 dev_dependencies:
   # Used for agents to drive the app through the Dart MCP
@@ -49,6 +52,7 @@ dev_dependencies:
     sdk: flutter
   flutter_launcher_icons: ^0.14.4
   flutter_lints: '>=3.0.0 <7.0.0'
+  flutter_native_splash: ^2.4.8
   flutter_test:
     sdk: flutter
 
@@ -78,6 +82,7 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
   assets:
     - assets/config.json
+    - assets/icon/splash.png
     # Bundled so text renders in the brand fonts on first launch (SIL OFL).
     - google_fonts/
 
@@ -115,3 +120,18 @@ flutter_launcher_icons:
     image_path: assets/icon/icon_rounded.png
     background_color: "#1E3A2F"
     theme_color: "#1E3A2F"
+
+# Launch screen: `dart run flutter_native_splash:create` regenerates it. The
+# same orange circle with the leaf on brand green is shown by the system
+# splash, the web page and the app's own loading screen (app/auth_gate.dart),
+# so starting the app reads as one screen instead of several flashes.
+flutter_native_splash:
+  color: "#1E3A2F"
+  image: assets/icon/splash.png
+  android_12:
+    color: "#1E3A2F"
+    image: assets/icon/icon_foreground.png
+    icon_background_color: "#E8A35C"
+  web: true
+  web_image_mode: center
+  fullscreen: false

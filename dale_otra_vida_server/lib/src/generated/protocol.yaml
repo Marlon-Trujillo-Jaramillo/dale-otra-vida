@@ -1,6 +1,6 @@
 emailIdp:
-  - login:
   - startRegistration:
+  - login:
   - verifyRegistrationCode:
   - finishRegistration:
   - startPasswordReset:
@@ -21,11 +21,19 @@ chat:
   - markRead:
   - unreadTotal:
   - subscribe:
+  - typing:
+  - typingEvents:
   - inbox:
 feedback:
   - send:
-greeting:
-  - hello:
+identity:
+  - mine:
+  - uploadDescription:
+  - submit:
+  - isAdmin:
+  - pending:
+  - photo:
+  - review:
 listing:
   - photoUploadDescription:
   - verifyPhotoUpload:
@@ -35,6 +43,7 @@ listing:
   - inArea:
   - byId:
   - mine:
+  - closeLoan:
   - updateStatus:
 notification:
   - list:
@@ -44,11 +53,16 @@ notification:
 profile:
   - me:
   - saveMe:
+  - acceptPrivacy:
   - updateMe:
   - avatarUploadDescription:
   - setAvatar:
   - byId:
   - publicProfile:
+push:
+  - enabled:
+  - register:
+  - unregister:
 report:
   - create:
 request:
@@ -60,6 +74,7 @@ request:
   - cancel:
 review:
   - create:
+  - pending:
   - forMember:
 stats:
   - community:

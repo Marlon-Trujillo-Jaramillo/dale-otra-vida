@@ -4,6 +4,8 @@ import 'package:serverpod/serverpod.dart';
 
 import '../chat/chat_messages.dart';
 import '../common/current_profile.dart';
+import '../common/dates.dart';
+import '../common/uploads.dart';
 import '../common/geo.dart';
 import '../common/uuid.dart';
 import '../generated/protocol.dart';
@@ -41,6 +43,7 @@ class ListingEndpoint extends Endpoint {
     final uploadDescription = await session.storage.createUploadDescription(
       storageId: 'public',
       path: path,
+      options: photoUploadOptions,
     );
 
     return PhotoUpload(path: path, uploadDescription: uploadDescription);
@@ -58,6 +61,18 @@ class ListingEndpoint extends Endpoint {
   /// Creates a new listing after validating and sanitizing the input.
   Future<ListingView> create(Session session, Listing listing) async {
     final profile = await currentProfile(session);
+
+    // Against spam: far above what a neighbor publishes in a day.
+    final since = DateTime.now().toUtc().subtract(const Duration(days: 1));
+    final today = await Listing.db.count(
+      session,
+      where: (t) => t.ownerId.equals(profile.id!) & (t.createdAt > since),
+    );
+    if (today >= 20) {
+      throw NotAllowedException(
+        message: 'Llegaste al límite de 20 publicaciones por día.',
+      );
+    }
     final toInsert = await _sanitized(session, listing, profile.id!);
     final created = await Listing.db.insertRow(session, toInsert);
     return toView(session, created, profile);
@@ -90,6 +105,18 @@ class ListingEndpoint extends Endpoint {
         );
       }
 
+      // Requesters accepted the loan terms as they were: once anyone asked,
+      // the return date, guarantee, fee and conditions stay.
+      final reserved =
+          listing.status == ListingStatus.reserved ||
+          await ListingRequest.db.count(
+                session,
+                where: (t) =>
+                    t.listingId.equals(id) &
+                    t.status.equals(RequestStatus.pending),
+                transaction: transaction,
+              ) >
+              0;
       final clean = await _sanitized(
         session,
         changes.copyWith(
@@ -109,7 +136,14 @@ class ListingEndpoint extends Endpoint {
           condition: clean.condition,
           expiresAt: clean.expiresAt,
           price: clean.price,
-          returnDate: clean.returnDate,
+          // Once reserved, the requester accepted these loan terms: they
+          // stay as accepted.
+          returnDate: reserved ? listing.returnDate : clean.returnDate,
+          depositAmount: reserved ? listing.depositAmount : clean.depositAmount,
+          lateFeePerDay: reserved ? listing.lateFeePerDay : clean.lateFeePerDay,
+          loanConditions: reserved
+              ? listing.loanConditions
+              : clean.loanConditions,
           wantedInExchange: clean.wantedInExchange,
           neighborhood: clean.neighborhood,
           latitude: clean.latitude,
@@ -220,15 +254,53 @@ class ListingEndpoint extends Endpoint {
       throw ArgumentError('El precio solo aplica a ventas.');
     }
 
+    String? loanConditions;
     if (listing.type == ListingType.lend) {
       if (listing.returnDate == null || !listing.returnDate!.isAfter(now)) {
         throw ArgumentError(
           'La fecha de devolución es obligatoria y debe ser futura.',
         );
       }
-    } else if (listing.returnDate != null) {
+      if (listing.returnDate!.isAfter(now.add(const Duration(days: 31)))) {
+        throw ArgumentError(
+          'Un préstamo puede durar como máximo 30 días.',
+        );
+      }
+      final deposit = listing.depositAmount;
+      if (deposit != null && (deposit < 1000 || deposit > 10000000)) {
+        throw ArgumentError(
+          'La garantía debe estar entre \$1.000 y \$10.000.000.',
+        );
+      }
+      final fee = listing.lateFeePerDay;
+      if (fee != null) {
+        if (fee < 500 || fee > 1000000) {
+          throw ArgumentError(
+            'El recargo por día debe estar entre \$500 y \$1.000.000.',
+          );
+        }
+        if (deposit != null && fee > deposit) {
+          throw ArgumentError(
+            'El recargo por día no puede superar la garantía.',
+          );
+        }
+      }
+      loanConditions = listing.loanConditions?.trim();
+      if (loanConditions != null && loanConditions.isEmpty) {
+        loanConditions = null;
+      }
+      if (loanConditions != null && loanConditions.length > 300) {
+        throw ArgumentError(
+          'Las condiciones del préstamo no pueden superar 300 caracteres.',
+        );
+      }
+    } else if (listing.returnDate != null ||
+        listing.depositAmount != null ||
+        listing.lateFeePerDay != null ||
+        listing.loanConditions != null) {
       throw ArgumentError(
-        'La fecha de devolución solo aplica a préstamos.',
+        'La fecha de devolución, la garantía y el recargo solo aplican a '
+        'préstamos.',
       );
     }
 
@@ -261,6 +333,13 @@ class ListingEndpoint extends Endpoint {
       expiresAt: listing.category == Category.food ? listing.expiresAt : null,
       price: listing.type == ListingType.sell ? listing.price : null,
       returnDate: listing.type == ListingType.lend ? listing.returnDate : null,
+      depositAmount: listing.type == ListingType.lend
+          ? listing.depositAmount
+          : null,
+      lateFeePerDay: listing.type == ListingType.lend
+          ? listing.lateFeePerDay
+          : null,
+      loanConditions: loanConditions,
       wantedInExchange: listing.type == ListingType.exchange
           ? listing.wantedInExchange!.trim()
           : null,
@@ -443,6 +522,103 @@ class ListingEndpoint extends Endpoint {
   }
 
   /// Updates the status of a listing owned by the caller.
+  /// Closes a delivered loan as [outcome]: back with the owner, or not
+  /// returned. Both sides can then rate each other.
+  Future<ListingView> closeLoan(
+    Session session,
+    int id,
+    LoanOutcome outcome,
+  ) async {
+    final profile = await currentProfile(session);
+
+    final toPublish = <(Conversation, ChatMessage)>[];
+    final saved = await session.db.transaction((transaction) async {
+      final listing = await Listing.db.findById(
+        session,
+        id,
+        transaction: transaction,
+        lockMode: LockMode.forUpdate,
+      );
+      if (listing == null) {
+        throw ArgumentError('Publicación no encontrada.');
+      }
+      if (listing.ownerId != profile.id!) {
+        throw NotAllowedException(
+          message: 'No eres el dueño de esta publicación.',
+        );
+      }
+      if (listing.type != ListingType.lend ||
+          listing.status != ListingStatus.delivered) {
+        throw NotAllowedException(
+          message: 'Solo puedes cerrar un préstamo ya entregado.',
+        );
+      }
+      if (listing.loanOutcome != null) {
+        throw NotAllowedException(message: 'Este préstamo ya está cerrado.');
+      }
+
+      final now = DateTime.now().toUtc();
+      final saved = await Listing.db.updateRow(
+        session,
+        listing.copyWith(
+          loanOutcome: outcome,
+          loanClosedAt: now,
+          updatedAt: now,
+        ),
+        transaction: transaction,
+      );
+
+      final accepted = await ListingRequest.db.findFirstRow(
+        session,
+        where: (t) =>
+            t.listingId.equals(id) & t.status.equals(RequestStatus.accepted),
+        transaction: transaction,
+      );
+      if (accepted != null) {
+        final returned = outcome == LoanOutcome.returned;
+        await notify(
+          session,
+          userId: accepted.requesterId,
+          kind: NotificationKind.loanClosed,
+          title: returned ? 'Préstamo cerrado' : 'Préstamo no devuelto',
+          body: returned
+              ? '${profile.displayName} confirmó que devolviste «${listing.title}». '
+                    'Califícalo.'
+              : '${profile.displayName} marcó «${listing.title}» como no '
+                    'devuelto. Si es un error, escríbele por el chat.',
+          refId: id,
+          transaction: transaction,
+        );
+        final conversation = await Conversation.db.findFirstRow(
+          session,
+          where: (t) =>
+              t.listingId.equals(id) &
+              t.requesterId.equals(accepted.requesterId),
+          transaction: transaction,
+        );
+        if (conversation != null) {
+          final message = await insertChatMessage(
+            session,
+            conversation,
+            kind: MessageKind.system,
+            text: returned
+                ? 'Préstamo devuelto. ¡Gracias por cumplir! Califiquen su '
+                      'experiencia.'
+                : 'El dueño marcó el préstamo como no devuelto.',
+            transaction: transaction,
+          );
+          toPublish.add((conversation, message));
+        }
+      }
+      return saved;
+    });
+
+    for (final (conversation, message) in toPublish) {
+      await publishChatMessage(session, conversation, message);
+    }
+    return toView(session, saved, profile);
+  }
+
   Future<ListingView> updateStatus(
     Session session,
     int id,
@@ -512,13 +688,22 @@ class ListingEndpoint extends Endpoint {
               t.status.equals(RequestStatus.accepted),
           transaction: transaction,
         );
+        // A loan isn't over at hand-over: it is rated once it is closed.
+        final loanDue = listing.type == ListingType.lend
+            ? listing.returnDate
+            : null;
         if (accepted != null) {
           await notify(
             session,
             userId: accepted.requesterId,
             kind: NotificationKind.deliveryCompleted,
-            title: '¡Entrega completada!',
-            body: 'Califica a ${profile.displayName} por «${listing.title}».',
+            title: loanDue == null
+                ? '¡Entrega completada!'
+                : 'Préstamo entregado',
+            body: loanDue == null
+                ? 'Califica a ${profile.displayName} por «${listing.title}».'
+                : 'Devuelve «${listing.title}» a ${profile.displayName} a más '
+                      'tardar el ${shortDateCo(loanDue)}.',
             refId: listing.id,
             transaction: transaction,
           );
@@ -534,9 +719,11 @@ class ListingEndpoint extends Endpoint {
               session,
               conversation,
               kind: MessageKind.system,
-              text:
-                  'Entrega completada. ¡Gracias por darle otra vida! '
-                  'Califiquen su experiencia.',
+              text: loanDue == null
+                  ? 'Entrega completada. ¡Gracias por darle otra vida! '
+                        'Califiquen su experiencia.'
+                  : 'Préstamo entregado. Debe volver a más tardar el '
+                        '${shortDateCo(loanDue)}.',
               transaction: transaction,
             );
             toPublish.add((conversation, message));
@@ -576,21 +763,15 @@ class ListingEndpoint extends Endpoint {
 
       // Withdrawing a listing cancels every open request on it.
       if (status == ListingStatus.withdrawn) {
-        final open = await ListingRequest.db.find(
+        await ListingRequest.db.updateWhere(
           session,
           where: (t) =>
               t.listingId.equals(listing.id!) &
               (t.status.equals(RequestStatus.pending) |
                   t.status.equals(RequestStatus.accepted)),
+          columnValues: (t) => [t.status(RequestStatus.cancelled)],
           transaction: transaction,
         );
-        for (final request in open) {
-          await ListingRequest.db.updateRow(
-            session,
-            request.copyWith(status: RequestStatus.cancelled),
-            transaction: transaction,
-          );
-        }
       }
 
       return toView(session, saved, profile);

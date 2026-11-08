@@ -1,6 +1,13 @@
+import 'dart:async';
+
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
+import 'package:dale_otra_vida_flutter/app/navigation.dart';
 import 'package:dale_otra_vida_flutter/client.dart';
+import 'package:dale_otra_vida_flutter/core/navigation/browser_history.dart';
 import 'package:dale_otra_vida_flutter/core/layout/breakpoints.dart';
+import 'package:dale_otra_vida_flutter/core/push/push.dart';
+import 'package:dale_otra_vida_flutter/features/legal/privacy_consent.dart';
+import 'package:dale_otra_vida_flutter/features/reviews/review_gate.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_colors.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_spacing.dart';
 import 'package:dale_otra_vida_flutter/core/theme/app_typography.dart';
@@ -10,14 +17,17 @@ import 'package:dale_otra_vida_flutter/features/chat/conversations_screen.dart';
 import 'package:dale_otra_vida_flutter/features/home/home_controller.dart';
 import 'package:dale_otra_vida_flutter/features/home/home_screen.dart';
 import 'package:dale_otra_vida_flutter/features/notifications/notifications_badge_controller.dart';
-import 'package:dale_otra_vida_flutter/features/notifications/notifications_screen.dart';
 import 'package:dale_otra_vida_flutter/features/profile/profile_screen.dart';
 import 'package:dale_otra_vida_flutter/features/publish/publish_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
+    this.location,
     this.initialProfile,
     this.fetchFeed,
     this.badgeController,
@@ -25,6 +35,10 @@ class AppShell extends StatefulWidget {
     this.fetchConversations,
     this.inbox,
   });
+
+  /// The router address ('/', '/inicio', '/mensajes', '/perfil'). Null in
+  /// tests without a router: tabs then switch locally.
+  final String? location;
 
   final MemberProfile? initialProfile;
   final ListingFeedFetch? fetchFeed;
@@ -39,7 +53,7 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
   MemberProfile? _profile;
   bool _loadingProfile = true;
@@ -64,6 +78,8 @@ class _AppShellState extends State<AppShell> {
           fetchUnreadCount: () => client.chat.unreadTotal(),
         );
     _chatBadgeController.start();
+    // Keeps this device's push token current; asking happens from a tap.
+    unawaited(Push.sync());
 
     final initial = widget.initialProfile;
     if (initial != null) {
@@ -72,10 +88,57 @@ class _AppShellState extends State<AppShell> {
     } else {
       _loadProfile();
     }
+
+    final location = widget.location;
+    if (location != null) _currentIndex = tabForPath(location);
+
+    // Unrated deliveries must be rated first (tests inject fetchFeed and
+    // have no server to ask).
+    if (widget.fetchFeed == null) {
+      WidgetsBinding.instance.addObserver(this);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startupChecks());
+    }
+  }
+
+  /// The data policy first (it authorizes everything else), then any
+  /// delivery waiting to be rated.
+  Future<void> _startupChecks() async {
+    var profile = _profile;
+    if (profile == null) {
+      try {
+        profile = await client.profile.me();
+      } catch (_) {
+        return;
+      }
+    }
+    if (!mounted || profile == null) return;
+    await askPrivacyAcceptance(context, profile.privacyAcceptedVersion);
+    if (mounted) await askPendingReviews(context);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!mounted) return;
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // Back on screen: refresh at once and poll again.
+        _badgeController.start();
+        _chatBadgeController.start();
+        askPendingReviews(context);
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+        // Nobody sees the badges: no point polling the server.
+        _badgeController.stop();
+        _chatBadgeController.stop();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break;
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (widget.badgeController == null) {
       _badgeController.dispose();
     } else {
@@ -104,55 +167,148 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  void _openPublish() {
+  Future<void> _openPublish() async {
     final profile = _profile;
     if (profile == null) return;
 
-    final size = ScreenSize.of(context);
-    final Future<bool?> published = size == ScreenSize.compact
-        ? Navigator.of(context).push<bool>(
-            MaterialPageRoute<bool>(
-              builder: (context) => PublishScreen(profile: profile),
-              fullscreenDialog: true,
-            ),
-          )
-        : showDialog<bool>(
-            context: context,
-            builder: (context) => _PublishDialog(profile: profile),
-          );
-
-    published.then((published) {
-      _homeKey.currentState?.refresh();
-      if (published == true && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('¡Publicado! Gracias por darle otra vida.'),
-          ),
-        );
-      }
-    });
+    // Phones: a screen with its own address. Wider: a dialog over the page.
+    // PublishScreen confirms the publication itself.
+    if (ScreenSize.of(context) == ScreenSize.compact) {
+      await openPublish(context);
+    } else {
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => _PublishDialog(profile: profile),
+      );
+    }
+    _homeKey.currentState?.refresh();
   }
 
-  void _openNotifications() {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (context) => const NotificationsScreen(),
-          ),
-        )
-        .then((_) {
-          if (mounted) {
-            _badgeController.refresh();
-          }
-        });
+  Future<void> _openNotifications() async {
+    await openNotifications(context);
+    if (mounted) _badgeController.refresh();
   }
 
+  @override
+  void didUpdateWidget(AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final location = widget.location;
+    if (location == null || location == oldWidget.location) return;
+    // Called during a build: the rebuild that follows shows the new tab.
+    _currentIndex = tabForPath(location);
+    // The browser went back from Inicio to the landing address: confirm
+    // before letting the member leave (see [_confirmExit]). A dialog can't
+    // open mid-build, so after this frame.
+    if (location == '/' && oldWidget.location == '/inicio') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _confirmExit();
+      });
+    }
+  }
+
+  /// Switches tab. With a router the address changes too, keeping the
+  /// browser history as "Inicio → section": leaving Inicio adds a step,
+  /// moving between other tabs replaces it, and returning to Inicio goes
+  /// back to it.
   void _onTabSelected(int index) {
-    setState(() => _currentIndex = index);
+    final location = widget.location;
+    if (location == null) {
+      setState(() => _currentIndex = index);
+      return;
+    }
+    if (index == _currentIndex) return;
+    final target = tabPaths[index];
+    if (index == 0) {
+      // Back to the Inicio step already in the history, when there is one.
+      if (kIsWeb && _leftHomeInThisSession) {
+        _leftHomeInThisSession = false;
+        browserBack();
+      } else {
+        context.go(target);
+      }
+    } else if (_currentIndex == 0) {
+      _leftHomeInThisSession = true;
+      context.go(target);
+    } else {
+      Router.neglect(context, () => context.go(target));
+    }
+  }
+
+  /// Whether the history has an Inicio step right before the current tab.
+  bool _leftHomeInThisSession = false;
+
+  bool _homeStepRecorded = false;
+
+  /// The web app opens on '/', the landing address. On the member's first
+  /// touch, record '/inicio' as its own step (a touch makes the browser keep
+  /// it): "back" from Inicio then lands on '/' and can ask before leaving.
+  void _recordHomeStep(PointerDownEvent _) {
+    if (_homeStepRecorded || widget.location != '/') return;
+    _homeStepRecorded = true;
+    context.go('/inicio');
+  }
+
+  /// On the web, "back" from Inicio arrives here (the address '/').
+  Future<void> _confirmExit() async {
+    final leave = await _askToLeave();
+    if (!mounted) return;
+    if (leave) {
+      await SystemNavigator.pop();
+    } else {
+      _homeStepRecorded = true;
+      context.go('/inicio');
+    }
+  }
+
+  Future<bool> _askToLeave() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Salir de Dale Otra Vida?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Quedarme'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Salir'),
+          ),
+        ],
+      ),
+    );
+    return leave == true;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Back goes to Inicio first; from Inicio it asks before leaving the app.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _onBack();
+      },
+      child: kIsWeb && widget.location != null
+          ? Listener(
+              onPointerDown: _recordHomeStep,
+              behavior: HitTestBehavior.translucent,
+              child: _buildShell(context),
+            )
+          : _buildShell(context),
+    );
+  }
+
+  /// The phone's back button (on the web the browser's back changes the
+  /// address instead, see [didUpdateWidget]).
+  Future<void> _onBack() async {
+    if (_currentIndex != 0) {
+      _onTabSelected(0);
+      return;
+    }
+    if (await _askToLeave()) await SystemNavigator.pop();
+  }
+
+  Widget _buildShell(BuildContext context) {
     if (_loadingProfile) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -504,7 +660,7 @@ class _PublishDialog extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
-          child: PublishScreen(profile: profile),
+          child: PublishScreen(profile: profile, asDialog: true),
         ),
       ),
     );

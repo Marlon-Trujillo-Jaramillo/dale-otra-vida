@@ -114,6 +114,8 @@ class ListingCard extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: url,
                 fit: BoxFit.cover,
+                // Decode the 1440 px photo at thumbnail size.
+                memCacheWidth: 400,
                 placeholder: (context, url) => const _PlaceholderIcon(),
                 errorWidget: (context, url, error) => const _PlaceholderIcon(),
               )

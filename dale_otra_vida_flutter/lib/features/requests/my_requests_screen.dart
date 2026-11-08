@@ -1,6 +1,7 @@
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/layout/breakpoints.dart';
 import '../../core/theme/app_colors.dart';
@@ -9,7 +10,6 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/listing_card.dart';
 import '../../core/widgets/listing_grid_card.dart';
-import '../listing/listing_detail_screen.dart';
 
 class MyRequestsScreen extends StatefulWidget {
   const MyRequestsScreen({super.key});
@@ -54,11 +54,7 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
   }
 
   Future<void> _openDetail(MyRequestView view) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (context) => ListingDetailScreen(view: view.listing),
-      ),
-    );
+    await openListing(context, view.listing);
   }
 
   @override

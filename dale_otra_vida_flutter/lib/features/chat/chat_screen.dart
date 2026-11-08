@@ -1,18 +1,19 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
-import '../listing/listing_detail_screen.dart';
-import '../profile/public_profile_screen.dart';
 import '../reports/report_sheet.dart';
 import '../reviews/review_dialog.dart';
+import '../reviews/review_gate.dart';
 import 'chat_logic.dart';
 
 const _pageSize = 50;
@@ -48,10 +49,18 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _error;
   bool _loadingOlder = false;
   bool _hasMore = true;
-  bool _sending = false;
 
   StreamSubscription<ChatMessage>? _subscription;
   Timer? _retryTimer;
+
+  /// Messages shown right away while the server confirms them.
+  final List<ChatMessage> _pending = [];
+
+  /// "Escribiendo…": the other side typed in the last few seconds.
+  StreamSubscription<TypingEvent>? _typingSubscription;
+  bool _otherTyping = false;
+  Timer? _typingTimer;
+  DateTime? _lastTypingSent;
 
   final _input = TextEditingController();
   final _scroll = ScrollController();
@@ -69,6 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _view = widget.initialView;
     _scroll.addListener(_onScroll);
+    _input.addListener(_onInputChanged);
     _load();
     _subscribe();
   }
@@ -76,7 +86,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _typingSubscription?.cancel();
+    _typingTimer?.cancel();
     _retryTimer?.cancel();
+    _input.removeListener(_onInputChanged);
     _input.dispose();
     _scroll.dispose();
     super.dispose();
@@ -126,6 +139,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _subscribe() {
+    _subscribeTyping();
     _subscription?.cancel();
     _subscription = client.chat
         .subscribe(widget.conversationId)
@@ -135,6 +149,37 @@ class _ChatScreenState extends State<ChatScreen> {
           onDone: _scheduleResubscribe,
           cancelOnError: true,
         );
+  }
+
+  void _subscribeTyping() {
+    _typingSubscription?.cancel();
+    _typingSubscription = client.chat
+        .typingEvents(widget.conversationId)
+        .listen(
+          (event) {
+            if (!mounted || event.profileId == _myProfileId) return;
+            _typingTimer?.cancel();
+            _typingTimer = Timer(const Duration(seconds: 4), () {
+              if (mounted) setState(() => _otherTyping = false);
+            });
+            setState(() => _otherTyping = true);
+          },
+          // The message stream's reconnect also restarts this one.
+          onError: (_) {},
+          cancelOnError: true,
+        );
+  }
+
+  /// Lets the other side know while the member types, at most every 3 s.
+  void _onInputChanged() {
+    if (_input.text.trim().isEmpty) return;
+    final now = DateTime.now();
+    final last = _lastTypingSent;
+    if (last != null && now.difference(last) < const Duration(seconds: 3)) {
+      return;
+    }
+    _lastTypingSent = now;
+    client.chat.typing(widget.conversationId).catchError((_) {});
   }
 
   /// Reconnects after a dropped stream and catches up on missed messages.
@@ -159,7 +204,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onIncoming(ChatMessage message) {
     if (!mounted) return;
-    setState(() => _messages = mergeMessages(_messages, [message]));
+    setState(() {
+      _messages = mergeMessages(_messages, [message]);
+      if (message.senderId != _myProfileId) _otherTyping = false;
+    });
     if (message.kind == MessageKind.system) {
       // Reservations and deliveries change the listing header.
       _reloadView();
@@ -206,10 +254,21 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  /// Shows the message at once (with a clock) and swaps in the server's copy
+  /// when it answers; on failure the text goes back to the input.
   Future<void> _send(String text, {MessageKind? kind}) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty || _sending) return;
-    setState(() => _sending = true);
+    if (trimmed.isEmpty) return;
+    final placeholder = ChatMessage(
+      conversationId: widget.conversationId,
+      senderId: _myProfileId,
+      kind: kind ?? MessageKind.text,
+      text: trimmed,
+      createdAt: DateTime.now(),
+    );
+    setState(() => _pending.add(placeholder));
+    if (kind == null) _input.clear();
+    _lastTypingSent = null;
     try {
       final message = await client.chat.send(
         widget.conversationId,
@@ -217,8 +276,10 @@ class _ChatScreenState extends State<ChatScreen> {
         kind: kind,
       );
       if (!mounted) return;
-      setState(() => _messages = mergeMessages(_messages, [message]));
-      if (kind == null) _input.clear();
+      setState(() {
+        _pending.remove(placeholder);
+        _messages = mergeMessages(_messages, [message]);
+      });
       if (_scroll.hasClients) {
         unawaited(
           _scroll.animateTo(
@@ -230,13 +291,19 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       widget.onChanged?.call();
     } on NotAllowedException catch (e) {
+      _unsend(placeholder, restore: kind == null);
       _showSnackBar(e.message);
       if (e.message == 'Esta conversación está cerrada.') _reloadView();
     } catch (_) {
+      _unsend(placeholder, restore: kind == null);
       _showSnackBar('No pudimos enviar el mensaje. Inténtalo de nuevo.');
-    } finally {
-      if (mounted) setState(() => _sending = false);
     }
+  }
+
+  void _unsend(ChatMessage placeholder, {required bool restore}) {
+    if (!mounted) return;
+    setState(() => _pending.remove(placeholder));
+    if (restore && _input.text.isEmpty) _input.text = placeholder.text;
   }
 
   void _onQuickReply(QuickReply reply) {
@@ -295,6 +362,8 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       await _reloadView();
       _showSnackBar('¡Entrega registrada! Gracias por darle otra vida.');
+      if (mounted) await askPendingReviews(context);
+      await _reloadView();
       widget.onChanged?.call();
     } on NotAllowedException catch (e) {
       _showSnackBar(e.message);
@@ -319,22 +388,14 @@ class _ChatScreenState extends State<ChatScreen> {
   void _openProfile() {
     final view = _view;
     if (view == null) return;
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (context) => PublicProfileScreen(profileId: view.other.id!),
-      ),
-    );
+    openMemberProfile(context, view.other.id!);
   }
 
   Future<void> _openListing() async {
     final view = _view;
     if (view == null) return;
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (context) => ListingDetailScreen(view: view.listing),
-      ),
-    );
-    await _reloadView();
+    await openListing(context, view.listing);
+    if (mounted) await _reloadView();
   }
 
   void _showSnackBar(String message) {
@@ -406,7 +467,7 @@ class _ChatScreenState extends State<ChatScreen> {
             if (replies.isNotEmpty)
               _QuickReplies(
                 replies: replies,
-                enabled: !_sending,
+                enabled: true,
                 onSelected: _onQuickReply,
               ),
             if (closed)
@@ -414,7 +475,7 @@ class _ChatScreenState extends State<ChatScreen> {
             else
               _Composer(
                 controller: _input,
-                sending: _sending,
+                sending: false,
                 onSend: () => _send(_input.text),
               ),
           ],
@@ -438,7 +499,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final myId = _myProfileId;
-    final count = _messages.length + (_loadingOlder ? 1 : 0);
+    final messages = [..._messages, ..._pending];
+    // Reversed list: index 0 is the bottom, where "typing" goes.
+    final typing = _otherTyping ? 1 : 0;
+    final count = typing + messages.length + (_loadingOlder ? 1 : 0);
     return ListView.builder(
       controller: _scroll,
       reverse: true,
@@ -448,17 +512,23 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       itemCount: count,
       itemBuilder: (context, index) {
-        if (index == _messages.length) {
+        if (index < typing) return const _TypingBubble();
+        final i = index - typing;
+        if (i == messages.length) {
           return const Padding(
             padding: EdgeInsets.all(AppSpacing.m),
             child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         }
-        final message = _messages[_messages.length - 1 - index];
+        final message = messages[messages.length - 1 - i];
         if (message.kind == MessageKind.system) {
           return _SystemMessage(message: message);
         }
-        return _Bubble(message: message, mine: message.senderId == myId);
+        return _Bubble(
+          message: message,
+          mine: message.senderId == myId,
+          pending: message.id == null,
+        );
       },
     );
   }
@@ -679,10 +749,17 @@ class _SystemMessage extends StatelessWidget {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, required this.mine});
+  const _Bubble({
+    required this.message,
+    required this.mine,
+    this.pending = false,
+  });
 
   final ChatMessage message;
   final bool mine;
+
+  /// Shown before the server confirmed it: a clock instead of the time.
+  final bool pending;
 
   @override
   Widget build(BuildContext context) {
@@ -747,18 +824,98 @@ class _Bubble extends StatelessWidget {
             const SizedBox(height: 2),
             Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                formatMessageTime(message.createdAt),
-                style: AppTypography.caption.copyWith(
-                  fontSize: 11,
-                  color: foreground.withValues(alpha: 0.7),
-                ),
-              ),
+              child: pending
+                  ? Icon(
+                      Icons.schedule,
+                      size: 12,
+                      color: foreground.withValues(alpha: 0.7),
+                    )
+                  : Text(
+                      formatMessageTime(message.createdAt),
+                      style: AppTypography.caption.copyWith(
+                        fontSize: 11,
+                        color: foreground.withValues(alpha: 0.7),
+                      ),
+                    ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Three bouncing dots while the other side types, like WhatsApp.
+class _TypingBubble extends StatefulWidget {
+  const _TypingBubble();
+
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Semantics(
+        label: 'Escribiendo',
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(18),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(4),
+              bottomRight: Radius.circular(18),
+            ),
+          ),
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var dot = 0; dot < 3; dot++) ...[
+                  if (dot > 0) const SizedBox(width: 4),
+                  Transform.translate(
+                    // Each dot rises in turn, a third of a cycle apart.
+                    offset: Offset(0, -3 * _bounce(_controller.value, dot)),
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: AppColors.textSecondary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static double _bounce(double t, int dot) {
+    final phase = (t - dot * 0.2) % 1;
+    return phase < 0.3 ? math.sin(phase / 0.3 * math.pi) : 0;
   }
 }
 
@@ -844,6 +1001,8 @@ class _Composer extends StatelessWidget {
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),
+                // Keep the keyboard open after the keyboard's send key.
+                onEditingComplete: () {},
                 style: AppTypography.body,
                 decoration: InputDecoration(
                   hintText: 'Escribe un mensaje…',
@@ -873,24 +1032,28 @@ class _Composer extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.s),
-            IconButton.filled(
-              tooltip: 'Enviar',
-              onPressed: sending ? null : onSend,
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
-                fixedSize: const Size(48, 48),
+            // Counts as part of the field, so tapping send keeps the
+            // keyboard open instead of closing it like a tap outside.
+            TextFieldTapRegion(
+              child: IconButton.filled(
+                tooltip: 'Enviar',
+                onPressed: sending ? null : onSend,
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
+                  fixedSize: const Size(48, 48),
+                ),
+                icon: sending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.onPrimary,
+                        ),
+                      )
+                    : const Icon(Icons.send_rounded, size: 20),
               ),
-              icon: sending
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.onPrimary,
-                      ),
-                    )
-                  : const Icon(Icons.send_rounded, size: 20),
             ),
           ],
         ),

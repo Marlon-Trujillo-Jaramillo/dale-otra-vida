@@ -17,6 +17,9 @@ class ListingDraft {
     this.expiresAt,
     this.price,
     this.returnDate,
+    this.depositAmount,
+    this.lateFeePerDay,
+    this.loanConditions = '',
     this.wantedInExchange = '',
     this.neighborhood = '',
     this.safeMeetingPoint = '',
@@ -35,6 +38,9 @@ class ListingDraft {
     expiresAt: listing.expiresAt?.toLocal(),
     price: listing.price,
     returnDate: listing.returnDate?.toLocal(),
+    depositAmount: listing.depositAmount,
+    lateFeePerDay: listing.lateFeePerDay,
+    loanConditions: listing.loanConditions ?? '',
     wantedInExchange: listing.wantedInExchange ?? '',
     neighborhood: listing.neighborhood,
     safeMeetingPoint: listing.safeMeetingPoint ?? '',
@@ -51,6 +57,15 @@ class ListingDraft {
   final DateTime? expiresAt;
   final int? price;
   final DateTime? returnDate;
+
+  /// Loans: refundable guarantee in COP (optional).
+  final int? depositAmount;
+
+  /// Loans: agreed charge in COP per day late (optional).
+  final int? lateFeePerDay;
+
+  /// Loans: conditions of use (optional).
+  final String loanConditions;
   final String wantedInExchange;
   final String neighborhood;
   final String safeMeetingPoint;
@@ -67,6 +82,9 @@ class ListingDraft {
     Object? expiresAt = _sentinel,
     Object? price = _sentinel,
     Object? returnDate = _sentinel,
+    Object? depositAmount = _sentinel,
+    Object? lateFeePerDay = _sentinel,
+    String? loanConditions,
     String? wantedInExchange,
     String? neighborhood,
     String? safeMeetingPoint,
@@ -89,6 +107,13 @@ class ListingDraft {
       returnDate: returnDate == _sentinel
           ? this.returnDate
           : returnDate as DateTime?,
+      depositAmount: depositAmount == _sentinel
+          ? this.depositAmount
+          : depositAmount as int?,
+      lateFeePerDay: lateFeePerDay == _sentinel
+          ? this.lateFeePerDay
+          : lateFeePerDay as int?,
+      loanConditions: loanConditions ?? this.loanConditions,
       wantedInExchange: wantedInExchange ?? this.wantedInExchange,
       neighborhood: neighborhood ?? this.neighborhood,
       safeMeetingPoint: safeMeetingPoint ?? this.safeMeetingPoint,
@@ -115,12 +140,21 @@ class ListingDraft {
       expiresAt: category == Category.food ? expiresAt : null,
       price: type == ListingType.sell ? price : null,
       returnDate: type == ListingType.lend ? returnDate : null,
+      depositAmount: type == ListingType.lend ? depositAmount : null,
+      lateFeePerDay: type == ListingType.lend ? lateFeePerDay : null,
+      loanConditions:
+          type == ListingType.lend && loanConditions.trim().isNotEmpty
+          ? loanConditions.trim()
+          : null,
       wantedInExchange: type == ListingType.exchange
           ? (wantedInExchange.trim().isEmpty ? null : wantedInExchange.trim())
           : null,
     );
   }
 }
+
+/// The longest loan the server accepts.
+const maxLoanDays = 30;
 
 String? validateListingDraft(ListingDraft draft) {
   if (draft.photos.isEmpty) {
@@ -182,6 +216,25 @@ String? validateListingDraft(ListingDraft draft) {
     if (!returnDay.isAfter(today)) {
       return 'La fecha de devolución debe ser futura.';
     }
+    if (returnDay.isAfter(today.add(const Duration(days: maxLoanDays)))) {
+      return 'Un préstamo puede durar como máximo $maxLoanDays días.';
+    }
+    final deposit = draft.depositAmount;
+    if (deposit != null && (deposit < 1000 || deposit > 10000000)) {
+      return 'La garantía debe estar entre \$1.000 y \$10.000.000.';
+    }
+    final fee = draft.lateFeePerDay;
+    if (fee != null) {
+      if (fee < 500 || fee > 1000000) {
+        return 'El recargo por día debe estar entre \$500 y \$1.000.000.';
+      }
+      if (deposit != null && fee > deposit) {
+        return 'El recargo por día no puede superar la garantía.';
+      }
+    }
+    if (draft.loanConditions.trim().length > 300) {
+      return 'Las condiciones no pueden superar 300 caracteres.';
+    }
   }
 
   if (draft.type == ListingType.exchange) {
@@ -202,7 +255,7 @@ String? validateListingDraft(ListingDraft draft) {
   }
 
   if (draft.latitude == null || draft.longitude == null) {
-    return 'Activa la ubicación para publicar.';
+    return 'Elige la zona en el mapa o usa tu ubicación.';
   }
 
   return null;

@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/format.dart';
 import '../../core/location.dart';
@@ -18,12 +20,23 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_primary_button.dart';
 import '../../core/widgets/app_text_field.dart';
+import '../map/zone_map.dart';
+import '../map/zone_picker_screen.dart';
 import 'listing_draft.dart';
 
 class PublishScreen extends StatefulWidget {
-  const PublishScreen({super.key, required this.profile, this.editing});
+  const PublishScreen({
+    super.key,
+    required this.profile,
+    this.editing,
+    this.asDialog = false,
+  });
 
   final MemberProfile profile;
+
+  /// Shown in a dialog on wide screens (closes with the dialog) rather than
+  /// as its own screen at /publicar.
+  final bool asDialog;
 
   /// The listing to edit. Its type, category and photos stay fixed.
   final Listing? editing;
@@ -38,6 +51,9 @@ class _PublishScreenState extends State<PublishScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _wantedController = TextEditingController();
+  final _depositController = TextEditingController();
+  final _lateFeeController = TextEditingController();
+  final _conditionsController = TextEditingController();
   final _neighborhoodController = TextEditingController();
   final _meetingPointController = TextEditingController();
 
@@ -60,6 +76,13 @@ class _PublishScreenState extends State<PublishScreen> {
           ? ''
           : CopInputFormatter.format(editing.price!);
       _wantedController.text = editing.wantedInExchange ?? '';
+      _depositController.text = editing.depositAmount == null
+          ? ''
+          : CopInputFormatter.format(editing.depositAmount!);
+      _lateFeeController.text = editing.lateFeePerDay == null
+          ? ''
+          : CopInputFormatter.format(editing.lateFeePerDay!);
+      _conditionsController.text = editing.loanConditions ?? '';
       _meetingPointController.text = editing.safeMeetingPoint ?? '';
     } else {
       _draft = ListingDraft(neighborhood: widget.profile.neighborhood ?? '');
@@ -69,9 +92,13 @@ class _PublishScreenState extends State<PublishScreen> {
     _descriptionController.addListener(_syncDescription);
     _priceController.addListener(_syncPrice);
     _wantedController.addListener(_syncWanted);
+    _depositController.addListener(_syncLoanTerms);
+    _lateFeeController.addListener(_syncLoanTerms);
+    _conditionsController.addListener(_syncLoanTerms);
     _neighborhoodController.addListener(_syncNeighborhood);
     _meetingPointController.addListener(_syncMeetingPoint);
-    if (!_isEditing) _getLocation();
+    // No GPS prompt on open: the member chooses the zone on the map or
+    // taps "Usar mi ubicación".
   }
 
   @override
@@ -80,12 +107,18 @@ class _PublishScreenState extends State<PublishScreen> {
     _descriptionController.removeListener(_syncDescription);
     _priceController.removeListener(_syncPrice);
     _wantedController.removeListener(_syncWanted);
+    _depositController.removeListener(_syncLoanTerms);
+    _lateFeeController.removeListener(_syncLoanTerms);
+    _conditionsController.removeListener(_syncLoanTerms);
     _neighborhoodController.removeListener(_syncNeighborhood);
     _meetingPointController.removeListener(_syncMeetingPoint);
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
     _wantedController.dispose();
+    _depositController.dispose();
+    _lateFeeController.dispose();
+    _conditionsController.dispose();
     _neighborhoodController.dispose();
     _meetingPointController.dispose();
     super.dispose();
@@ -108,6 +141,19 @@ class _PublishScreenState extends State<PublishScreen> {
     ),
   );
 
+  int? _cop(TextEditingController controller) {
+    final digits = controller.text.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.isEmpty ? null : int.tryParse(digits);
+  }
+
+  void _syncLoanTerms() => setState(
+    () => _draft = _draft.copyWith(
+      depositAmount: _cop(_depositController),
+      lateFeePerDay: _cop(_lateFeeController),
+      loanConditions: _conditionsController.text,
+    ),
+  );
+
   void _syncPrice() {
     final digits = _priceController.text.replaceAll(RegExp(r'[^0-9]'), '');
     final value = digits.isEmpty ? null : int.tryParse(digits);
@@ -119,9 +165,40 @@ class _PublishScreenState extends State<PublishScreen> {
     final loc = await currentApproxLocation();
     if (!mounted) return;
     setState(() {
-      _draft = _draft.copyWith(latitude: loc?.lat, longitude: loc?.lng);
+      // A refused or failed GPS keeps whatever zone was chosen before.
+      if (loc != null) {
+        _draft = _draft.copyWith(latitude: loc.lat, longitude: loc.lng);
+      }
       _gettingLocation = false;
     });
+    if (loc == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No pudimos usar tu ubicación. Elige tu zona en el mapa.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickOnMap() async {
+    final lat = _draft.latitude;
+    final lng = _draft.longitude;
+    final picked = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute<LatLng>(
+        builder: (context) => ZonePickerScreen(
+          initial: lat == null || lng == null ? null : LatLng(lat, lng),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(
+      () => _draft = _draft.copyWith(
+        latitude: picked.latitude,
+        longitude: picked.longitude,
+      ),
+    );
   }
 
   bool get _hasUnsavedChanges {
@@ -181,7 +258,15 @@ class _PublishScreenState extends State<PublishScreen> {
   Future<void> _onClose() async {
     if (_hasUnsavedChanges && !await _confirmDiscard()) return;
     if (!mounted) return;
-    Navigator.of(context).pop();
+    _close();
+  }
+
+  void _close([bool? published]) {
+    if (widget.asDialog) {
+      Navigator.of(context).pop(published);
+    } else {
+      closeScreen(context, published);
+    }
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
@@ -209,15 +294,15 @@ class _PublishScreenState extends State<PublishScreen> {
       upload.error = false;
     });
     try {
-      final description = await client.listing.photoUploadDescription('jpg');
+      final description = await client.listing.photoUploadDescription(
+        photoExtension,
+      );
       if (!mounted) return;
       final ok = await uploadPhoto(description.uploadDescription, upload.bytes);
       if (!mounted) return;
       if (!ok) throw Exception('upload failed');
-
-      final verified = await client.listing.verifyPhotoUpload(description.path);
-      if (!mounted) return;
-      if (!verified) throw Exception('verify failed');
+      // No separate verify call: listing.create checks every photo exists,
+      // which saves a round trip per photo.
 
       setState(() {
         upload.path = description.path;
@@ -250,9 +335,7 @@ class _PublishScreenState extends State<PublishScreen> {
   }
 
   void _showPhotoSourceSheet() {
-    // On the web the browser's own file dialog already offers the camera
-    // where there is one, and it must open straight from the click.
-    if (kIsWeb) {
+    if (!askPhotoSource) {
       _pickPhoto(ImageSource.gallery);
       return;
     }
@@ -290,7 +373,9 @@ class _PublishScreenState extends State<PublishScreen> {
       context: context,
       initialDate: now.add(const Duration(days: 1)),
       firstDate: now.add(const Duration(days: 1)),
-      lastDate: DateTime(now.year + 10, 12, 31),
+      lastDate: isExpiry
+          ? DateTime(now.year + 10, 12, 31)
+          : now.add(const Duration(days: maxLoanDays)),
     );
     if (picked == null) return;
     setState(() {
@@ -321,7 +406,16 @@ class _PublishScreenState extends State<PublishScreen> {
       }
       if (!mounted) return;
       setState(() => _saved = true);
-      Navigator.of(context).pop(true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            editing != null
+                ? 'Cambios guardados.'
+                : '¡Publicado! Gracias por darle otra vida.',
+          ),
+        ),
+      );
+      _close(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -342,14 +436,14 @@ class _PublishScreenState extends State<PublishScreen> {
     final canSubmit =
         validationError == null && !_submitting && !hasUploading && !hasError;
 
+    // On the web every close goes through _close (browser back), so the
+    // router doesn't record the return as a new visit.
     return PopScope(
-      canPop: !_hasUnsavedChanges,
+      canPop: !kIsWeb && !_hasUnsavedChanges,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final navigator = Navigator.of(context);
-        if (await _confirmDiscard() && mounted) {
-          navigator.pop();
-        }
+        if (_hasUnsavedChanges && !await _confirmDiscard()) return;
+        if (mounted) _close();
       },
       child: Scaffold(
         appBar: AppBar(
@@ -415,7 +509,7 @@ class _PublishScreenState extends State<PublishScreen> {
                         textCapitalization: TextCapitalization.sentences,
                       ),
                       const SizedBox(height: AppSpacing.l),
-                      _buildLocationWarning(),
+                      _buildZoneSection(),
                       const SizedBox(height: AppSpacing.xl),
                     ],
                   ),
@@ -490,6 +584,9 @@ class _PublishScreenState extends State<PublishScreen> {
                 if (_draft.type == type.toServer) return;
                 _priceController.text = '';
                 _wantedController.text = '';
+                _depositController.text = '';
+                _lateFeeController.text = '';
+                _conditionsController.text = '';
                 setState(
                   () => _draft = _draft.copyWith(
                     type: type.toServer,
@@ -652,10 +749,52 @@ class _PublishScreenState extends State<PublishScreen> {
         ],
         if (type == ListingType.lend) ...[
           _buildDateField(
-            label: 'Devolver antes de',
+            label: 'Devolver antes de (máx. $maxLoanDays días)',
             value: _draft.returnDate,
             hint: 'Selecciona una fecha',
             onTap: () => _pickDate(isExpiry: false),
+          ),
+          const SizedBox(height: AppSpacing.l),
+          AppTextField(
+            label: 'Garantía (opcional, COP)',
+            hint: 'Ej: 50.000',
+            controller: _depositController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              CopInputFormatter(),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Dinero que te dejan al recibirlo y les devuelves completo '
+            'cuando te lo regresen en buen estado.',
+            style: AppTypography.caption,
+          ),
+          const SizedBox(height: AppSpacing.l),
+          AppTextField(
+            label: 'Recargo por día de retraso (opcional, COP)',
+            hint: 'Ej: 2.000',
+            controller: _lateFeeController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              CopInputFormatter(),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Se acuerda entre ustedes y se descuenta de la garantía; la app '
+            'no cobra dinero.',
+            style: AppTypography.caption,
+          ),
+          const SizedBox(height: AppSpacing.l),
+          AppTextField(
+            label: 'Condiciones de uso (opcional)',
+            hint: 'Ej: Devolverlo limpio, solo uso en casa',
+            controller: _conditionsController,
+            maxLength: 300,
+            textCapitalization: TextCapitalization.sentences,
           ),
           const SizedBox(height: AppSpacing.l),
         ],
@@ -720,57 +859,62 @@ class _PublishScreenState extends State<PublishScreen> {
     );
   }
 
-  Widget _buildLocationWarning() {
-    if (_gettingLocation) {
-      return const Row(
-        children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
+  /// Where the listing shows up: chosen on the map or from GPS. Others only
+  /// ever see the ~1 km zone.
+  Widget _buildZoneSection() {
+    final lat = _draft.latitude;
+    final lng = _draft.longitude;
+    final hasZone = lat != null && lng != null;
+
+    final buttons = Wrap(
+      spacing: AppSpacing.s,
+      runSpacing: AppSpacing.s,
+      children: [
+        FilledButton.icon(
+          onPressed: _gettingLocation ? null : _pickOnMap,
+          icon: const Icon(Icons.map_outlined, size: 18),
+          label: Text(hasZone ? 'Cambiar en el mapa' : 'Elegir en el mapa'),
+        ),
+        OutlinedButton.icon(
+          onPressed: _gettingLocation ? null : _getLocation,
+          icon: _gettingLocation
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.my_location, size: 18),
+          label: const Text('Usar mi ubicación'),
+        ),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Zona', style: AppTypography.sectionLabel),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          hasZone
+              ? 'Así verán los demás la ubicación: solo la zona, nunca tu '
+                    'dirección.'
+              : 'Elige en qué zona está. Los demás solo verán un círculo de '
+                    '~1 km, nunca tu dirección.',
+          style: AppTypography.caption,
+        ),
+        const SizedBox(height: AppSpacing.m),
+        if (hasZone) ...[
+          ZoneMap(
+            latitude: lat,
+            longitude: lng,
+            label: _draft.neighborhood.trim().isEmpty
+                ? null
+                : _draft.neighborhood.trim(),
           ),
-          SizedBox(width: AppSpacing.s),
-          Flexible(child: Text('Obteniendo ubicación aproximada...')),
+          const SizedBox(height: AppSpacing.m),
         ],
-      );
-    }
-    if (_draft.latitude != null && _draft.longitude != null) {
-      return const SizedBox.shrink();
-    }
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF6E3CF),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.location_off, color: Color(0xFF8A3D10)),
-          const SizedBox(width: AppSpacing.s),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Activa la ubicación para publicar (solo usamos tu zona aproximada)',
-                  style: AppTypography.caption.copyWith(
-                    color: const Color(0xFF8A3D10),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: _getLocation,
-                  child: Text(
-                    'Reintentar',
-                    style: AppTypography.bodyStrong.copyWith(
-                      color: AppColors.link,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        buttons,
+      ],
     );
   }
 

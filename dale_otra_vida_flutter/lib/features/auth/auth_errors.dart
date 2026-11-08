@@ -1,3 +1,5 @@
+import 'package:dale_otra_vida_client/dale_otra_vida_client.dart'
+    show NotAllowedException;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart'
     show InvalidEmailException;
@@ -5,6 +7,8 @@ import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart'
 /// Spanish, user-facing message for any error raised by the email auth flow.
 String authErrorMessage(Object error) {
   return switch (error) {
+    // Our own rules, e.g. an email that already signs in with Google.
+    NotAllowedException(:final message) => message,
     EmailAccountLoginException(:final reason) => switch (reason) {
       EmailAccountLoginExceptionReason.invalidCredentials =>
         'Correo o contraseña incorrectos.',

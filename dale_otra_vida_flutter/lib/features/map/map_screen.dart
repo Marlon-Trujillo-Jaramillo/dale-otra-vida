@@ -5,21 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/layout/breakpoints.dart';
 import '../../core/location.dart';
-import '../../core/models/category_ui.dart';
 import '../../core/models/listing_type_ui.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
-import '../listing/listing_detail_screen.dart';
 import 'map_logic.dart';
 import 'tiles.dart';
 
-/// Listings around the member on a map. Markers sit on each listing's
-/// rounded (~100 m) location, never an exact address.
+/// Listings around the member on a map, grouped into ~1 km zones: one big
+/// circle per zone with its neighborhood, never a pin on a house.
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -31,7 +30,7 @@ class _MapScreenState extends State<MapScreen> {
   final _mapController = MapController();
   ({double lat, double lng})? _location;
   List<ListingView> _listings = [];
-  ListingView? _selected;
+  MapZone? _zone;
   ListingTypeUi? _type;
   bool _loading = false;
   bool _tooFar = false;
@@ -76,7 +75,7 @@ class _MapScreenState extends State<MapScreen> {
       setState(() {
         _tooFar = true;
         _listings = [];
-        _selected = null;
+        _zone = null;
       });
       return;
     }
@@ -100,10 +99,6 @@ class _MapScreenState extends State<MapScreen> {
       if (!mounted || gen != _gen) return;
       setState(() {
         _listings = listings;
-        if (_selected != null &&
-            !listings.any((l) => l.listing.id == _selected!.listing.id)) {
-          _selected = null;
-        }
       });
     } catch (_) {
       if (mounted && gen == _gen) {
@@ -119,21 +114,24 @@ class _MapScreenState extends State<MapScreen> {
     _load();
   }
 
-  void _select(ListingView view) {
-    setState(() => _selected = view);
-    _mapController.move(
-      LatLng(view.listing.latitude, view.listing.longitude),
-      _mapController.camera.zoom,
-    );
+  void _selectZone(MapZone zone) {
+    setState(() => _zone = zone);
+    _mapController.move(zone.center, _mapController.camera.zoom);
+  }
+
+  /// The selected zone as it is in the latest results, if still there.
+  MapZone? get _currentZone {
+    final key = _zone?.key;
+    if (key == null) return null;
+    for (final zone in groupIntoZones(_listings)) {
+      if (zone.key == key) return zone;
+    }
+    return null;
   }
 
   Future<void> _openDetail(ListingView view) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (context) => ListingDetailScreen(view: view),
-      ),
-    );
-    _load();
+    await openListing(context, view);
+    if (mounted) _load();
   }
 
   @override
@@ -167,6 +165,8 @@ class _MapScreenState extends State<MapScreen> {
 
   Widget _buildMap({required bool wide}) {
     final location = _location;
+    final zones = groupIntoZones(_listings);
+    final selectedZone = _currentZone;
     return Stack(
       children: [
         FlutterMap(
@@ -180,7 +180,7 @@ class _MapScreenState extends State<MapScreen> {
             maxZoom: 18,
             onMapReady: _load,
             onPositionChanged: _onPositionChanged,
-            onTap: (_, _) => setState(() => _selected = null),
+            onTap: (_, _) => setState(() => _zone = null),
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
             ),
@@ -199,21 +199,32 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ],
               ),
+            CircleLayer(
+              circles: [
+                for (final zone in zones)
+                  CircleMarker(
+                    point: zone.center,
+                    radius: zoneRadiusMeters,
+                    useRadiusInMeter: true,
+                    color: AppColors.accent.withValues(
+                      alpha: zone.key == selectedZone?.key ? 0.4 : 0.22,
+                    ),
+                    borderColor: AppColors.accentStrong,
+                    borderStrokeWidth: zone.key == selectedZone?.key ? 3 : 1.5,
+                  ),
+              ],
+            ),
             MarkerLayer(
               markers: [
-                for (final view in _listings)
+                for (final zone in zones)
                   Marker(
-                    point: LatLng(
-                      view.listing.latitude,
-                      view.listing.longitude,
-                    ),
-                    width: 44,
-                    height: 52,
-                    alignment: Alignment.topCenter,
-                    child: _ListingPin(
-                      view: view,
-                      selected: _selected?.listing.id == view.listing.id,
-                      onTap: () => _select(view),
+                    point: zone.center,
+                    width: 170,
+                    height: 40,
+                    child: _ZoneLabel(
+                      zone: zone,
+                      selected: zone.key == selectedZone?.key,
+                      onTap: () => _selectZone(zone),
                     ),
                   ),
               ],
@@ -261,7 +272,7 @@ class _MapScreenState extends State<MapScreen> {
         ),
         Positioned(
           right: AppSpacing.l,
-          bottom: _selected != null && !wide ? 150 : AppSpacing.xxl,
+          bottom: selectedZone != null && !wide ? 170 : AppSpacing.xxl,
           child: FloatingActionButton.small(
             heroTag: 'map_locate',
             tooltip: 'Mi ubicación',
@@ -271,22 +282,48 @@ class _MapScreenState extends State<MapScreen> {
             child: const Icon(Icons.my_location),
           ),
         ),
-        if (_selected != null && !wide)
+        if (selectedZone != null && !wide)
           Positioned(
-            left: AppSpacing.l,
-            right: AppSpacing.l,
+            left: 0,
+            right: 0,
             bottom: AppSpacing.l,
             child: SafeArea(
               top: false,
-              child: Material(
-                color: Colors.transparent,
-                elevation: 6,
-                shadowColor: const Color(0x331E3A2F),
-                borderRadius: BorderRadius.circular(16),
-                child: ListingCard.fromView(
-                  _selected!,
-                  onTap: () => _openDetail(_selected!),
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final many = selectedZone.listings.length > 1;
+                  final cardWidth = many
+                      ? constraints.maxWidth * 0.82
+                      : constraints.maxWidth - AppSpacing.l * 2;
+                  return SizedBox(
+                    height: 140,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.l,
+                      ),
+                      itemCount: selectedZone.listings.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: AppSpacing.m),
+                      itemBuilder: (context, index) {
+                        final view = selectedZone.listings[index];
+                        return SizedBox(
+                          width: cardWidth,
+                          child: Material(
+                            color: Colors.transparent,
+                            elevation: 6,
+                            shadowColor: const Color(0x331E3A2F),
+                            borderRadius: BorderRadius.circular(16),
+                            child: ListingCard.fromView(
+                              view,
+                              onTap: () => _openDetail(view),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -309,113 +346,134 @@ class _MapScreenState extends State<MapScreen> {
         message: 'Mueve el mapa para explorar otros barrios.',
       );
     }
-    return ListView.separated(
-      padding: const EdgeInsets.all(AppSpacing.l),
-      itemCount: _listings.length,
-      separatorBuilder: (context, index) =>
-          const SizedBox(height: AppSpacing.m),
-      itemBuilder: (context, index) {
-        final view = _listings[index];
-        final selected = _selected?.listing.id == view.listing.id;
-        return MouseRegion(
-          onEnter: (_) => setState(() => _selected = view),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: selected ? AppColors.primary : Colors.transparent,
-                width: 2,
-              ),
+    final zone = _currentZone;
+    final listings = zone?.listings ?? _listings;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (zone != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.l,
+              AppSpacing.l,
+              AppSpacing.s,
+              0,
             ),
-            child: ListingCard.fromView(
-              view,
-              onTap: () => _openDetail(view),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Zona ${zone.neighborhood}',
+                    style: AppTypography.bodyStrong,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => setState(() => _zone = null),
+                  child: const Text('Ver todo'),
+                ),
+              ],
             ),
           ),
-        );
-      },
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(AppSpacing.l),
+            itemCount: listings.length,
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppSpacing.m),
+            itemBuilder: (context, index) {
+              final view = listings[index];
+              return ListingCard.fromView(
+                view,
+                onTap: () => _openDetail(view),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _ListingPin extends StatelessWidget {
-  const _ListingPin({
-    required this.view,
+class _ZoneLabel extends StatelessWidget {
+  const _ZoneLabel({
+    required this.zone,
     required this.selected,
     required this.onTap,
   });
 
-  final ListingView view;
+  final MapZone zone;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final type = ListingTypeUi.fromServer(view.listing.type);
-    final category = CategoryUi.fromServer(view.listing.category);
-    final background = selected ? AppColors.primary : type.badgeBackground;
-    final foreground = selected ? AppColors.onPrimary : type.badgeText;
+    final count = zone.listings.length;
+    final background = selected ? AppColors.primary : AppColors.surface;
+    final foreground = selected ? AppColors.onPrimary : AppColors.textPrimary;
 
-    return Semantics(
-      button: true,
-      label: view.listing.title,
-      child: GestureDetector(
-        onTap: onTap,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: AnimatedScale(
-            scale: selected ? 1.15 : 1,
-            duration: const Duration(milliseconds: 160),
-            alignment: Alignment.bottomCenter,
-            child: Column(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: background,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2.5),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x401E3A2F),
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
+    return Center(
+      child: Semantics(
+        button: true,
+        label: '${zone.neighborhood}: $count publicaciones',
+        child: GestureDetector(
+          onTap: onTap,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.m,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.accentStrong),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x401E3A2F),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
                   ),
-                  child: Icon(category.icon, size: 20, color: foreground),
-                ),
-                CustomPaint(
-                  size: const Size(12, 8),
-                  painter: _PinTailPainter(color: Colors.white),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      zone.neighborhood,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.caption.copyWith(
+                        color: foreground,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$count',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.badge.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
-}
-
-class _PinTailPainter extends CustomPainter {
-  const _PinTailPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-    canvas.drawPath(path, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_PinTailPainter oldDelegate) => oldDelegate.color != color;
 }
 
 class _TypeChip extends StatelessWidget {

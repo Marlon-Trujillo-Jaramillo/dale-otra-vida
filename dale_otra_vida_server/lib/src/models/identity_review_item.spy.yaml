@@ -1,0 +1,7 @@
+### A pending identity check as an administrator reviews it.
+class: IdentityReviewItem
+fields:
+  verificationId: int
+  member: MemberProfile
+  documentNumber: String
+  submittedAt: DateTime

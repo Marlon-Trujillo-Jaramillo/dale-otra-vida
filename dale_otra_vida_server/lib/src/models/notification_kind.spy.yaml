@@ -8,3 +8,7 @@ values:
   - listingExpiring
   - requestCancelled
   - deliveryCompleted
+  - loanDueSoon
+  - loanOverdue
+  - loanClosed
+  - identityReviewed

@@ -97,5 +97,15 @@ void main() {
       expect(stats.foodSavedCount, 0);
       expect(stats.activeCount, 0);
     });
+    test('acceptPrivacy records the current version and date', () async {
+      expect(profile.privacyAcceptedAt, isNull);
+      await expectLater(
+        endpoints.profile.acceptPrivacy(member, 999),
+        throwsA(isA<NotAllowedException>()),
+      );
+      final saved = await endpoints.profile.acceptPrivacy(member, 1);
+      expect(saved.privacyAcceptedVersion, 1);
+      expect(saved.privacyAcceptedAt, isNotNull);
+    });
   });
 }

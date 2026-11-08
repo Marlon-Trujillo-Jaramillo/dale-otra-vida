@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/format.dart';
 import '../../core/photos.dart';
@@ -44,7 +45,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _choosePhoto() async {
-    final source = kIsWeb
+    final source = !askPhotoSource
         ? ImageSource.gallery
         : await showModalBottomSheet<ImageSource>(
             context: context,
@@ -99,7 +100,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       final photo = _newPhoto;
       if (photo != null) {
-        final upload = await client.profile.avatarUploadDescription('jpg');
+        final upload = await client.profile.avatarUploadDescription(
+          photoExtension,
+        );
         if (!await uploadPhoto(upload.uploadDescription, photo)) {
           throw Exception('upload failed');
         }
@@ -107,7 +110,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       } else if (_removePhoto) {
         profile = await client.profile.setAvatar(null);
       }
-      if (mounted) Navigator.of(context).pop(profile);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Perfil actualizado.')));
+      closeScreen(context, profile);
     } on NotAllowedException catch (e) {
       _showSnackBar(e.message);
     } catch (_) {

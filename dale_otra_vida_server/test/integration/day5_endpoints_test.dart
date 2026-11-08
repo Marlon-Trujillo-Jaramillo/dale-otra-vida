@@ -203,6 +203,21 @@ void main() {
         expect(messages.first.text, startsWith('Entrega completada'));
       });
 
+      test('pending lists each side until it rates the delivery', () async {
+        final view = await deliveredListing();
+        final id = view.listing.id!;
+
+        final requesterPending = await endpoints.review.pending(requester);
+        expect(requesterPending.single.listingId, id);
+        expect(requesterPending.single.member.id, ownerProfile.id);
+        final ownerPending = await endpoints.review.pending(owner);
+        expect(ownerPending.single.member.id, requesterProfile.id);
+
+        await endpoints.review.create(requester, id, 5);
+        expect(await endpoints.review.pending(requester), isEmpty);
+        expect(await endpoints.review.pending(owner), hasLength(1));
+      });
+
       test('reviews update the rating and can only happen once', () async {
         final view = await deliveredListing();
         final id = view.listing.id!;

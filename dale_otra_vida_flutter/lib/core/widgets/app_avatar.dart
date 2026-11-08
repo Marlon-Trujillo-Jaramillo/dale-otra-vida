@@ -45,6 +45,7 @@ class AppAvatar extends StatelessWidget {
         imageUrl: url,
         width: size,
         height: size,
+        memCacheWidth: (size * 3).round(),
         fit: BoxFit.cover,
         placeholder: (context, url) => fallback,
         errorWidget: (context, url, error) => fallback,

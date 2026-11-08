@@ -3,18 +3,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/install/install_app.dart';
+import '../../core/legal.dart';
+import '../../core/push/push.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
 import '../../screens/design_gallery_screen.dart';
-import '../requests/my_requests_screen.dart';
-import '../listing/listing_detail_screen.dart';
 import '../feedback/feedback_sheet.dart';
 import '../install/install_prompt.dart';
-import 'edit_profile_screen.dart';
+import '../push/push_card.dart';
 import 'profile_body.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -63,42 +64,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openListing(ListingView listing) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (context) => ListingDetailScreen(view: listing),
-      ),
-    );
-    _load();
+    await openListing(context, listing);
+    if (mounted) _load();
   }
 
   Future<void> _editProfile() async {
     final current = _view?.profile;
     if (current == null) return;
-    // The public view hides coordinates; edits never touch them.
-    final saved = await Navigator.of(context).push<MemberProfile>(
-      MaterialPageRoute<MemberProfile>(
-        builder: (context) => EditProfileScreen(profile: current),
-      ),
-    );
-    if (saved == null || !mounted) return;
-    widget.onProfileChanged?.call(saved);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Perfil actualizado.')));
-    _load();
+    // The public view hides coordinates; edits never touch them. The edit
+    // screen confirms the save itself; reload to show it here and in the
+    // shell's greeting and avatar.
+    await openEditProfile(context, current);
+    if (!mounted) return;
+    try {
+      final saved = await client.profile.me();
+      if (saved != null && mounted) widget.onProfileChanged?.call(saved);
+    } catch (_) {
+      // The profile below reloads anyway.
+    }
+    if (mounted) _load();
   }
 
   void _openMyRequests(BuildContext context) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (context) => const MyRequestsScreen(),
-          ),
-        )
-        .then((_) => _load());
+    openMyRequests(context).then((_) {
+      if (mounted) _load();
+    });
+  }
+
+  /// Whether this member reviews identity checks; the server decides.
+  late final Future<bool> _isAdmin = client.identity.isAdmin().catchError(
+    (_) => false,
+  );
+
+  Future<void> _openIdentity(BuildContext context) async {
+    await openIdentity(context);
+    if (mounted) _load();
   }
 
   Future<void> _signOut() async {
+    await Push.signOut();
     await client.auth.signOutDevice();
   }
 
@@ -170,6 +174,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () => startInstall(context),
             ),
           ],
+          if (!(_view?.profile.isVerified ?? widget.profile.isVerified)) ...[
+            const SizedBox(height: AppSpacing.s),
+            _ProfileTile(
+              icon: Icons.verified_user_outlined,
+              title: 'Verificar identidad',
+              subtitle: 'Necesaria para pedir préstamos',
+              onTap: () => _openIdentity(context),
+            ),
+          ],
+          FutureBuilder<bool>(
+            future: _isAdmin,
+            builder: (context, snapshot) => snapshot.data == true
+                ? Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.s),
+                    child: _ProfileTile(
+                      icon: Icons.admin_panel_settings_outlined,
+                      title: 'Revisar identidades',
+                      subtitle: 'Solo administradores',
+                      onTap: () => openIdentityReview(context),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          const PushCard(padding: EdgeInsets.only(top: AppSpacing.s)),
+          const SizedBox(height: AppSpacing.s),
+          const _ProfileTile(
+            icon: Icons.privacy_tip_outlined,
+            title: 'Política de datos',
+            subtitle: 'Tus derechos: escribe a $privacyContactEmail',
+            onTap: openPrivacyPolicy,
+          ),
           const SizedBox(height: AppSpacing.m),
           AppSecondaryButton(label: 'Cerrar sesión', onPressed: _signOut),
           if (kDebugMode)

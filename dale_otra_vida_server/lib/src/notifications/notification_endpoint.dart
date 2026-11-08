@@ -4,6 +4,7 @@ import 'package:serverpod/serverpod.dart';
 
 import '../common/current_profile.dart';
 import '../generated/protocol.dart';
+import '../common/dates.dart';
 import 'notify.dart';
 
 /// In-app notifications for the signed-in member.
@@ -35,6 +36,7 @@ class NotificationEndpoint extends Endpoint {
   Future<int> unreadCount(Session session) async {
     final profile = await currentProfile(session);
     await _remindExpiring(session, profile);
+    await _remindLoans(session, profile);
 
     return AppNotification.db.count(
       session,
@@ -70,6 +72,82 @@ class NotificationEndpoint extends Endpoint {
       columnValues: (t) => [t.readAt(DateTime.now().toUtc())],
       noReturn: true,
     );
+  }
+
+  /// Reminds both sides of an open loan once when it is due within a day,
+  /// and once when it is overdue. Runs on the badge poll, like
+  /// [_remindExpiring].
+  Future<void> _remindLoans(Session session, MemberProfile profile) async {
+    final me = profile.id!;
+    final now = DateTime.now().toUtc();
+
+    final myRequests = await ListingRequest.db.find(
+      session,
+      where: (t) =>
+          t.requesterId.equals(me) & t.status.equals(RequestStatus.accepted),
+    );
+    final open = await Listing.db.find(
+      session,
+      where: (t) =>
+          t.type.equals(ListingType.lend) &
+          t.status.equals(ListingStatus.delivered) &
+          t.loanOutcome.equals(null) &
+          (t.returnDate <= now.add(const Duration(days: 1))) &
+          (t.ownerId.equals(me) |
+              t.id.inSet(myRequests.map((r) => r.listingId).toSet())),
+    );
+
+    for (final listing in open) {
+      final overdue = !listing.returnDate!.isAfter(now);
+      final kind = overdue
+          ? NotificationKind.loanOverdue
+          : NotificationKind.loanDueSoon;
+      final isOwner = listing.ownerId == me;
+      await session.db.transaction((transaction) async {
+        await Listing.db.findById(
+          session,
+          listing.id!,
+          transaction: transaction,
+          lockMode: LockMode.forUpdate,
+        );
+        final existing = await AppNotification.db.findFirstRow(
+          session,
+          where: (t) =>
+              t.userId.equals(me) &
+              t.kind.equals(kind) &
+              t.refId.equals(listing.id),
+          transaction: transaction,
+        );
+        if (existing != null) return;
+
+        final due = shortDateCo(listing.returnDate!);
+        final fee = listing.lateFeePerDay;
+        final String title;
+        final String body;
+        if (!overdue) {
+          title = isOwner ? 'Tu préstamo vuelve pronto' : 'Devuelve pronto';
+          body = isOwner
+              ? '«${listing.title}» debe volver el $due.'
+              : 'Recuerda devolver «${listing.title}» el $due.';
+        } else {
+          title = 'Préstamo vencido';
+          body = isOwner
+              ? '«${listing.title}» debía volver el $due. Cuando te lo '
+                    'devuelvan, márcalo como devuelto.'
+              : '«${listing.title}» debía volver el $due.'
+                    '${fee == null ? '' : ' Acordaron un recargo de \$$fee por día.'}';
+        }
+        await notify(
+          session,
+          userId: me,
+          kind: kind,
+          title: title,
+          body: body,
+          refId: listing.id,
+          transaction: transaction,
+        );
+      });
+    }
   }
 
   /// Notifies the caller once about each open food listing of theirs that

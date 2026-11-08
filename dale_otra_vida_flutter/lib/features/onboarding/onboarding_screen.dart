@@ -9,6 +9,8 @@ import 'package:dale_otra_vida_flutter/core/widgets/app_text_field.dart';
 import 'package:dale_otra_vida_flutter/features/profile/account_type_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/legal.dart';
+import '../legal/privacy_consent.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.onCompleted});
@@ -24,6 +26,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _neighborhoodController = TextEditingController();
   AccountType _accountType = AccountType.person;
   bool _isLoading = false;
+  bool _acceptedPrivacy = false;
   String? _displayNameError;
   String? _serverError;
 
@@ -61,6 +64,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             : _neighborhoodController.text.trim(),
         accountType: _accountType,
       );
+      // Proof of the authorization (Ley 1581): version and date.
+      await client.profile.acceptPrivacy(privacyVersion);
       widget.onCompleted();
     } catch (_) {
       if (mounted) {
@@ -149,11 +154,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           value: _accountType,
           onChanged: (type) => setState(() => _accountType = type),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.l),
+        PrivacyConsent(
+          value: _acceptedPrivacy,
+          onChanged: _isLoading
+              ? null
+              : (value) => setState(() => _acceptedPrivacy = value),
+        ),
+        const SizedBox(height: AppSpacing.l),
         AppPrimaryButton(
           label: 'Continuar',
           isLoading: _isLoading,
-          onPressed: _continue,
+          onPressed: _acceptedPrivacy ? _continue : null,
         ),
         if (_serverError != null) ...[
           const SizedBox(height: AppSpacing.l),

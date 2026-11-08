@@ -69,6 +69,14 @@ void main() {
       expect(requesterActionState(view), RequesterActionState.accepted);
     });
 
+    test('accepted request on a delivered listing returns delivered', () {
+      final view = buildView(
+        listingStatus: ListingStatus.delivered,
+        requestStatus: RequestStatus.accepted,
+      );
+      expect(requesterActionState(view), RequesterActionState.delivered);
+    });
+
     test('rejected request returns rejected', () {
       final view = buildView(
         listingStatus: ListingStatus.available,

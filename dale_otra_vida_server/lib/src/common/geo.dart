@@ -4,6 +4,23 @@ import 'dart:math' as math;
 double? roundCoordinate(double? value) =>
     value == null ? null : (value * 1000).roundToDouble() / 1000;
 
+/// Side of a public zone in degrees: about 1.1 km in Medellín.
+const zoneSizeDegrees = 0.01;
+
+/// Centre of the ~1 km zone that contains [value]. Other members see this
+/// instead of the listing's location, so a pin points at the neighborhood,
+/// never at a house.
+double zoneCenter(double value) {
+  final center =
+      ((value / zoneSizeDegrees).floorToDouble() + 0.5) * zoneSizeDegrees;
+  return (center * 10000).roundToDouble() / 10000;
+}
+
+/// Half-kilometre steps (at least 0.5 km), so distances can't be combined
+/// to pinpoint a listing.
+double roundDistanceKm(double km) =>
+    math.max(0.5, (km * 2).roundToDouble() / 2);
+
 /// Returns true when both values are finite and inside the valid ranges.
 bool isValidCoordinate(double lat, double lng) =>
     lat.isFinite &&

@@ -1,0 +1,4 @@
+### "Someone is typing" in a conversation. Never stored, only streamed.
+class: TypingEvent
+fields:
+  profileId: int

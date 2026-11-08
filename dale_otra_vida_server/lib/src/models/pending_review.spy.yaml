@@ -1,0 +1,8 @@
+### A delivery the caller took part in and has not rated yet.
+class: PendingReview
+fields:
+  listingId: int
+  listingTitle: String
+  photoUrl: String?
+  ### The other side of the delivery, the one to rate.
+  member: MemberProfile

@@ -7,7 +7,6 @@ import 'package:dale_otra_vida_flutter/core/widgets/app_primary_button.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_secondary_button.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_segmented_control.dart';
 import 'package:dale_otra_vida_flutter/core/widgets/app_text_field.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
@@ -413,20 +412,17 @@ class _LoginStepState extends State<_LoginStep> {
             isLoading: widget.controller.isLoading,
             onPressed: _validateAndLogin,
           ),
-          // Google sign-in is set up for the Android and iOS apps only.
-          if (!kIsWeb) ...[
-            const SizedBox(height: AppSpacing.xl),
-            const _DividerWithText(text: 'o'),
-            const SizedBox(height: AppSpacing.xl),
-            ListenableBuilder(
-              listenable: _google,
-              builder: (context, _) => AppSecondaryButton(
-                label: 'Continuar con Google',
-                isLoading: _google.isLoading,
-                onPressed: _signInWithGoogle,
-              ),
+          const SizedBox(height: AppSpacing.xl),
+          const _DividerWithText(text: 'o'),
+          const SizedBox(height: AppSpacing.xl),
+          ListenableBuilder(
+            listenable: _google,
+            builder: (context, _) => AppSecondaryButton(
+              label: 'Continuar con Google',
+              isLoading: _google.isLoading,
+              onPressed: _signInWithGoogle,
             ),
-          ],
+          ),
           _ControllerError(controller: widget.controller),
         ],
       ),

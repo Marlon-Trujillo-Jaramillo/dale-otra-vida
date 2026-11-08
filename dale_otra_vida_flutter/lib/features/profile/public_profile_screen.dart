@@ -1,10 +1,10 @@
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/widgets.dart';
-import '../listing/listing_detail_screen.dart';
 import '../reports/report_sheet.dart';
 import 'profile_body.dart';
 
@@ -45,12 +45,8 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   }
 
   Future<void> _openListing(ListingView listing) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (context) => ListingDetailScreen(view: listing),
-      ),
-    );
-    _load();
+    await openListing(context, listing);
+    if (mounted) _load();
   }
 
   @override

@@ -228,6 +228,19 @@ void main() {
       });
     });
 
+    test('send stops a flood of messages', () async {
+      // setUp already sent one message from the requester.
+      for (var i = 0; i < 29; i++) {
+        await endpoints.chat.send(requester, conversationId, 'Mensaje $i');
+      }
+      await expectLater(
+        endpoints.chat.send(requester, conversationId, 'Uno más'),
+        throwsA(isA<NotAllowedException>()),
+      );
+      // The other side is not affected.
+      await endpoints.chat.send(owner, conversationId, 'Hola');
+    });
+
     test('messages pages newest first with beforeId', () async {
       for (var i = 0; i < 5; i++) {
         await endpoints.chat.send(owner, conversationId, 'Mensaje $i');
@@ -297,6 +310,19 @@ void main() {
       await endpoints.chat.send(owner, conversationId, 'En vivo');
 
       expect((await received).text, 'En vivo');
+    });
+
+    test('typing reaches the other participant, not outsiders', () async {
+      final received = endpoints.chat
+          .typingEvents(requester, conversationId)
+          .first
+          .timeout(const Duration(seconds: 5));
+      await streamStarted();
+
+      await endpoints.chat.typing(owner, conversationId);
+
+      final ownerId = (await endpoints.profile.me(owner))!.id;
+      expect((await received).profileId, ownerId);
     });
 
     test('inbox receives messages from every conversation', () async {

@@ -38,7 +38,16 @@ Future<void> initializeClient() async {
     ..authSessionManager = FlutterAuthSessionManager();
   unawaited(client.auth.initialize());
 
-  if (!kIsWeb) {
+  if (kIsWeb) {
+    // Web uses Google's redirect flow, which comes back to web/auth.html on
+    // this same site (an authorized redirect URI of the web client).
+    unawaited(
+      client.auth.initializeGoogleSignIn(
+        clientId: _googleWebClientId,
+        redirectUri: '${Uri.base.origin}/auth.html',
+      ),
+    );
+  } else {
     unawaited(
       client.auth.initializeGoogleSignIn(
         // Android identifies the app by package name + SHA-1 instead.

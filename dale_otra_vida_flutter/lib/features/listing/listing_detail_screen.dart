@@ -3,6 +3,7 @@ import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/format.dart';
 import '../../core/layout/breakpoints.dart';
@@ -12,12 +13,12 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/widgets.dart';
-import '../chat/chat_screen.dart';
 import '../map/zone_map.dart';
-import '../profile/public_profile_screen.dart';
-import '../publish/publish_screen.dart';
 import '../reports/report_sheet.dart';
+import '../reviews/review_dialog.dart';
+import '../reviews/review_gate.dart';
 import 'listing_detail_logic.dart';
+import 'loan_terms.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   const ListingDetailScreen({super.key, required this.view});
@@ -34,6 +35,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   final _photoController = PageController();
   bool _updating = false;
   bool _galleryHover = false;
+
+  /// Set after rating the other side here, to hide the button.
+  bool _reviewed = false;
 
   List<RequestView>? _requests;
   bool _loadingRequests = false;
@@ -90,9 +94,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       setState(
         () => _view = updated.copyWith(distanceKm: _view.distanceKm),
       );
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
+      // A delivery ends with rating the other side.
+      if (status == ListingStatus.delivered) await askPendingReviews(context);
+      if (mounted) closeScreen(context, true);
     } catch (e) {
       _showErrorFor(e);
     } finally {
@@ -155,6 +159,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       await client.request.create(
         _view.listing.id!,
         message: message,
+        // The form only lets a loan be sent once its terms are accepted.
+        acceptTerms: _view.listing.type == ListingType.lend ? true : null,
       );
       if (!mounted) return;
       await _refreshView();
@@ -264,9 +270,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Future<void> _refreshAfterRequestAction() async {
     await _loadRequests();
     await _refreshView();
-    if (mounted) {
-      Navigator.of(context).pop(true);
-    }
+    if (mounted) closeScreen(context, true);
   }
 
   void _showErrorFor(Object error) {
@@ -284,21 +288,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   void _openChat(int conversationId) {
-    Navigator.of(context)
-        .push<void>(
-          MaterialPageRoute<void>(
-            builder: (context) => ChatScreen(conversationId: conversationId),
-          ),
-        )
-        .then((_) => _refreshView());
+    openChat(context, conversationId).then((_) {
+      if (mounted) _refreshView();
+    });
   }
 
   /// Opens the requester's conversation with the owner.
+  bool _openingChat = false;
+
   Future<void> _openMyChat() async {
     if (_view.myRequest == null) {
       _showSnackBar('Primero toca «Lo quiero» para hablar con el dueño.');
       return;
     }
+    if (_openingChat) return;
+    _openingChat = true;
     try {
       final conversations = await client.chat.conversations();
       if (!mounted) return;
@@ -312,6 +316,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       _showSnackBar('No encontramos la conversación.');
     } catch (_) {
       _showSnackBar('No pudimos abrir el chat.');
+    } finally {
+      _openingChat = false;
     }
   }
 
@@ -323,7 +329,50 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-  void _openRequestSheetOrDialog() {
+  /// Loans need a verified identity (the server enforces it too): offer to
+  /// verify before showing the request form.
+  Future<void> _openRequestSheetOrDialog() async {
+    if (_view.listing.type == ListingType.lend) {
+      final MemberProfile? me;
+      try {
+        me = await client.profile.me();
+      } catch (_) {
+        _showSnackBar('No pudimos revisar tu cuenta. Inténtalo de nuevo.');
+        return;
+      }
+      if (!mounted) return;
+      if (me?.isVerified != true) {
+        final verify = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Verifica tu identidad'),
+            content: const Text(
+              'Para pedir préstamos necesitamos verificar tu cédula. Así '
+              'quien presta sabe que eres quien dices ser.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Ahora no'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Verificar'),
+              ),
+            ],
+          ),
+        );
+        if (verify == true && mounted) {
+          await openIdentity(context);
+        }
+        return;
+      }
+    }
+    if (!mounted) return;
+    _showRequestForm();
+  }
+
+  void _showRequestForm() {
     final size = ScreenSize.of(context);
     final title = '¿Te interesa «${_view.listing.title}»?';
     final isCompact = size == ScreenSize.compact;
@@ -338,6 +387,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         ),
         builder: (context) => _RequestForm(
           title: title,
+          listing: _view.listing,
           onSend: (message) async {
             Navigator.of(context).pop();
             await _createRequest(message);
@@ -357,6 +407,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               borderRadius: BorderRadius.circular(24),
               child: _RequestForm(
                 title: title,
+                listing: _view.listing,
                 onSend: (message) async {
                   Navigator.of(context).pop();
                   await _createRequest(message);
@@ -449,7 +500,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextButton.icon(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.of(context).maybePop(),
                   icon: const Icon(Icons.arrow_back, size: 18),
                   label: const Text('Volver'),
                   style: TextButton.styleFrom(
@@ -551,7 +602,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           top: AppSpacing.m,
           left: AppSpacing.screenHorizontal,
           child: InkWell(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: () => Navigator.of(context).maybePop(),
             borderRadius: BorderRadius.circular(22),
             child: Container(
               width: 44,
@@ -805,6 +856,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           constraints: const BoxConstraints(maxWidth: 640),
           child: Text(listing.description, style: AppTypography.body),
         ),
+        if (listing.type == ListingType.lend) ...[
+          const SizedBox(height: AppSpacing.l),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: LoanTermsCard(listing: listing),
+          ),
+        ],
       ],
     );
   }
@@ -848,10 +906,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             style: AppTypography.caption,
           ),
           const SizedBox(height: AppSpacing.m),
-          ZoneMap(latitude: listing.latitude, longitude: listing.longitude),
+          ZoneMap(
+            latitude: listing.latitude,
+            longitude: listing.longitude,
+            label: listing.neighborhood,
+          ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Zona aproximada: nunca mostramos direcciones exactas.',
+            'Zona del barrio (~1 km): nunca mostramos direcciones exactas.',
             style: AppTypography.caption,
           ),
         ],
@@ -948,25 +1010,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           _view.listing.status == ListingStatus.reserved);
 
   Future<void> _edit() async {
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        fullscreenDialog: true,
-        builder: (context) =>
-            PublishScreen(profile: _view.owner, editing: _view.listing),
-      ),
-    );
-    if (saved == true) {
-      await _refreshView();
-      _showSnackBar('Cambios guardados.');
-    }
+    // The publish screen confirms the save itself.
+    await openPublish(context, editing: _view.listing);
+    if (mounted) await _refreshView();
   }
 
   void _openOwnerProfile() {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (context) => PublicProfileScreen(profileId: _view.owner.id!),
-      ),
-    );
+    openMemberProfile(context, _view.owner.id!);
   }
 
   Widget _buildOwnerCard(MemberProfile owner) {
@@ -1105,7 +1155,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     if (_view.isMine) {
       final actions = allowedOwnerActions(status);
       if (actions.isEmpty) {
-        content = const SizedBox.shrink();
+        content = _buildOwnerReview();
       } else {
         final mainAction = actions.first;
         final secondaryActions = actions
@@ -1152,10 +1202,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     final banner = status != ListingStatus.available
         ? Container(
             width: double.infinity,
-            color: AppColors.surfaceMuted,
+            margin: const EdgeInsets.only(bottom: AppSpacing.s),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(12),
+            ),
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
             child: Text(
-              _statusLabel(status),
+              loanStatusLabel(listing) ?? _statusLabel(status),
               textAlign: TextAlign.center,
               style: AppTypography.bodyStrong,
             ),
@@ -1191,7 +1245,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     if (_view.isMine) {
       final actions = allowedOwnerActions(status);
       if (actions.isEmpty) {
-        content = const SizedBox.shrink();
+        content = _buildOwnerReview();
       } else {
         final mainAction = actions.first;
         final secondaryActions = actions
@@ -1245,11 +1299,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     final banner = status != ListingStatus.available
         ? Container(
             width: double.infinity,
-            color: AppColors.surfaceMuted,
+            margin: const EdgeInsets.only(bottom: AppSpacing.s),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(12),
+            ),
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
-            margin: const EdgeInsets.only(bottom: AppSpacing.m),
             child: Text(
-              _statusLabel(status),
+              loanStatusLabel(listing) ?? _statusLabel(status),
               textAlign: TextAlign.center,
               style: AppTypography.bodyStrong,
             ),
@@ -1265,110 +1322,200 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  /// Rates the other side of a delivery. The server refuses repeats.
+  Future<void> _reviewMember(String name) async {
+    final saved = await showReviewDialog(
+      context,
+      listingId: _view.listing.id!,
+      memberName: name,
+    );
+    if (!saved || !mounted) return;
+    setState(() => _reviewed = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('¡Gracias! Tu reseña ya es visible en su perfil.'),
+      ),
+    );
+  }
+
+  /// The owner's "Calificar a …" once the listing was delivered.
+  /// Closes a delivered loan and then asks both sides to rate it.
+  Future<void> _closeLoan(LoanOutcome outcome) async {
+    final returned = outcome == LoanOutcome.returned;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          returned ? '¿Ya te lo devolvieron?' : '¿No te lo devolvieron?',
+        ),
+        content: Text(
+          returned
+              ? 'Cerraremos el préstamo. Recuerda devolver la garantía si la '
+                    'hubo.'
+              : 'Quedará registrado en el préstamo y podrás calificar y '
+                    'reportar a la persona. Intenta hablarle por el chat antes.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(returned ? 'Sí, ya volvió' : 'Marcar no devuelto'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _updating = true);
+    try {
+      final updated = await client.listing.closeLoan(
+        _view.listing.id!,
+        outcome,
+      );
+      if (!mounted) return;
+      setState(() => _view = updated.copyWith(distanceKm: _view.distanceKm));
+      await askPendingReviews(context);
+    } catch (e) {
+      _showErrorFor(e);
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  Widget _buildOwnerReview() {
+    if (isLoanOut(_view.listing)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppPrimaryButton(
+            label: 'Marcar como devuelto',
+            onPressed: _updating
+                ? null
+                : () => _closeLoan(LoanOutcome.returned),
+          ),
+          TextButton(
+            onPressed: _updating
+                ? null
+                : () => _closeLoan(LoanOutcome.notReturned),
+            child: Text(
+              'No me lo devolvieron',
+              style: AppTypography.bodyStrong.copyWith(
+                color: AppColors.danger,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (_view.listing.status != ListingStatus.delivered || _reviewed) {
+      return const SizedBox.shrink();
+    }
+    RequestView? accepted;
+    for (final request in _requests ?? <RequestView>[]) {
+      if (request.request.status == RequestStatus.accepted) accepted = request;
+    }
+    if (accepted == null) return const SizedBox.shrink();
+    final name = accepted.requester.displayName;
+    return AppPrimaryButton(
+      label: 'Calificar a $name',
+      onPressed: () => _reviewMember(name),
+    );
+  }
+
   Widget _buildRequesterActions({required bool compact}) {
     final state = requesterActionState(_view);
 
-    Widget actionWidget;
+    // A full-width message on top, then the chat button and the action on
+    // one line, so neither squeezes the other.
+    Widget? message;
+    Widget? action;
     switch (state) {
       case RequesterActionState.canRequest:
-        actionWidget = AppPrimaryButton(
+        action = AppPrimaryButton(
           label: 'Lo quiero',
           onPressed: _openRequestSheetOrDialog,
         );
       case RequesterActionState.pending:
-        actionWidget = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _StatusPill(
-              label: 'Solicitud enviada · esperando respuesta',
-              backgroundColor: AppColors.surfaceMuted,
-              foregroundColor: AppColors.textSecondary,
-            ),
-            const SizedBox(height: AppSpacing.s),
-            TextButton(
-              onPressed: _updating ? null : _cancelMyRequest,
-              child: Text(
-                'Cancelar solicitud',
-                style: AppTypography.bodyStrong.copyWith(
-                  color: AppColors.danger,
-                ),
-              ),
-            ),
-          ],
+        message = _StatusPill(
+          label: 'Solicitud enviada · esperando respuesta',
+          backgroundColor: AppColors.surfaceMuted,
+          foregroundColor: AppColors.textSecondary,
+        );
+        action = TextButton(
+          onPressed: _updating ? null : _cancelMyRequest,
+          child: Text(
+            'Cancelar solicitud',
+            style: AppTypography.bodyStrong.copyWith(color: AppColors.danger),
+          ),
         );
       case RequesterActionState.accepted:
-        actionWidget = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.m),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD4EDDA),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: Color(0xFF155724),
-                        size: 18,
-                      ),
-                      const SizedBox(width: AppSpacing.s),
-                      Text(
-                        '¡Te lo reservaron!',
-                        style: AppTypography.bodyStrong.copyWith(
-                          color: const Color(0xFF155724),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'Coordina la entrega por el chat.',
-                    style: AppTypography.body.copyWith(
-                      color: const Color(0xFF155724),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s),
-            AppSecondaryButton(
-              label: 'Cancelar reserva',
-              onPressed: _updating ? null : _cancelMyRequest,
-            ),
-          ],
+        message = const _SuccessNote(
+          title: '¡Te lo reservaron!',
+          body: 'Coordina la entrega por el chat.',
         );
+        action = AppSecondaryButton(
+          label: 'Cancelar reserva',
+          onPressed: _updating ? null : _cancelMyRequest,
+        );
+      case RequesterActionState.delivered when isLoanOut(_view.listing):
+        final listing = _view.listing;
+        final late = loanDaysLate(listing) > 0;
+        final owed = loanLateFeeOwed(listing);
+        message = late
+            ? _StatusPill(
+                label: owed == null
+                    ? 'Préstamo vencido: devuélvelo cuanto antes'
+                    : 'Préstamo vencido · recargo acordado ${formatCop(owed)}',
+                backgroundColor: const Color(0xFFFBE3D6),
+                foregroundColor: AppColors.danger,
+              )
+            : _SuccessNote(
+                title: 'Préstamo en curso',
+                body: listing.returnDate == null
+                    ? 'Devuélvelo en el mismo estado en que lo recibiste.'
+                    : 'Devuélvelo a más tardar el '
+                          '${formatDate(listing.returnDate!)}, en el mismo estado.',
+              );
+        action = AppSecondaryButton(
+          label: 'Ir al chat',
+          onPressed: _openMyChat,
+        );
+      case RequesterActionState.delivered:
+        message = const _SuccessNote(
+          title: '¡Entrega completada!',
+          body: 'Cuéntale a la comunidad cómo te fue.',
+        );
+        action = _reviewed
+            ? null
+            : AppPrimaryButton(
+                label: 'Calificar a ${_view.owner.displayName}',
+                onPressed: () => _reviewMember(_view.owner.displayName),
+              );
       case RequesterActionState.rejected:
-        actionWidget = _StatusPill(
+        message = _StatusPill(
           label: 'El dueño eligió a otra persona',
           backgroundColor: AppColors.surfaceMuted,
           foregroundColor: AppColors.textSecondary,
         );
       case RequesterActionState.unavailable:
-        actionWidget = const SizedBox.shrink();
+        break;
     }
 
-    if (compact) {
-      return Row(
-        children: [
-          _ChatButton(onTap: _openMyChat),
-          const SizedBox(width: AppSpacing.s),
-          Expanded(child: actionWidget),
-        ],
-      );
-    }
-
-    // Wide layout: chat icon stays inline.
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _ChatButton(onTap: _openMyChat),
-        const SizedBox(width: AppSpacing.s),
-        Expanded(child: actionWidget),
+        if (message != null) ...[message, const SizedBox(height: AppSpacing.s)],
+        Row(
+          children: [
+            _ChatButton(onTap: _openMyChat),
+            const SizedBox(width: AppSpacing.s),
+            Expanded(child: action ?? const SizedBox.shrink()),
+          ],
+        ),
       ],
     );
   }
@@ -1478,11 +1625,15 @@ class _StatusPill extends StatelessWidget {
 class _RequestForm extends StatefulWidget {
   const _RequestForm({
     required this.title,
+    required this.listing,
     required this.onSend,
     required this.isLoading,
   });
 
   final String title;
+
+  /// Loans show their terms, which must be accepted before sending.
+  final Listing listing;
   final Future<void> Function(String? message) onSend;
   final bool isLoading;
 
@@ -1492,6 +1643,9 @@ class _RequestForm extends StatefulWidget {
 
 class _RequestFormState extends State<_RequestForm> {
   final _controller = TextEditingController();
+  bool _acceptedTerms = false;
+
+  bool get _isLoan => widget.listing.type == ListingType.lend;
 
   @override
   void dispose() {
@@ -1513,6 +1667,22 @@ class _RequestFormState extends State<_RequestForm> {
           children: [
             Text(widget.title, style: AppTypography.title),
             const SizedBox(height: AppSpacing.l),
+            if (_isLoan) ...[
+              LoanTermsCard(listing: widget.listing),
+              CheckboxListTile(
+                value: _acceptedTerms,
+                onChanged: (value) =>
+                    setState(() => _acceptedTerms = value ?? false),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(
+                  'Acepto devolverlo a tiempo y en el mismo estado, y las '
+                  'condiciones del dueño.',
+                  style: AppTypography.body,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.m),
+            ],
             AppTextField(
               label: 'Mensaje (opcional)',
               hint: 'Cuéntale cuándo podrías recogerlo…',
@@ -1552,7 +1722,7 @@ class _RequestFormState extends State<_RequestForm> {
             AppPrimaryButton(
               label: 'Enviar solicitud',
               isLoading: widget.isLoading,
-              onPressed: widget.isLoading
+              onPressed: widget.isLoading || (_isLoan && !_acceptedTerms)
                   ? null
                   : () => widget.onSend(_textOrNull(_controller.text)),
             ),
@@ -1864,6 +2034,46 @@ class _PhotoViewerScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Green confirmation box for the requester (reserved or delivered).
+class _SuccessNote extends StatelessWidget {
+  const _SuccessNote({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  static const _foreground = Color(0xFF155724);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD4EDDA),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.check_circle, color: _foreground, size: 18),
+              const SizedBox(width: AppSpacing.s),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTypography.bodyStrong.copyWith(color: _foreground),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(body, style: AppTypography.body.copyWith(color: _foreground)),
+        ],
       ),
     );
   }

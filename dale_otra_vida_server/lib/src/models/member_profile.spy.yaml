@@ -15,6 +15,10 @@ fields:
   deliveryCount: int, default=0
   accountType: AccountType, default=person
   createdAt: DateTime, default=now
+  ### Proof of the member's authorization for the data policy (Ley 1581):
+  ### which version they accepted and when. Null until they accept.
+  privacyAcceptedVersion: int?
+  privacyAcceptedAt: DateTime?
 indexes:
   member_profile_auth_user_idx:
     fields: authUserId

@@ -11,7 +11,11 @@ import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 /// Routes between sign-in, onboarding and the app based on auth state and
 /// whether the member already has a profile.
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  const AuthGate({super.key, this.location = '/'});
+
+  /// The shell address ('/', '/inicio', '/mensajes', '/perfil'): which tab
+  /// to show once signed in.
+  final String location;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -48,9 +52,18 @@ class _AuthGateState extends State<AuthGate> {
       future: profile,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(child: CircularProgressIndicator()),
+          // Same as the system and web splash (flutter_native_splash in
+          // pubspec.yaml), so the launch doesn't flash a different logo.
+          return Scaffold(
+            backgroundColor: AppColors.primary,
+            body: Center(
+              child: Image.asset(
+                'assets/icon/splash.png',
+                width: 160,
+                height: 160,
+                semanticLabel: 'Dale Otra Vida',
+              ),
+            ),
           );
         }
         if (snapshot.hasError) {
@@ -70,7 +83,7 @@ class _AuthGateState extends State<AuthGate> {
         if (snapshot.data == null) {
           return OnboardingScreen(onCompleted: _onAuthChanged);
         }
-        return const AppShell();
+        return AppShell(location: widget.location);
       },
     );
   }

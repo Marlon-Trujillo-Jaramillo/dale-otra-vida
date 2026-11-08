@@ -1,0 +1,5 @@
+### How a loan ended, set by the owner.
+enum: LoanOutcome
+values:
+  - returned
+  - notReturned

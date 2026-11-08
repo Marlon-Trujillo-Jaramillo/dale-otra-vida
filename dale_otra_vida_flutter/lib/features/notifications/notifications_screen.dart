@@ -1,6 +1,7 @@
 import 'package:dale_otra_vida_client/dale_otra_vida_client.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/navigation.dart';
 import '../../client.dart';
 import '../../core/format.dart';
 import '../../core/layout/breakpoints.dart';
@@ -8,10 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/empty_state.dart';
-import '../chat/chat_screen.dart';
-import '../listing/listing_detail_screen.dart';
 import '../profile/profile_body.dart';
-import '../profile/public_profile_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -101,7 +99,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  /// Set while a tapped notification is opening, so repeated taps don't
+  /// stack the same screen.
+  bool _opening = false;
+
   Future<void> _markReadAndOpen(AppNotification notification) async {
+    if (_opening) return;
+    _opening = true;
+    try {
+      await _markRead(notification);
+      if (mounted) await _navigateFor(notification);
+    } finally {
+      _opening = false;
+    }
+  }
+
+  Future<void> _markRead(AppNotification notification) async {
     try {
       await client.notification.markRead(notification.id!);
     } catch (_) {
@@ -116,11 +129,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _notifications[index] = notification.copyWith(readAt: DateTime.now());
       }
     });
-
-    _navigateFor(notification);
   }
 
-  void _navigateFor(AppNotification notification) {
+  Future<void> _navigateFor(AppNotification notification) async {
     final kind = notification.kind;
     final refId = notification.refId;
 
@@ -130,10 +141,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         kind == NotificationKind.requestRejected ||
         kind == NotificationKind.requestCancelled ||
         kind == NotificationKind.deliveryCompleted ||
-        kind == NotificationKind.listingExpiring;
+        kind == NotificationKind.listingExpiring ||
+        kind == NotificationKind.loanDueSoon ||
+        kind == NotificationKind.loanOverdue ||
+        kind == NotificationKind.loanClosed;
 
     if (isListingKind && refId != null) {
-      _openListing(refId);
+      await _openListing(refId);
+      return;
+    }
+
+    if (kind == NotificationKind.identityReviewed) {
+      await openIdentity(context);
       return;
     }
 
@@ -143,11 +162,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (kind == NotificationKind.newMessage && refId != null) {
-      Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (context) => ChatScreen(conversationId: refId),
-        ),
-      );
+      await openChat(context, refId);
       return;
     }
 
@@ -158,14 +173,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       final me = await client.profile.me();
       if (!mounted || me == null) return;
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (context) => PublicProfileScreen(
-            profileId: me.id!,
-            initialTab: ProfileTab.reviews,
-          ),
-        ),
-      );
+      await openMemberProfile(context, me.id!, tab: ProfileTab.reviews);
     } catch (_) {
       if (mounted) _showSnackBar('No pudimos abrir tus reseñas.');
     }
@@ -179,11 +187,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _showSnackBar('La publicación ya no está disponible.');
         return;
       }
-      await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(
-          builder: (context) => ListingDetailScreen(view: view),
-        ),
-      );
+      await openListing(context, view);
     } catch (_) {
       if (mounted) {
         _showSnackBar('No pudimos abrir la publicación.');
@@ -207,6 +211,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       NotificationKind.listingExpiring => Icons.info_outline,
       NotificationKind.requestCancelled => Icons.info_outline,
       NotificationKind.deliveryCompleted => Icons.volunteer_activism_outlined,
+      NotificationKind.loanDueSoon => Icons.event_outlined,
+      NotificationKind.loanOverdue => Icons.warning_amber_rounded,
+      NotificationKind.loanClosed => Icons.assignment_turned_in_outlined,
+      NotificationKind.identityReviewed => Icons.verified_user_outlined,
     };
   }
 

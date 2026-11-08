@@ -34,6 +34,8 @@ abstract class MemberProfile
     int? deliveryCount,
     _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
+    this.privacyAcceptedVersion,
+    this.privacyAcceptedAt,
   }) : isVerified = isVerified ?? false,
        ratingAvg = ratingAvg ?? 0.0,
        reviewCount = reviewCount ?? 0,
@@ -56,6 +58,8 @@ abstract class MemberProfile
     int? deliveryCount,
     _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
+    int? privacyAcceptedVersion,
+    DateTime? privacyAcceptedAt,
   }) = _MemberProfileImpl;
 
   factory MemberProfile.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -88,6 +92,13 @@ abstract class MemberProfile
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _isc.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
+      privacyAcceptedVersion:
+          jsonSerialization['privacyAcceptedVersion'] as int?,
+      privacyAcceptedAt: jsonSerialization['privacyAcceptedAt'] == null
+          ? null
+          : _isc.DateTimeJsonExtension.fromJson(
+              jsonSerialization['privacyAcceptedAt'],
+            ),
     );
   }
 
@@ -123,6 +134,12 @@ abstract class MemberProfile
 
   DateTime createdAt;
 
+  /// Proof of the member's authorization for the data policy (Ley 1581):
+  /// which version they accepted and when. Null until they accept.
+  int? privacyAcceptedVersion;
+
+  DateTime? privacyAcceptedAt;
+
   /// Returns a shallow copy of this [MemberProfile]
   /// with some or all fields replaced by the given arguments.
   @_isc.useResult
@@ -141,6 +158,8 @@ abstract class MemberProfile
     int? deliveryCount,
     _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
+    int? privacyAcceptedVersion,
+    DateTime? privacyAcceptedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -160,6 +179,10 @@ abstract class MemberProfile
       'deliveryCount': deliveryCount,
       'accountType': accountType.toJson(),
       'createdAt': createdAt.toJson(),
+      if (privacyAcceptedVersion != null)
+        'privacyAcceptedVersion': privacyAcceptedVersion,
+      if (privacyAcceptedAt != null)
+        'privacyAcceptedAt': privacyAcceptedAt?.toJson(),
     };
   }
 
@@ -181,6 +204,10 @@ abstract class MemberProfile
       'deliveryCount': deliveryCount,
       'accountType': accountType.toJson(),
       'createdAt': createdAt.toJson(),
+      if (privacyAcceptedVersion != null)
+        'privacyAcceptedVersion': privacyAcceptedVersion,
+      if (privacyAcceptedAt != null)
+        'privacyAcceptedAt': privacyAcceptedAt?.toJson(),
     };
   }
 
@@ -208,6 +235,8 @@ class _MemberProfileImpl extends MemberProfile {
     int? deliveryCount,
     _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
+    int? privacyAcceptedVersion,
+    DateTime? privacyAcceptedAt,
   }) : super._(
          id: id,
          authUserId: authUserId,
@@ -223,6 +252,8 @@ class _MemberProfileImpl extends MemberProfile {
          deliveryCount: deliveryCount,
          accountType: accountType,
          createdAt: createdAt,
+         privacyAcceptedVersion: privacyAcceptedVersion,
+         privacyAcceptedAt: privacyAcceptedAt,
        );
 
   /// Returns a shallow copy of this [MemberProfile]
@@ -244,6 +275,8 @@ class _MemberProfileImpl extends MemberProfile {
     int? deliveryCount,
     _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
+    Object? privacyAcceptedVersion = _Undefined,
+    Object? privacyAcceptedAt = _Undefined,
   }) {
     return MemberProfile(
       id: id is int? ? id : this.id,
@@ -262,6 +295,12 @@ class _MemberProfileImpl extends MemberProfile {
       deliveryCount: deliveryCount ?? this.deliveryCount,
       accountType: accountType ?? this.accountType,
       createdAt: createdAt ?? this.createdAt,
+      privacyAcceptedVersion: privacyAcceptedVersion is int?
+          ? privacyAcceptedVersion
+          : this.privacyAcceptedVersion,
+      privacyAcceptedAt: privacyAcceptedAt is DateTime?
+          ? privacyAcceptedAt
+          : this.privacyAcceptedAt,
     );
   }
 }

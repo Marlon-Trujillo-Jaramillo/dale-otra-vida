@@ -14,8 +14,19 @@ fields:
   expiresAt: DateTime?
   ### Price in COP, only for `sell`.
   price: int?
-  ### Only for `lend`.
+  ### Only for `lend`: when it must be back (at most 30 days ahead).
   returnDate: DateTime?
+  ### Only for `lend`: refundable guarantee in COP, handed over in person and
+  ### returned with the item. Optional.
+  depositAmount: int?
+  ### Only for `lend`: agreed charge in COP per day late, capped at the
+  ### deposit. Optional; the app shows it, it doesn't charge it.
+  lateFeePerDay: int?
+  ### Only for `lend`: the owner's conditions of use.
+  loanConditions: String?
+  ### Only for `lend`: set when the owner closes a delivered loan.
+  loanOutcome: LoanOutcome?
+  loanClosedAt: DateTime?
   ### Only for `exchange`: what the owner wants in return.
   wantedInExchange: String?
   neighborhood: String

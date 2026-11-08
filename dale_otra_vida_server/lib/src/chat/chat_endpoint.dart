@@ -1,9 +1,11 @@
 import 'package:serverpod/serverpod.dart';
 
+import '../common/completion.dart';
 import '../common/current_profile.dart';
 import '../generated/protocol.dart';
 import '../listings/listing_views.dart';
 import '../notifications/notify.dart';
+import '../push/fcm.dart';
 import 'chat_messages.dart';
 
 /// Chat between a listing owner and one interested member.
@@ -83,7 +85,22 @@ class ChatEndpoint extends Endpoint {
       throw NotAllowedException(message: 'El mensaje es demasiado largo.');
     }
 
-    final (conversation, message) = await session.db.transaction((
+    // Against flooding: nobody types 30 messages a minute.
+    final lastMinute = DateTime.now().toUtc().subtract(
+      const Duration(minutes: 1),
+    );
+    final recent = await ChatMessage.db.count(
+      session,
+      where: (t) => t.senderId.equals(profile.id!) & (t.createdAt > lastMinute),
+    );
+    if (recent >= 30) {
+      throw NotAllowedException(
+        message:
+            'Vas muy rápido. Espera un momento antes de seguir escribiendo.',
+      );
+    }
+
+    final (conversation, message, push) = await session.db.transaction((
       transaction,
     ) async {
       final conversation = await _participantConversation(
@@ -144,10 +161,21 @@ class ChatEndpoint extends Endpoint {
           transaction: transaction,
         );
       }
-      return (conversation, message);
+      return (
+        conversation,
+        message,
+        (recipientId: recipientId, title: title, body: body),
+      );
     });
 
     await publishChatMessage(session, conversation, message);
+    await sendPush(
+      session,
+      profileId: push.recipientId,
+      title: push.title,
+      body: push.body,
+      data: {'conversationId': '$conversationId'},
+    );
 
     return message;
   }
@@ -193,6 +221,29 @@ class ChatEndpoint extends Endpoint {
       chatChannel(conversationId),
     );
   }
+
+  /// Tells the other participant the caller is typing. The app calls it at
+  /// most every few seconds while the member types; nothing is stored.
+  Future<void> typing(Session session, int conversationId) async {
+    final profile = await currentProfile(session);
+    await _participantConversation(session, conversationId, profile);
+    await session.messages.postMessage(
+      _typingChannel(conversationId),
+      TypingEvent(profileId: profile.id!),
+    );
+  }
+
+  /// Streams "typing" events of one conversation, the caller's own included
+  /// (the app ignores those).
+  Stream<TypingEvent> typingEvents(Session session, int conversationId) async* {
+    final profile = await currentProfile(session);
+    await _participantConversation(session, conversationId, profile);
+    yield* session.messages.createStream<TypingEvent>(
+      _typingChannel(conversationId),
+    );
+  }
+
+  static String _typingChannel(int conversationId) => 'typing-$conversationId';
 
   /// Streams every new message in any of the caller's conversations.
   Stream<ChatMessage> inbox(Session session) async* {
@@ -298,7 +349,7 @@ class ChatEndpoint extends Endpoint {
     // Delivered listings the caller has not rated yet.
     final deliveredIds = {
       for (final listing in listings)
-        if (listing.status == ListingStatus.delivered) listing.id!,
+        if (isCompletedDelivery(listing)) listing.id!,
     };
     final myReviews = deliveredIds.isEmpty
         ? <Review>[]

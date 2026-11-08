@@ -22,8 +22,24 @@ class RequestEndpoint extends Endpoint {
     Session session,
     int listingId, {
     String? message,
+
+    /// Loans: the requester accepts the owner's return date, guarantee,
+    /// late fee and conditions. Required to ask for a loan.
+    bool? acceptTerms,
   }) async {
     final profile = await currentProfile(session);
+
+    // Against spam: far above what a neighbor asks for in a day.
+    final since = DateTime.now().toUtc().subtract(const Duration(days: 1));
+    final today = await ListingRequest.db.count(
+      session,
+      where: (t) => t.requesterId.equals(profile.id!) & (t.createdAt > since),
+    );
+    if (today >= 30) {
+      throw NotAllowedException(
+        message: 'Llegaste al límite de 30 solicitudes por día.',
+      );
+    }
 
     var text = message?.trim();
     if (text != null && text.isEmpty) text = null;
@@ -49,6 +65,21 @@ class RequestEndpoint extends Endpoint {
       if (listing.ownerId == profile.id!) {
         throw NotAllowedException(
           message: 'No puedes pedir tu propia publicación.',
+        );
+      }
+      final isLoan = listing.type == ListingType.lend;
+      // Loans are the one case where a theft can happen: only members with a
+      // reviewed cédula can ask for them (see identity_endpoint.dart).
+      if (isLoan && !profile.isVerified) {
+        throw NotAllowedException(
+          message:
+              'Para pedir préstamos primero verifica tu identidad en Perfil → '
+              'Verificar identidad.',
+        );
+      }
+      if (isLoan && acceptTerms != true) {
+        throw NotAllowedException(
+          message: 'Para pedir un préstamo debes aceptar sus condiciones.',
         );
       }
 
@@ -119,6 +150,7 @@ class RequestEndpoint extends Endpoint {
                 requesterId: profile.id!,
                 message: text,
                 createdAt: now,
+                acceptedTermsAt: isLoan ? now : null,
               ),
               transaction: transaction,
             )
@@ -128,6 +160,7 @@ class RequestEndpoint extends Endpoint {
                 status: RequestStatus.pending,
                 createdAt: now,
                 message: text,
+                acceptedTermsAt: isLoan ? now : null,
               ),
               transaction: transaction,
             );
@@ -348,10 +381,12 @@ class RequestEndpoint extends Endpoint {
             t.id.notEquals(requestId),
         transaction: transaction,
       );
-      for (final other in others) {
-        await ListingRequest.db.updateRow(
+      // One UPDATE for all of them instead of one per request.
+      if (others.isNotEmpty) {
+        await ListingRequest.db.updateWhere(
           session,
-          other.copyWith(status: RequestStatus.rejected),
+          where: (t) => t.id.inSet(others.map((o) => o.id!).toSet()),
+          columnValues: (t) => [t.status(RequestStatus.rejected)],
           transaction: transaction,
         );
       }
@@ -387,16 +422,18 @@ class RequestEndpoint extends Endpoint {
         refId: listing.id,
         transaction: transaction,
       );
-      for (final other in others) {
-        await notify(
-          session,
-          userId: other.requesterId,
-          kind: NotificationKind.requestRejected,
-          title: 'Solicitud no disponible',
-          body: '«${listing.title}» fue reservado para otra persona.',
-          refId: listing.id,
-          transaction: transaction,
-        );
+      // One INSERT for every rejected requester.
+      if (others.isNotEmpty) {
+        await AppNotification.db.insert(session, [
+          for (final other in others)
+            AppNotification(
+              userId: other.requesterId,
+              kind: NotificationKind.requestRejected,
+              title: 'Solicitud no disponible',
+              body: '«${listing.title}» fue reservado para otra persona.',
+              refId: listing.id,
+            ),
+        ], transaction: transaction);
       }
 
       return accepted;

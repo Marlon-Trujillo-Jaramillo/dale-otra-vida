@@ -12,3 +12,6 @@ fields:
 indexes:
   app_notification_user_idx:
     fields: userId, createdAt
+  ### One-per-thing notifications (chat, reminders) look up by kind and ref.
+  app_notification_ref_idx:
+    fields: userId, kind, refId
