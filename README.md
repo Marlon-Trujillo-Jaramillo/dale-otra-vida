@@ -38,8 +38,9 @@ Pascual Bravo) by a solo developer. It runs on Android, iOS and the web from a s
 - **Push notifications** with Firebase Cloud Messaging, plus an in-app notification center.
 - **Responsive and installable.** Bottom bar on phones, navigation rail on tablets, split views
   on desktop web, and a PWA install flow (including manual steps on iPhone).
-- **Quality gates.** 32 automated tests (server integration tests + Flutter tests) and CI for
-  `dart analyze`, `dart format` and tests on every push.
+- **Quality gates.** 368 automated tests (145 server integration tests against a real
+  PostgreSQL + 223 Flutter tests) with line coverage in every CI run, plus `dart analyze`,
+  `dart format`, a gitleaks secret scan and weekly Dependabot updates.
 - **Cloud deployment.** One command (`scloud deploy`) builds and ships the server, the web app
   and the database migrations to Serverpod Cloud. See
   [docs/arquitectura-tecnica.md](docs/arquitectura-tecnica.md) for the full technical design.
