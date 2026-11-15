@@ -6,6 +6,44 @@ neighbors in Medellín, so things you no longer use get a second life.
 Built in one week as a university project (Pensamiento Creativo, Institución Universitaria
 Pascual Bravo) by a solo developer. It runs on Android, iOS and the web from a single codebase.
 
+**Live demo:** https://dale-otra-vida.serverpod.space (installable as a PWA)
+
+[![Tests](https://github.com/Marlon-Trujillo-Jaramillo/dale-otra-vida/actions/workflows/tests.yml/badge.svg)](https://github.com/Marlon-Trujillo-Jaramillo/dale-otra-vida/actions/workflows/tests.yml)
+[![Analyze](https://github.com/Marlon-Trujillo-Jaramillo/dale-otra-vida/actions/workflows/analyze.yml/badge.svg)](https://github.com/Marlon-Trujillo-Jaramillo/dale-otra-vida/actions/workflows/analyze.yml)
+[![Format](https://github.com/Marlon-Trujillo-Jaramillo/dale-otra-vida/actions/workflows/format.yml/badge.svg)](https://github.com/Marlon-Trujillo-Jaramillo/dale-otra-vida/actions/workflows/format.yml)
+![Flutter](https://img.shields.io/badge/Flutter-3.44-02569B)
+![Serverpod](https://img.shields.io/badge/Serverpod-4-1E3A8A)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791)
+
+<p align="center">
+  <img src="docs/screenshots/web-desktop.png" alt="Sign-in screen on desktop web" width="68%">
+  &nbsp;
+  <img src="docs/screenshots/web-mobile.png" alt="Sign-in screen on a phone" width="24%">
+</p>
+
+## Engineering highlights
+
+- **End-to-end type safety.** Models are declared once in `.spy.yaml`; Serverpod generates the
+  PostgreSQL tables, migrations, server classes and a typed Dart client.
+- **Concurrency-safe reservations.** Accepting a request locks the listing row
+  (`SELECT … FOR UPDATE`), so a double tap or two devices accepting at once can never reserve the
+  same item twice.
+- **Real-time chat over WebSockets.** Messages are persisted first, then published on a channel;
+  clients reconnect and catch up after a dropped connection.
+- **Image pipeline.** Photos are compressed on the device (max 1440 px, quality 78), uploaded
+  straight to storage through a signed URL (never through the API server), verified by the
+  server, and cached on the client with `cached_network_image`.
+- **Privacy by design.** Locations are rounded on the server, so the map only shows an
+  approximate zone (~100 m), never an address.
+- **Push notifications** with Firebase Cloud Messaging, plus an in-app notification center.
+- **Responsive and installable.** Bottom bar on phones, navigation rail on tablets, split views
+  on desktop web, and a PWA install flow (including manual steps on iPhone).
+- **Quality gates.** 32 automated tests (server integration tests + Flutter tests) and CI for
+  `dart analyze`, `dart format` and tests on every push.
+- **Cloud deployment.** One command (`scloud deploy`) builds and ships the server, the web app
+  and the database migrations to Serverpod Cloud. See
+  [docs/arquitectura-tecnica.md](docs/arquitectura-tecnica.md) for the full technical design.
+
 ## Features
 
 - **Sign-in** with email and verification code, or with Google.
