@@ -39,6 +39,8 @@ void main() {
       expect(formatDate(DateTime(2026, 10, 24)), '24 oct 2026');
     });
 
+    // Assumes the machine runs in Colombia's time zone (UTC-5). CI sets
+    // TZ=America/Bogota for this job (see .github/workflows/tests.yml).
     test(
       'uses local timezone so a UTC 02:00 timestamp shows the previous day in UTC-5',
       () {
