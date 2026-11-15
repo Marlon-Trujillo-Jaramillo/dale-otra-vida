@@ -111,6 +111,18 @@ flutter test             # app unit and widget tests
 Secrets (`config/passwords.yaml`, `config/google_client_secret.json`) are not part of the
 repository.
 
+## AI-assisted engineering
+
+Built in one week by one developer working with two AI coding agents, each with a defined role:
+
+- **Claude Code plans, designs and verifies**: data model, auth and security, architecture and the final review of every change.
+- **OpenCode executes well-specified tasks**, routed to the cheapest model that can do each one right (mechanical edits, implementing a written spec, or a stronger model for tricky multi-file logic). The routing table lives in [`CLAUDE.md`](CLAUDE.md).
+- **Every delegated task has an exact scope, acceptance checks and no commits**: Claude reviews the diff and runs `dart analyze`, `dart format` and the tests before anything is committed.
+- **Written specs first**: each day's work started as a task spec in [`docs/tasks/`](docs/tasks), and the agents worked from it.
+- **39 versioned skills** ([`.opencode/skills/`](.opencode/skills)) give the agents up-to-date guidance for Serverpod (endpoints, streams, migrations, file uploads, caching, testing) and Flutter (architecture, responsive layouts, routing, tests).
+- **Serverpod MCP**: the agents create and apply migrations, hot-reload and read server and app logs through the Serverpod MCP server instead of guessing ([`AGENTS.md`](AGENTS.md)).
+- **Performance review**: a 30-point performance checklist was analyzed item by item, and the result (what was done, what wasn't and why) is documented in [docs/arquitectura-tecnica.md §16](docs/arquitectura-tecnica.md).
+
 ## Credits
 
 Team: Daniela Cardona, Nicolás Puerta and Marlon Trujillo Jaramillo.
