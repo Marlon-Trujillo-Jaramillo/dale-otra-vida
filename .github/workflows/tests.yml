@@ -50,3 +50,25 @@ jobs:
       - name: Run tests
         working-directory: dale_otra_vida_server
         run: dart test
+
+  flutter:
+    name: Flutter app tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests with coverage
+        working-directory: dale_otra_vida_flutter
+        run: flutter test --coverage
+
+      - name: Coverage in the run summary
+        if: always() && hashFiles('dale_otra_vida_flutter/coverage/lcov.info') != ''
+        working-directory: dale_otra_vida_flutter
+        run: python3 ../.github/scripts/coverage_summary.py lcov coverage/lcov.info dale_otra_vida_flutter

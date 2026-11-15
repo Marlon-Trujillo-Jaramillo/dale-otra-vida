@@ -1,0 +1,19 @@
+version: 2
+# Weekly dependency updates, grouped so each ecosystem opens at most one PR.
+# The Dart packages share one pub workspace (root pubspec.yaml), so a single entry covers them.
+updates:
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dart:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

@@ -1,0 +1,15 @@
+# Secret scanning rules: gitleaks' defaults plus the exceptions below.
+[extend]
+useDefault = true
+
+[allowlist]
+description = """
+Local-development and CI test database passwords. They only open the throwaway
+Postgres/Redis started by docker-compose or by the test runner; production
+credentials live in config/passwords.yaml (gitignored) and in Serverpod Cloud.
+"""
+paths = [
+  '''^\.github/workflows/tests\.yml$''',
+  '''^\.vscode/tasks\.json$''',
+  '''^dale_otra_vida_server/docker-compose\.yaml$''',
+]
