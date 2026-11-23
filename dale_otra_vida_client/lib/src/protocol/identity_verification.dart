@@ -121,7 +121,7 @@ abstract class IdentityVerification
     String? selfiePath,
     DateTime? consentAt,
     DateTime? submittedAt,
-    DateTime? reviewedAt,
+    DateTime? reviewedAt = const _isc.$UndefinedDateTime(),
     int? reviewedBy,
     String? rejectionReason,
   });
@@ -209,7 +209,7 @@ class _IdentityVerificationImpl extends IdentityVerification {
     Object? selfiePath = _Undefined,
     DateTime? consentAt,
     DateTime? submittedAt,
-    Object? reviewedAt = _Undefined,
+    DateTime? reviewedAt = const _isc.$UndefinedDateTime(),
     Object? reviewedBy = _Undefined,
     Object? rejectionReason = _Undefined,
   }) {
@@ -222,7 +222,9 @@ class _IdentityVerificationImpl extends IdentityVerification {
       selfiePath: selfiePath is String? ? selfiePath : this.selfiePath,
       consentAt: consentAt ?? this.consentAt,
       submittedAt: submittedAt ?? this.submittedAt,
-      reviewedAt: reviewedAt is DateTime? ? reviewedAt : this.reviewedAt,
+      reviewedAt: reviewedAt is _isc.UndefinedSentinel
+          ? this.reviewedAt
+          : reviewedAt,
       reviewedBy: reviewedBy is int? ? reviewedBy : this.reviewedBy,
       rejectionReason: rejectionReason is String?
           ? rejectionReason

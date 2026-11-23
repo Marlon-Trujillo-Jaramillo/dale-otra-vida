@@ -146,7 +146,7 @@ abstract class MemberProfile
   MemberProfile copyWith({
     int? id,
     _isc.UuidValue? authUserId,
-    _iacc.AuthUser? authUser,
+    _iacc.AuthUser? authUser = const _UndefinedMemberProfile$authUser(),
     String? displayName,
     String? neighborhood,
     double? latitude,
@@ -159,7 +159,7 @@ abstract class MemberProfile
     _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
     int? privacyAcceptedVersion,
-    DateTime? privacyAcceptedAt,
+    DateTime? privacyAcceptedAt = const _isc.$UndefinedDateTime(),
   });
   @override
   Map<String, dynamic> toJson() {
@@ -219,6 +219,11 @@ abstract class MemberProfile
 
 class _Undefined {}
 
+class _UndefinedMemberProfile$authUser extends _isc.UndefinedSentinel
+    implements _iacc.AuthUser {
+  const _UndefinedMemberProfile$authUser();
+}
+
 class _MemberProfileImpl extends MemberProfile {
   _MemberProfileImpl({
     int? id,
@@ -263,7 +268,7 @@ class _MemberProfileImpl extends MemberProfile {
   MemberProfile copyWith({
     Object? id = _Undefined,
     _isc.UuidValue? authUserId,
-    Object? authUser = _Undefined,
+    _iacc.AuthUser? authUser = const _UndefinedMemberProfile$authUser(),
     String? displayName,
     Object? neighborhood = _Undefined,
     Object? latitude = _Undefined,
@@ -276,14 +281,14 @@ class _MemberProfileImpl extends MemberProfile {
     _itrmkf8a.AccountType? accountType,
     DateTime? createdAt,
     Object? privacyAcceptedVersion = _Undefined,
-    Object? privacyAcceptedAt = _Undefined,
+    DateTime? privacyAcceptedAt = const _isc.$UndefinedDateTime(),
   }) {
     return MemberProfile(
       id: id is int? ? id : this.id,
       authUserId: authUserId ?? this.authUserId,
-      authUser: authUser is _iacc.AuthUser?
-          ? authUser
-          : this.authUser?.copyWith(),
+      authUser: authUser is _isc.UndefinedSentinel
+          ? this.authUser?.copyWith()
+          : authUser,
       displayName: displayName ?? this.displayName,
       neighborhood: neighborhood is String? ? neighborhood : this.neighborhood,
       latitude: latitude is double? ? latitude : this.latitude,
@@ -298,9 +303,9 @@ class _MemberProfileImpl extends MemberProfile {
       privacyAcceptedVersion: privacyAcceptedVersion is int?
           ? privacyAcceptedVersion
           : this.privacyAcceptedVersion,
-      privacyAcceptedAt: privacyAcceptedAt is DateTime?
-          ? privacyAcceptedAt
-          : this.privacyAcceptedAt,
+      privacyAcceptedAt: privacyAcceptedAt is _isc.UndefinedSentinel
+          ? this.privacyAcceptedAt
+          : privacyAcceptedAt,
     );
   }
 }

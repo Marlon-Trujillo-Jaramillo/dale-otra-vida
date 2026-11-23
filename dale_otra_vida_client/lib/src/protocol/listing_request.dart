@@ -86,7 +86,7 @@ abstract class ListingRequest
     int? requesterId,
     String? message,
     _iq8zsng0.RequestStatus? status,
-    DateTime? acceptedTermsAt,
+    DateTime? acceptedTermsAt = const _isc.$UndefinedDateTime(),
     DateTime? createdAt,
   });
   @override
@@ -154,7 +154,7 @@ class _ListingRequestImpl extends ListingRequest {
     int? requesterId,
     Object? message = _Undefined,
     _iq8zsng0.RequestStatus? status,
-    Object? acceptedTermsAt = _Undefined,
+    DateTime? acceptedTermsAt = const _isc.$UndefinedDateTime(),
     DateTime? createdAt,
   }) {
     return ListingRequest(
@@ -163,9 +163,9 @@ class _ListingRequestImpl extends ListingRequest {
       requesterId: requesterId ?? this.requesterId,
       message: message is String? ? message : this.message,
       status: status ?? this.status,
-      acceptedTermsAt: acceptedTermsAt is DateTime?
-          ? acceptedTermsAt
-          : this.acceptedTermsAt,
+      acceptedTermsAt: acceptedTermsAt is _isc.UndefinedSentinel
+          ? this.acceptedTermsAt
+          : acceptedTermsAt,
       createdAt: createdAt ?? this.createdAt,
     );
   }

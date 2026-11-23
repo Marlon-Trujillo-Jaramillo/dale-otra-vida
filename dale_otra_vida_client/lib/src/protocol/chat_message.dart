@@ -84,7 +84,7 @@ abstract class ChatMessage
     _ibvtcu73.MessageKind? kind,
     String? text,
     DateTime? createdAt,
-    DateTime? readAt,
+    DateTime? readAt = const _isc.$UndefinedDateTime(),
   });
   @override
   Map<String, dynamic> toJson() {
@@ -152,7 +152,7 @@ class _ChatMessageImpl extends ChatMessage {
     _ibvtcu73.MessageKind? kind,
     String? text,
     DateTime? createdAt,
-    Object? readAt = _Undefined,
+    DateTime? readAt = const _isc.$UndefinedDateTime(),
   }) {
     return ChatMessage(
       id: id is int? ? id : this.id,
@@ -161,7 +161,7 @@ class _ChatMessageImpl extends ChatMessage {
       kind: kind ?? this.kind,
       text: text ?? this.text,
       createdAt: createdAt ?? this.createdAt,
-      readAt: readAt is DateTime? ? readAt : this.readAt,
+      readAt: readAt is _isc.UndefinedSentinel ? this.readAt : readAt,
     );
   }
 }

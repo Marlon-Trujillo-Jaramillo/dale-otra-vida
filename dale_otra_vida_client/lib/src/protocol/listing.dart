@@ -211,14 +211,14 @@ abstract class Listing
     _ittj06x2.ItemCondition? condition,
     _igczfm3x.ListingStatus? status,
     List<String>? photoUrls,
-    DateTime? expiresAt,
+    DateTime? expiresAt = const _isc.$UndefinedDateTime(),
     int? price,
-    DateTime? returnDate,
+    DateTime? returnDate = const _isc.$UndefinedDateTime(),
     int? depositAmount,
     int? lateFeePerDay,
     String? loanConditions,
     _izx6bz8r.LoanOutcome? loanOutcome,
-    DateTime? loanClosedAt,
+    DateTime? loanClosedAt = const _isc.$UndefinedDateTime(),
     String? wantedInExchange,
     String? neighborhood,
     double? latitude,
@@ -364,14 +364,14 @@ class _ListingImpl extends Listing {
     _ittj06x2.ItemCondition? condition,
     _igczfm3x.ListingStatus? status,
     List<String>? photoUrls,
-    Object? expiresAt = _Undefined,
+    DateTime? expiresAt = const _isc.$UndefinedDateTime(),
     Object? price = _Undefined,
-    Object? returnDate = _Undefined,
+    DateTime? returnDate = const _isc.$UndefinedDateTime(),
     Object? depositAmount = _Undefined,
     Object? lateFeePerDay = _Undefined,
     Object? loanConditions = _Undefined,
     Object? loanOutcome = _Undefined,
-    Object? loanClosedAt = _Undefined,
+    DateTime? loanClosedAt = const _isc.$UndefinedDateTime(),
     Object? wantedInExchange = _Undefined,
     String? neighborhood,
     double? latitude,
@@ -390,9 +390,13 @@ class _ListingImpl extends Listing {
       condition: condition ?? this.condition,
       status: status ?? this.status,
       photoUrls: photoUrls ?? this.photoUrls.map((e0) => e0).toList(),
-      expiresAt: expiresAt is DateTime? ? expiresAt : this.expiresAt,
+      expiresAt: expiresAt is _isc.UndefinedSentinel
+          ? this.expiresAt
+          : expiresAt,
       price: price is int? ? price : this.price,
-      returnDate: returnDate is DateTime? ? returnDate : this.returnDate,
+      returnDate: returnDate is _isc.UndefinedSentinel
+          ? this.returnDate
+          : returnDate,
       depositAmount: depositAmount is int? ? depositAmount : this.depositAmount,
       lateFeePerDay: lateFeePerDay is int? ? lateFeePerDay : this.lateFeePerDay,
       loanConditions: loanConditions is String?
@@ -401,9 +405,9 @@ class _ListingImpl extends Listing {
       loanOutcome: loanOutcome is _izx6bz8r.LoanOutcome?
           ? loanOutcome
           : this.loanOutcome,
-      loanClosedAt: loanClosedAt is DateTime?
-          ? loanClosedAt
-          : this.loanClosedAt,
+      loanClosedAt: loanClosedAt is _isc.UndefinedSentinel
+          ? this.loanClosedAt
+          : loanClosedAt,
       wantedInExchange: wantedInExchange is String?
           ? wantedInExchange
           : this.wantedInExchange,
