@@ -57,7 +57,7 @@ abstract class IdentityState
   IdentityState copyWith({
     _i3lgiogf.IdentityStatus? status,
     String? rejectionReason,
-    DateTime? submittedAt,
+    DateTime? submittedAt = const _isc.$UndefinedDateTime(),
   });
   @override
   Map<String, dynamic> toJson() {
@@ -105,14 +105,16 @@ class _IdentityStateImpl extends IdentityState {
   IdentityState copyWith({
     Object? status = _Undefined,
     Object? rejectionReason = _Undefined,
-    Object? submittedAt = _Undefined,
+    DateTime? submittedAt = const _isc.$UndefinedDateTime(),
   }) {
     return IdentityState(
       status: status is _i3lgiogf.IdentityStatus? ? status : this.status,
       rejectionReason: rejectionReason is String?
           ? rejectionReason
           : this.rejectionReason,
-      submittedAt: submittedAt is DateTime? ? submittedAt : this.submittedAt,
+      submittedAt: submittedAt is _isc.UndefinedSentinel
+          ? this.submittedAt
+          : submittedAt,
     );
   }
 }

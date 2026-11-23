@@ -86,7 +86,7 @@ abstract class AppNotification
     String? title,
     String? body,
     int? refId,
-    DateTime? readAt,
+    DateTime? readAt = const _isc.$UndefinedDateTime(),
     DateTime? createdAt,
   });
   @override
@@ -159,7 +159,7 @@ class _AppNotificationImpl extends AppNotification {
     String? title,
     String? body,
     Object? refId = _Undefined,
-    Object? readAt = _Undefined,
+    DateTime? readAt = const _isc.$UndefinedDateTime(),
     DateTime? createdAt,
   }) {
     return AppNotification(
@@ -169,7 +169,7 @@ class _AppNotificationImpl extends AppNotification {
       title: title ?? this.title,
       body: body ?? this.body,
       refId: refId is int? ? refId : this.refId,
-      readAt: readAt is DateTime? ? readAt : this.readAt,
+      readAt: readAt is _isc.UndefinedSentinel ? this.readAt : readAt,
       createdAt: createdAt ?? this.createdAt,
     );
   }

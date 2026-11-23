@@ -78,7 +78,8 @@ abstract class ListingView
     _iuh59zig.MemberProfile? owner,
     double? distanceKm,
     bool? isMine,
-    _i0jjpqa3.ListingRequest? myRequest,
+    _i0jjpqa3.ListingRequest? myRequest =
+        const _UndefinedListingView$myRequest(),
     int? pendingRequestCount,
   });
   @override
@@ -115,6 +116,11 @@ abstract class ListingView
 
 class _Undefined {}
 
+class _UndefinedListingView$myRequest extends _is.UndefinedSentinel
+    implements _i0jjpqa3.ListingRequest {
+  const _UndefinedListingView$myRequest();
+}
+
 class _ListingViewImpl extends ListingView {
   _ListingViewImpl({
     required _ir9e9w84.Listing listing,
@@ -141,7 +147,8 @@ class _ListingViewImpl extends ListingView {
     _iuh59zig.MemberProfile? owner,
     Object? distanceKm = _Undefined,
     bool? isMine,
-    Object? myRequest = _Undefined,
+    _i0jjpqa3.ListingRequest? myRequest =
+        const _UndefinedListingView$myRequest(),
     int? pendingRequestCount,
   }) {
     return ListingView(
@@ -149,9 +156,9 @@ class _ListingViewImpl extends ListingView {
       owner: owner ?? this.owner.copyWith(),
       distanceKm: distanceKm is double? ? distanceKm : this.distanceKm,
       isMine: isMine ?? this.isMine,
-      myRequest: myRequest is _i0jjpqa3.ListingRequest?
-          ? myRequest
-          : this.myRequest?.copyWith(),
+      myRequest: myRequest is _is.UndefinedSentinel
+          ? this.myRequest?.copyWith()
+          : myRequest,
       pendingRequestCount: pendingRequestCount ?? this.pendingRequestCount,
     );
   }

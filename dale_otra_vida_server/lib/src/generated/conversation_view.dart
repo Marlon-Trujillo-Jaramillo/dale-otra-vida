@@ -92,7 +92,8 @@ abstract class ConversationView
     _iuh59zig.MemberProfile? other,
     bool? isOwner,
     int? unreadCount,
-    _i0jjpqa3.ListingRequest? request,
+    _i0jjpqa3.ListingRequest? request =
+        const _UndefinedConversationView$request(),
     bool? canReview,
   });
   @override
@@ -129,7 +130,10 @@ abstract class ConversationView
   }
 }
 
-class _Undefined {}
+class _UndefinedConversationView$request extends _is.UndefinedSentinel
+    implements _i0jjpqa3.ListingRequest {
+  const _UndefinedConversationView$request();
+}
 
 class _ConversationViewImpl extends ConversationView {
   _ConversationViewImpl({
@@ -160,7 +164,8 @@ class _ConversationViewImpl extends ConversationView {
     _iuh59zig.MemberProfile? other,
     bool? isOwner,
     int? unreadCount,
-    Object? request = _Undefined,
+    _i0jjpqa3.ListingRequest? request =
+        const _UndefinedConversationView$request(),
     bool? canReview,
   }) {
     return ConversationView(
@@ -169,9 +174,9 @@ class _ConversationViewImpl extends ConversationView {
       other: other ?? this.other.copyWith(),
       isOwner: isOwner ?? this.isOwner,
       unreadCount: unreadCount ?? this.unreadCount,
-      request: request is _i0jjpqa3.ListingRequest?
-          ? request
-          : this.request?.copyWith(),
+      request: request is _is.UndefinedSentinel
+          ? this.request?.copyWith()
+          : request,
       canReview: canReview ?? this.canReview,
     );
   }

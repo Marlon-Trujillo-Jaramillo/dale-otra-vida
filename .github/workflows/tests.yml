@@ -10,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      VERSION: '4.0.4'
+      VERSION: '4.1.2'
       SERVERPOD_PASSWORD_database: 'bQw-1Yiy21hpwGEoZgLerW-ofFmWn7vj'
       SERVERPOD_PASSWORD_redis: '4luFLpYKYVXqsKgYI21EyZBVjMmZ3Zll'
       # Administrator email the identity tests sign in as.

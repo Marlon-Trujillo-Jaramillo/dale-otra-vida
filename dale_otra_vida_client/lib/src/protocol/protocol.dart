@@ -108,18 +108,150 @@ export 'review_view.dart';
 export 'typing_event.dart';
 export 'client.dart';
 
-class Protocol extends _isc.SerializationManager {
+class Protocol extends _isc.SerializationManager
+    implements _isc.ProtocolDeserializationProvider {
   Protocol._();
 
   factory Protocol() => _instance;
 
   static final Protocol _instance = Protocol._().._registerHostProtocols();
 
-  static String? getClassNameFromObjectJson(dynamic data) {
-    if (data is! Map) return null;
-    final className = data['__className__'] as String?;
-    return className;
-  }
+  @override
+  _isc.ProtocolDeserialization get deserializationMetadata =>
+      _isc.ProtocolDeserialization.cached(
+        this,
+        types: const [
+          _isc.getType<_itrmkf8a.AccountType>,
+          _isc.getType<_ip1vhxmg.AppNotification>,
+          _isc.getType<_issw2w8j.Category>,
+          _isc.getType<_ivuncx2e.ChatMessage>,
+          _isc.getType<_iukzfy8n.CommunityImpact>,
+          _isc.getType<_ineda879.Conversation>,
+          _isc.getType<_iz4kexi3.ConversationView>,
+          _isc.getType<_iut2va9k.AppFeedback>,
+          _isc.getType<_i5v1trd1.IdentityReviewItem>,
+          _isc.getType<_iw4n75qz.IdentityState>,
+          _isc.getType<_i3lgiogf.IdentityStatus>,
+          _isc.getType<_i3fqyeh3.IdentityVerification>,
+          _isc.getType<_ittj06x2.ItemCondition>,
+          _isc.getType<_ir9e9w84.Listing>,
+          _isc.getType<_i0jjpqa3.ListingRequest>,
+          _isc.getType<_igczfm3x.ListingStatus>,
+          _isc.getType<_i1ntjlwm.ListingType>,
+          _isc.getType<_ijuym7ok.ListingView>,
+          _isc.getType<_izx6bz8r.LoanOutcome>,
+          _isc.getType<_iuh59zig.MemberProfile>,
+          _isc.getType<_ibvtcu73.MessageKind>,
+          _isc.getType<_ioyw6oo5.MyRequestView>,
+          _isc.getType<_icn336wo.NotAllowedException>,
+          _isc.getType<_ipnxo26v.NotificationKind>,
+          _isc.getType<_iyluks7w.PendingReview>,
+          _isc.getType<_ihl17tin.PhotoUpload>,
+          _isc.getType<_iarivcoc.ProfileRequiredException>,
+          _isc.getType<_io3x196o.PublicProfileView>,
+          _isc.getType<_i6cqc8ei.PushToken>,
+          _isc.getType<_i2t8i3ij.Report>,
+          _isc.getType<_ijgj7dn0.ReportReason>,
+          _isc.getType<_iq8zsng0.RequestStatus>,
+          _isc.getType<_iv1530zw.RequestView>,
+          _isc.getType<_itqm5y01.Review>,
+          _isc.getType<_io58qecx.ReviewView>,
+          _isc.getType<_i7vdrlln.TypingEvent>,
+          _isc.getType<_itrmkf8a.AccountType?>,
+          _isc.getType<_ip1vhxmg.AppNotification?>,
+          _isc.getType<_issw2w8j.Category?>,
+          _isc.getType<_ivuncx2e.ChatMessage?>,
+          _isc.getType<_iukzfy8n.CommunityImpact?>,
+          _isc.getType<_ineda879.Conversation?>,
+          _isc.getType<_iz4kexi3.ConversationView?>,
+          _isc.getType<_iut2va9k.AppFeedback?>,
+          _isc.getType<_i5v1trd1.IdentityReviewItem?>,
+          _isc.getType<_iw4n75qz.IdentityState?>,
+          _isc.getType<_i3lgiogf.IdentityStatus?>,
+          _isc.getType<_i3fqyeh3.IdentityVerification?>,
+          _isc.getType<_ittj06x2.ItemCondition?>,
+          _isc.getType<_ir9e9w84.Listing?>,
+          _isc.getType<_i0jjpqa3.ListingRequest?>,
+          _isc.getType<_igczfm3x.ListingStatus?>,
+          _isc.getType<_i1ntjlwm.ListingType?>,
+          _isc.getType<_ijuym7ok.ListingView?>,
+          _isc.getType<_izx6bz8r.LoanOutcome?>,
+          _isc.getType<_iuh59zig.MemberProfile?>,
+          _isc.getType<_ibvtcu73.MessageKind?>,
+          _isc.getType<_ioyw6oo5.MyRequestView?>,
+          _isc.getType<_icn336wo.NotAllowedException?>,
+          _isc.getType<_ipnxo26v.NotificationKind?>,
+          _isc.getType<_iyluks7w.PendingReview?>,
+          _isc.getType<_ihl17tin.PhotoUpload?>,
+          _isc.getType<_iarivcoc.ProfileRequiredException?>,
+          _isc.getType<_io3x196o.PublicProfileView?>,
+          _isc.getType<_i6cqc8ei.PushToken?>,
+          _isc.getType<_i2t8i3ij.Report?>,
+          _isc.getType<_ijgj7dn0.ReportReason?>,
+          _isc.getType<_iq8zsng0.RequestStatus?>,
+          _isc.getType<_iv1530zw.RequestView?>,
+          _isc.getType<_itqm5y01.Review?>,
+          _isc.getType<_io58qecx.ReviewView?>,
+          _isc.getType<_i7vdrlln.TypingEvent?>,
+          _isc.getType<List<String>>,
+          _isc.getType<List<_ijuym7ok.ListingView>>,
+          _isc.getType<List<_io58qecx.ReviewView>>,
+          _isc.getType<List<_ixj8t0ja.ConversationView>>,
+          _isc.getType<List<_ir83d1bh.ChatMessage>>,
+          _isc.getType<List<_i7uwfb16.IdentityReviewItem>>,
+          _isc.getType<List<_ijh8j4ei.ListingView>>,
+          _isc.getType<List<_irhv3nen.AppNotification>>,
+          _isc.getType<List<_isipxjtl.RequestView>>,
+          _isc.getType<List<_ikulhwb6.MyRequestView>>,
+          _isc.getType<List<_ibepkt8s.PendingReview>>,
+          _isc.getType<List<_iv0fqw25.ReviewView>>,
+        ],
+        modules: const [
+          _iaic.Protocol.new,
+          _iacc.Protocol.new,
+        ],
+        classNames: const [
+          'AccountType',
+          'AppNotification',
+          'Category',
+          'ChatMessage',
+          'CommunityImpact',
+          'Conversation',
+          'ConversationView',
+          'AppFeedback',
+          'IdentityReviewItem',
+          'IdentityState',
+          'IdentityStatus',
+          'IdentityVerification',
+          'ItemCondition',
+          'Listing',
+          'ListingRequest',
+          'ListingStatus',
+          'ListingType',
+          'ListingView',
+          'LoanOutcome',
+          'MemberProfile',
+          'MessageKind',
+          'MyRequestView',
+          'NotAllowedException',
+          'NotificationKind',
+          'PendingReview',
+          'PhotoUpload',
+          'ProfileRequiredException',
+          'PublicProfileView',
+          'PushToken',
+          'Report',
+          'ReportReason',
+          'RequestStatus',
+          'RequestView',
+          'Review',
+          'ReviewView',
+          'TypingEvent',
+        ],
+      );
+
+  static String? getClassNameFromObjectJson(dynamic data) =>
+      _isc.ProtocolDeserialization.readClassName(data);
 
   @override
   T deserialize<T>(
@@ -127,8 +259,8 @@ class Protocol extends _isc.SerializationManager {
     Type? t,
   ]) {
     t ??= T;
-
-    final dataClassName = getClassNameFromObjectJson(data);
+    final rawDataClassName = _isc.ProtocolDeserialization.readClassName(data);
+    final dataClassName = rawDataClassName;
     if (dataClassName != null && dataClassName != getClassNameForType(t)) {
       try {
         return deserializeByClassName({
@@ -451,12 +583,16 @@ class Protocol extends _isc.SerializationManager {
               .toList()
           as T;
     }
-    try {
-      return _iaic.Protocol().deserialize<T>(data, t);
-    } on _isc.DeserializationTypeNotFoundException catch (_) {}
-    try {
-      return _iacc.Protocol().deserialize<T>(data, t);
-    } on _isc.DeserializationTypeNotFoundException catch (_) {}
+    final modules = deserializationMetadata.modulesForDeserialization(
+      t,
+      className: rawDataClassName,
+    );
+    for (final module in modules) {
+      try {
+        return module.deserialize<T>(data, t);
+      } on _isc.DeserializationTypeNotFoundException catch (_) {}
+    }
+
     return super.deserialize<T>(data, t);
   }
 
@@ -718,12 +854,16 @@ class Protocol extends _isc.SerializationManager {
       return deserialize<_i7vdrlln.TypingEvent>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
-      data['className'] = dataClassName.substring(19);
-      return _iaic.Protocol().deserializeByClassName(data);
+      return _iaic.Protocol().deserializeByClassName({
+        ...data,
+        'className': dataClassName.substring(19),
+      });
     }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
-      data['className'] = dataClassName.substring(20);
-      return _iacc.Protocol().deserializeByClassName(data);
+      return _iacc.Protocol().deserializeByClassName({
+        ...data,
+        'className': dataClassName.substring(20),
+      });
     }
     return super.deserializeByClassName(data);
   }

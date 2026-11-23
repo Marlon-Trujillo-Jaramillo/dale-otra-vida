@@ -108,14 +108,157 @@ export 'review.dart';
 export 'review_view.dart';
 export 'typing_event.dart';
 
-class Protocol extends _is.DatabaseSerializationManager {
+class Protocol extends _is.DatabaseSerializationManager
+    implements _is.DatabaseProtocolDeserializationProvider {
   Protocol._();
 
   factory Protocol() => _instance;
 
   static final Protocol _instance = Protocol._().._registerHostProtocols();
 
+  @override
+  _is.ProtocolDeserialization get deserializationMetadata =>
+      _is.ProtocolDeserialization.cached(
+        this,
+        types: const [
+          _is.getType<_itrmkf8a.AccountType>,
+          _is.getType<_ip1vhxmg.AppNotification>,
+          _is.getType<_issw2w8j.Category>,
+          _is.getType<_ivuncx2e.ChatMessage>,
+          _is.getType<_iukzfy8n.CommunityImpact>,
+          _is.getType<_ineda879.Conversation>,
+          _is.getType<_iz4kexi3.ConversationView>,
+          _is.getType<_iut2va9k.AppFeedback>,
+          _is.getType<_i5v1trd1.IdentityReviewItem>,
+          _is.getType<_iw4n75qz.IdentityState>,
+          _is.getType<_i3lgiogf.IdentityStatus>,
+          _is.getType<_i3fqyeh3.IdentityVerification>,
+          _is.getType<_ittj06x2.ItemCondition>,
+          _is.getType<_ir9e9w84.Listing>,
+          _is.getType<_i0jjpqa3.ListingRequest>,
+          _is.getType<_igczfm3x.ListingStatus>,
+          _is.getType<_i1ntjlwm.ListingType>,
+          _is.getType<_ijuym7ok.ListingView>,
+          _is.getType<_izx6bz8r.LoanOutcome>,
+          _is.getType<_iuh59zig.MemberProfile>,
+          _is.getType<_ibvtcu73.MessageKind>,
+          _is.getType<_ioyw6oo5.MyRequestView>,
+          _is.getType<_icn336wo.NotAllowedException>,
+          _is.getType<_ipnxo26v.NotificationKind>,
+          _is.getType<_iyluks7w.PendingReview>,
+          _is.getType<_ihl17tin.PhotoUpload>,
+          _is.getType<_iarivcoc.ProfileRequiredException>,
+          _is.getType<_io3x196o.PublicProfileView>,
+          _is.getType<_i6cqc8ei.PushToken>,
+          _is.getType<_i2t8i3ij.Report>,
+          _is.getType<_ijgj7dn0.ReportReason>,
+          _is.getType<_iq8zsng0.RequestStatus>,
+          _is.getType<_iv1530zw.RequestView>,
+          _is.getType<_itqm5y01.Review>,
+          _is.getType<_io58qecx.ReviewView>,
+          _is.getType<_i7vdrlln.TypingEvent>,
+          _is.getType<_itrmkf8a.AccountType?>,
+          _is.getType<_ip1vhxmg.AppNotification?>,
+          _is.getType<_issw2w8j.Category?>,
+          _is.getType<_ivuncx2e.ChatMessage?>,
+          _is.getType<_iukzfy8n.CommunityImpact?>,
+          _is.getType<_ineda879.Conversation?>,
+          _is.getType<_iz4kexi3.ConversationView?>,
+          _is.getType<_iut2va9k.AppFeedback?>,
+          _is.getType<_i5v1trd1.IdentityReviewItem?>,
+          _is.getType<_iw4n75qz.IdentityState?>,
+          _is.getType<_i3lgiogf.IdentityStatus?>,
+          _is.getType<_i3fqyeh3.IdentityVerification?>,
+          _is.getType<_ittj06x2.ItemCondition?>,
+          _is.getType<_ir9e9w84.Listing?>,
+          _is.getType<_i0jjpqa3.ListingRequest?>,
+          _is.getType<_igczfm3x.ListingStatus?>,
+          _is.getType<_i1ntjlwm.ListingType?>,
+          _is.getType<_ijuym7ok.ListingView?>,
+          _is.getType<_izx6bz8r.LoanOutcome?>,
+          _is.getType<_iuh59zig.MemberProfile?>,
+          _is.getType<_ibvtcu73.MessageKind?>,
+          _is.getType<_ioyw6oo5.MyRequestView?>,
+          _is.getType<_icn336wo.NotAllowedException?>,
+          _is.getType<_ipnxo26v.NotificationKind?>,
+          _is.getType<_iyluks7w.PendingReview?>,
+          _is.getType<_ihl17tin.PhotoUpload?>,
+          _is.getType<_iarivcoc.ProfileRequiredException?>,
+          _is.getType<_io3x196o.PublicProfileView?>,
+          _is.getType<_i6cqc8ei.PushToken?>,
+          _is.getType<_i2t8i3ij.Report?>,
+          _is.getType<_ijgj7dn0.ReportReason?>,
+          _is.getType<_iq8zsng0.RequestStatus?>,
+          _is.getType<_iv1530zw.RequestView?>,
+          _is.getType<_itqm5y01.Review?>,
+          _is.getType<_io58qecx.ReviewView?>,
+          _is.getType<_i7vdrlln.TypingEvent?>,
+          _is.getType<List<String>>,
+          _is.getType<List<_ijuym7ok.ListingView>>,
+          _is.getType<List<_io58qecx.ReviewView>>,
+          _is.getType<List<_inonxfdt.ConversationView>>,
+          _is.getType<List<_icgl1ktv.ChatMessage>>,
+          _is.getType<List<_i6n6zdsp.IdentityReviewItem>>,
+          _is.getType<List<_ilhjw925.ListingView>>,
+          _is.getType<List<_i8mrzz0i.AppNotification>>,
+          _is.getType<List<_ivx3bzvp.RequestView>>,
+          _is.getType<List<_ij0l268m.MyRequestView>>,
+          _is.getType<List<_iox3wzrg.PendingReview>>,
+          _is.getType<List<_iwzyt887.ReviewView>>,
+        ],
+        modules: const [
+          _iais.Protocol.new,
+          _iacs.Protocol.new,
+          _isp.Protocol.new,
+        ],
+        classNames: const [
+          'AccountType',
+          'AppNotification',
+          'Category',
+          'ChatMessage',
+          'CommunityImpact',
+          'Conversation',
+          'ConversationView',
+          'AppFeedback',
+          'IdentityReviewItem',
+          'IdentityState',
+          'IdentityStatus',
+          'IdentityVerification',
+          'ItemCondition',
+          'Listing',
+          'ListingRequest',
+          'ListingStatus',
+          'ListingType',
+          'ListingView',
+          'LoanOutcome',
+          'MemberProfile',
+          'MessageKind',
+          'MyRequestView',
+          'NotAllowedException',
+          'NotificationKind',
+          'PendingReview',
+          'PhotoUpload',
+          'ProfileRequiredException',
+          'PublicProfileView',
+          'PushToken',
+          'Report',
+          'ReportReason',
+          'RequestStatus',
+          'RequestView',
+          'Review',
+          'ReviewView',
+          'TypingEvent',
+        ],
+      );
+
   static List<_isp.TableDefinition> get targetTableDefinitions => [
+    ..._ownTableDefinitions,
+    ..._iais.Protocol().getOwnTableDefinitions(),
+    ..._iacs.Protocol().getOwnTableDefinitions(),
+    ..._isp.Protocol.targetTableDefinitions,
+  ];
+
+  static List<_isp.TableDefinition> get _ownTableDefinitions => [
     _isp.TableDefinition(
       name: 'app_feedback',
       dartName: 'AppFeedback',
@@ -1408,16 +1551,10 @@ class Protocol extends _is.DatabaseSerializationManager {
       ],
       managed: true,
     ),
-    ..._iais.Protocol.targetTableDefinitions,
-    ..._iacs.Protocol.targetTableDefinitions,
-    ..._isp.Protocol.targetTableDefinitions,
   ];
 
-  static String? getClassNameFromObjectJson(dynamic data) {
-    if (data is! Map) return null;
-    final className = data['__className__'] as String?;
-    return className;
-  }
+  static String? getClassNameFromObjectJson(dynamic data) =>
+      _is.ProtocolDeserialization.readClassName(data);
 
   @override
   T deserialize<T>(
@@ -1425,8 +1562,8 @@ class Protocol extends _is.DatabaseSerializationManager {
     Type? t,
   ]) {
     t ??= T;
-
-    final dataClassName = getClassNameFromObjectJson(data);
+    final rawDataClassName = _is.ProtocolDeserialization.readClassName(data);
+    final dataClassName = rawDataClassName;
     if (dataClassName != null && dataClassName != getClassNameForType(t)) {
       try {
         return deserializeByClassName({
@@ -1749,15 +1886,16 @@ class Protocol extends _is.DatabaseSerializationManager {
               .toList()
           as T;
     }
-    try {
-      return _iais.Protocol().deserialize<T>(data, t);
-    } on _is.DeserializationTypeNotFoundException catch (_) {}
-    try {
-      return _iacs.Protocol().deserialize<T>(data, t);
-    } on _is.DeserializationTypeNotFoundException catch (_) {}
-    try {
-      return _isp.Protocol().deserialize<T>(data, t);
-    } on _is.DeserializationTypeNotFoundException catch (_) {}
+    final modules = deserializationMetadata.modulesForDeserialization(
+      t,
+      className: rawDataClassName,
+    );
+    for (final module in modules) {
+      try {
+        return module.deserialize<T>(data, t);
+      } on _is.DeserializationTypeNotFoundException catch (_) {}
+    }
+
     return super.deserialize<T>(data, t);
   }
 
@@ -2023,16 +2161,22 @@ class Protocol extends _is.DatabaseSerializationManager {
       return deserialize<_i7vdrlln.TypingEvent>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
-      data['className'] = dataClassName.substring(19);
-      return _iais.Protocol().deserializeByClassName(data);
+      return _iais.Protocol().deserializeByClassName({
+        ...data,
+        'className': dataClassName.substring(19),
+      });
     }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
-      data['className'] = dataClassName.substring(20);
-      return _iacs.Protocol().deserializeByClassName(data);
+      return _iacs.Protocol().deserializeByClassName({
+        ...data,
+        'className': dataClassName.substring(20),
+      });
     }
     if (dataClassName.startsWith('serverpod.')) {
-      data['className'] = dataClassName.substring(10);
-      return _isp.Protocol().deserializeByClassName(data);
+      return _isp.Protocol().deserializeByClassName({
+        ...data,
+        'className': dataClassName.substring(10),
+      });
     }
     return super.deserializeByClassName(data);
   }
@@ -2092,6 +2236,9 @@ class Protocol extends _is.DatabaseSerializationManager {
   @override
   List<_isp.TableDefinition> getTargetTableDefinitions() =>
       targetTableDefinitions;
+
+  @override
+  List<_isp.TableDefinition> getOwnTableDefinitions() => _ownTableDefinitions;
 
   @override
   String getModuleName() => 'dale_otra_vida';
